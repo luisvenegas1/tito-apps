@@ -1,0 +1,24 @@
+/**
+ * Design tokens neutrales (fallback).
+ * Estos son los valores por defecto; cada app los sobreescribe con applyBrand()
+ * a partir de su AppBrand. Ningún color aquí pertenece a un producto específico.
+ */
+:root {
+  --tt-primary: #4f46e5;          /* neutral por defecto (se sobreescribe) */
+  --tt-primary-hover: #4338ca;
+  --tt-primary-contrast: #ffffff; /* texto legible sobre primary */
+  --tt-secondary: #64748b;
+
+  --tt-surface: #ffffff;          /* fondo de tarjetas */
+  --tt-surface-subtle: #f8fafc;   /* fondo suave de página */
+
+  --tt-fg: #111827;               /* texto principal */
+  --tt-fg-muted: #6b7280;         /* texto secundario */
+  --tt-border: #e5e7eb;
+
+  --tt-danger: #ef4444;
+  --tt-warning: #f59e0b;
+  --tt-success: #22c55e;
+
+  --tt-radius: 0.75rem;
+}

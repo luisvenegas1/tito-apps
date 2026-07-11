@@ -1,0 +1,31 @@
+// Catálogo neutral de Tito Apps. Ningún componente conoce colores ni textos
+// de un producto: el tema llega por design tokens (variables CSS) vía @titoapps/brand.
+export { cn } from "./utils/cn";
+export { Button } from "./Button";
+export type { ButtonProps } from "./Button";
+export { Input } from "./Input";
+export type { InputProps } from "./Input";
+export { Select } from "./Select";
+export type { SelectProps } from "./Select";
+export { Checkbox } from "./Checkbox";
+export type { CheckboxProps } from "./Checkbox";
+export { Card } from "./Card";
+export { Badge } from "./Badge";
+export type { BadgeProps } from "./Badge";
+export { Spinner } from "./Spinner";
+export { Skeleton } from "./Skeleton";
+export { Modal } from "./Modal";
+export type { ModalProps } from "./Modal";
+export { Dialog } from "./Dialog";
+export type { DialogProps } from "./Dialog";
+export { ToastProvider, useToast } from "./Toast";
+export { FormField } from "./FormField";
+export type { FormFieldProps } from "./FormField";
+export { CurrencyInput } from "./CurrencyInput";
+export type { CurrencyInputProps } from "./CurrencyInput";
+export { DateInput } from "./DateInput";
+export type { DateInputProps } from "./DateInput";
+export { EmptyState } from "./EmptyState";
+export type { EmptyStateProps } from "./EmptyState";
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps } from "./PageHeader";
