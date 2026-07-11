@@ -1,0 +1,19 @@
+{
+  "name": "tito-apps",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo de Tito Apps (GolPay, MoneyTrack, SplitPay).",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "golpay:dev": "pnpm --filter golpay dev",
+    "golpay:build": "pnpm --filter golpay build",
+    "golpay:test": "pnpm --filter golpay test"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  }
+}

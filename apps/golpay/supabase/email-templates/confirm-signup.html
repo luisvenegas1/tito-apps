@@ -1,0 +1,56 @@
+<!--
+  Plantilla de confirmacion de correo para GolPay.
+  Pegala en Supabase -> Authentication -> Emails -> plantilla "Confirm signup".
+  Variables de Supabase: {{ .ConfirmationURL }}, {{ .Email }}, {{ .SiteURL }}
+  Nota: los caracteres especiales (tildes y emojis) van como entidades HTML
+  (&aacute;, &#9917;, ...) para que se vean bien en cualquier cliente de correo.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;padding:24px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+        <!-- Header -->
+        <tr>
+          <td style="background:#16a34a;padding:28px 24px;text-align:center;">
+            <div style="font-size:40px;line-height:1;">&#9917;</div>
+            <div style="color:#ffffff;font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-0.5px;">GolPay</div>
+            <div style="color:#dcfce7;font-size:14px;margin-top:2px;">Organiz&aacute; tu mejenga y cobr&aacute; sin perseguir a nadie</div>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 28px 8px;">
+            <h1 style="font-size:20px;color:#111827;margin:0 0 12px;">&iexcl;Bienvenido a la cancha! &#129349;</h1>
+            <p style="font-size:15px;color:#4b5563;line-height:1.6;margin:0 0 24px;">
+              Gracias por registrarte en GolPay. Solo falta un toque para activar tu cuenta y empezar a organizar tus partidos.
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="center">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 32px;border-radius:12px;">
+                    Confirmar mi correo
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="font-size:13px;color:#9ca3af;line-height:1.6;margin:24px 0 0;">
+              Si el bot&oacute;n no funciona, copi&aacute; y peg&aacute; este enlace en tu navegador:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#16a34a;word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:24px 28px 28px;">
+            <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 16px;">
+            <p style="font-size:12px;color:#9ca3af;line-height:1.5;margin:0;">
+              Si no creaste esta cuenta, pod&eacute;s ignorar este correo tranquilamente.<br>
+              GolPay &#9917; &middot; F&uacute;tbol entre amigos, sin complicaciones.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

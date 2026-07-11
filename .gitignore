@@ -1,0 +1,24 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+dist-ssr/
+.turbo/
+
+# Entornos (NUNCA commitear secretos)
+.env
+.env.local
+.env.*.local
+
+# SplitPay conserva su PROPIO repositorio Git.
+# Se excluye del monorepo por ahora para no tocarlo (se migrará después).
+/splitpay/
+
+# Archivos temporales de Vite
+*.timestamp-*.mjs
+
+# Sistema
+.DS_Store
+*.log
+.backups/
