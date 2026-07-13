@@ -1,23 +1,10 @@
-/** Formatea colones costarricenses: 2200 -> ₡2.200 */
+// Utilidades neutrales ahora viven en @titoapps/utils.
+// Se re-exportan para no cambiar los imports existentes de GolPay.
+export { generatePin, formatDate } from "@titoapps/utils";
+
+/** Formatea colones costarricenses: 2200 -> ₡2.200 (fijo de GolPay). */
 export function crc(amount: number): string {
   return "₡" + Math.round(amount).toLocaleString("es-CR");
-}
-
-/** Genera un PIN numérico de 4 dígitos. */
-export function generatePin(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
-
-export function formatDate(iso: string): string {
-  try {
-    return new Date(iso + "T00:00:00").toLocaleDateString("es-CR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
-  } catch {
-    return iso;
-  }
 }
 
 export const PAYMENT_LABELS: Record<string, string> = {

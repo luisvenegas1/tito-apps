@@ -20,6 +20,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.51.0
         version: 5.101.2(react@18.3.1)
+      '@titoapps/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -64,7 +67,11 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9(@types/node@26.1.1)(terser@5.49.0)
 
-  packages/brand: {}
+  packages/brand:
+    devDependencies:
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
 
   packages/ui:
     dependencies:
@@ -84,6 +91,15 @@ importers:
       typescript:
         specifier: ^5.5.4
         version: 5.9.3
+
+  packages/utils:
+    devDependencies:
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(@types/node@26.1.1)(terser@5.49.0)
 
 packages:
 
