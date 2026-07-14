@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tito Apps">
+  <!-- PROVISIONAL: reemplazar por el ícono oficial aprobado. Usa los colores oficiales. -->
+  <rect width="512" height="512" rx="112" fill="#3CC54A"/>
+  <path d="M256 116c-8 0-15 3-21 8L140 214c-13 12-5 34 13 34h58v130c0 20 16 36 36 36h18c20 0 36-16 36-36V258h58c18 0 26-22 13-34l-95-90c-6-5-13-8-21-8z" fill="#172338"/>
+  <circle cx="256" cy="150" r="20" fill="#F97316"/>
+</svg>

@@ -1,21 +1,25 @@
 /**
  * Balanceador de equipos para mejengas / mini-cuadrangulares.
  *
- * Soporta 2, 3, 4 o más equipos (hasta ~24 jugadores).
- * Estrategia:
- *  1. Snake draft por nivel (reparte los mejores de forma alternada).
- *  2. Restricción de porteros: se reparten primero, uno por equipo.
- *  3. Mejora local: swaps entre equipos que reduzcan la diferencia de nivel.
+ * Escala de nivel 1–3 (1 recreativo, 2 intermedio, 3 avanzado).
+ * Jugadores sin nivel reciben DEFAULT_LEVEL (intermedio).
  *
- * El nivel es privado (1-5). Jugadores sin nivel reciben DEFAULT_LEVEL.
+ * Estrategia:
+ *  1. Repartir porteros primero (uno por equipo, por nivel desc) — restricción dura.
+ *  2. Repartir el resto con LPT (Longest Processing Time): ordenar por nivel desc
+ *     y asignar cada jugador al equipo más débil con cupo. Esto reparte a los
+ *     AVANZADOS primero y usa a los RECREATIVOS para compensar a los equipos
+ *     fuertes; los INTERMEDIOS completan. Minimiza la diferencia de puntos.
+ *  3. Mejora local por swaps 1-a-1 que reduzcan la diferencia, con GUARDIA DE
+ *     PORTERO: nunca dejar sin arquero a un equipo que ya tenía uno.
  */
 
-export const DEFAULT_LEVEL = 3;
+export const DEFAULT_LEVEL = 2;
 
 export interface BalancePlayer {
   id: string;
   name: string;
-  level: number | null; // 1-5, null = sin evaluar
+  level: number | null; // 1-3, null = sin evaluar
   canGoalkeeper?: boolean;
   position?: string | null;
 }
@@ -34,67 +38,83 @@ function teamScore(players: BalancePlayer[]): number {
   return players.reduce((s, p) => s + levelOf(p), 0);
 }
 
-function spread(teams: BalancePlayer[][]): number {
-  const scores = teams.map(teamScore);
+function keeperCount(players: BalancePlayer[]): number {
+  return players.reduce((n, p) => n + (p.canGoalkeeper ? 1 : 0), 0);
+}
+
+function spread(buckets: BalancePlayer[][]): number {
+  const scores = buckets.map(teamScore);
   return Math.max(...scores) - Math.min(...scores);
 }
 
-/**
- * Distribuye jugadores en `numTeams` equipos balanceados.
- */
-export function balanceTeams(
-  players: BalancePlayer[],
-  numTeams: number,
-): Team[] {
+/** Capacidades (tamaños objetivo) para repartir parejo la cantidad de jugadores. */
+function capacities(total: number, numTeams: number): number[] {
+  const base = Math.floor(total / numTeams);
+  const extra = total % numTeams;
+  return Array.from({ length: numTeams }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+export function balanceTeams(players: BalancePlayer[], numTeams: number): Team[] {
   if (numTeams < 2) numTeams = 2;
   const buckets: BalancePlayer[][] = Array.from({ length: numTeams }, () => []);
+  const caps = capacities(players.length, numTeams);
 
-  // 1) Repartir porteros primero (uno por equipo, por nivel desc).
+  // 1) Porteros primero, uno por equipo (por nivel desc).
   const keepers = players
     .filter((p) => p.canGoalkeeper)
     .sort((a, b) => levelOf(b) - levelOf(a));
-  const fieldPlayers = players.filter((p) => !p.canGoalkeeper);
-
   const usedKeeperIds = new Set<string>();
   for (let t = 0; t < numTeams && t < keepers.length; t++) {
     buckets[t].push(keepers[t]);
     usedKeeperIds.add(keepers[t].id);
   }
-  // Porteros sobrantes vuelven al pool de campo.
   const remainingKeepers = keepers.filter((k) => !usedKeeperIds.has(k.id));
 
-  // 2) Snake draft con el resto, ordenado por nivel desc.
-  const pool = [...fieldPlayers, ...remainingKeepers].sort(
+  // 2) LPT con capacidad para el resto (campo + porteros sobrantes).
+  const pool = [...players.filter((p) => !p.canGoalkeeper), ...remainingKeepers].sort(
     (a, b) => levelOf(b) - levelOf(a),
   );
-
-  let dir = 1;
-  let t = 0;
   for (const p of pool) {
-    buckets[t].push(p);
-    if (dir === 1 && t === numTeams - 1) {
-      dir = -1;
-    } else if (dir === -1 && t === 0) {
-      dir = 1;
-    } else {
-      t += dir;
+    let best = -1;
+    for (let t = 0; t < numTeams; t++) {
+      if (buckets[t].length >= caps[t]) continue; // respeta el tamaño de equipo
+      if (
+        best === -1 ||
+        teamScore(buckets[t]) < teamScore(buckets[best]) ||
+        (teamScore(buckets[t]) === teamScore(buckets[best]) &&
+          buckets[t].length < buckets[best].length)
+      ) {
+        best = t;
+      }
     }
+    if (best === -1) best = 0; // fallback (no debería ocurrir)
+    buckets[best].push(p);
   }
 
-  // 3) Mejora local: swaps que reduzcan el spread.
+  // 3) Mejora local con guardia de portero.
   improve(buckets);
 
-  return buckets.map((players, index) => ({
-    index,
-    players,
-    score: teamScore(players),
-  }));
+  return buckets.map((players, index) => ({ index, players, score: teamScore(players) }));
 }
 
-/** Intenta reducir la diferencia de nivel con intercambios simples. */
-function improve(buckets: BalancePlayer[][], maxIters = 200): void {
+/** ¿El swap deja a algún equipo (que tenía portero) sin ninguno? */
+function swapBreaksKeepers(
+  hiPlayers: BalancePlayer[],
+  loPlayers: BalancePlayer[],
+  a: BalancePlayer,
+  b: BalancePlayer,
+): boolean {
+  const hiKeepers = keeperCount(hiPlayers);
+  const loKeepers = keeperCount(loPlayers);
+  const hiAfter = hiKeepers - (a.canGoalkeeper ? 1 : 0) + (b.canGoalkeeper ? 1 : 0);
+  const loAfter = loKeepers - (b.canGoalkeeper ? 1 : 0) + (a.canGoalkeeper ? 1 : 0);
+  if (hiKeepers > 0 && hiAfter === 0) return true;
+  if (loKeepers > 0 && loAfter === 0) return true;
+  return false;
+}
+
+function improve(buckets: BalancePlayer[][], maxIters = 300): void {
   for (let iter = 0; iter < maxIters; iter++) {
-    let improved = false;
     const scores = buckets.map(teamScore);
     const hi = scores.indexOf(Math.max(...scores));
     const lo = scores.indexOf(Math.min(...scores));
@@ -108,14 +128,13 @@ function improve(buckets: BalancePlayer[][], maxIters = 200): void {
       for (let j = 0; j < buckets[lo].length; j++) {
         const a = buckets[hi][i];
         const b = buckets[lo][j];
-        // No romper el reparto de porteros: evitar dejar un equipo sin portero.
+        if (swapBreaksKeepers(buckets[hi], buckets[lo], a, b)) continue;
         const newHi = teamScore(buckets[hi]) - levelOf(a) + levelOf(b);
         const newLo = teamScore(buckets[lo]) - levelOf(b) + levelOf(a);
-        const otherScores = buckets
-          .map((bk, idx) =>
-            idx === hi ? newHi : idx === lo ? newLo : teamScore(bk),
-          );
-        const newSpread = Math.max(...otherScores) - Math.min(...otherScores);
+        const others = buckets.map((bk, idx) =>
+          idx === hi ? newHi : idx === lo ? newLo : teamScore(bk),
+        );
+        const newSpread = Math.max(...others) - Math.min(...others);
         const delta = before - newSpread;
         if (delta > bestDelta) {
           bestDelta = delta;
@@ -124,14 +143,11 @@ function improve(buckets: BalancePlayer[][], maxIters = 200): void {
       }
     }
 
-    if (bestSwap) {
-      const [i, j] = bestSwap;
-      const tmp = buckets[hi][i];
-      buckets[hi][i] = buckets[lo][j];
-      buckets[lo][j] = tmp;
-      improved = true;
-    }
-    if (!improved) break;
+    if (!bestSwap) break;
+    const [i, j] = bestSwap;
+    const tmp = buckets[hi][i];
+    buckets[hi][i] = buckets[lo][j];
+    buckets[lo][j] = tmp;
   }
 }
 

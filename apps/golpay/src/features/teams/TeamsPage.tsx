@@ -6,6 +6,8 @@ import { listMatchPlayers } from "../matches/api";
 import { listFrequent } from "../players/api";
 import { balanceTeams, rescore, BalancePlayer, Team, DEFAULT_LEVEL } from "@/lib/balancer/balance";
 import { publishTeams } from "./api";
+import { levelLabel } from "@/lib/levels";
+import { Button } from "@titoapps/ui";
 
 export function TeamsPage() {
   const { id } = useParams<{ id: string }>();
@@ -80,11 +82,11 @@ export function TeamsPage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-gray-400">
-            {balancePlayers.length} jugadores. Los que no tienen nivel registrado usan nivel {DEFAULT_LEVEL}.
+            {balancePlayers.length} jugadores. Los que no tienen nivel registrado usan nivel {levelLabel(DEFAULT_LEVEL)}.
           </p>
-          <button className="btn-primary mt-3 w-full" onClick={generate} disabled={balancePlayers.length < numTeams}>
+          <Button fullWidth className="mt-3" onClick={generate} disabled={balancePlayers.length < numTeams}>
             {teams ? "Regenerar" : "Generar equipos"}
-          </button>
+          </Button>
         </div>
 
         {teams && (
@@ -114,9 +116,9 @@ export function TeamsPage() {
               ))}
             </div>
 
-            <button className="btn-primary w-full" onClick={publish} disabled={busy}>
+            <Button fullWidth onClick={publish} disabled={busy}>
               {busy ? "Publicando…" : "Publicar equipos"}
-            </button>
+            </Button>
             {msg && <p className="text-center text-sm text-pitch-600">{msg}</p>}
           </>
         )}

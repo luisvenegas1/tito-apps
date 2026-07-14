@@ -1,24 +1,133 @@
-/**
- * Design tokens neutrales (fallback).
- * Estos son los valores por defecto; cada app los sobreescribe con applyBrand()
- * a partir de su AppBrand. Ningún color aquí pertenece a un producto específico.
- */
+/* =====================================================================
+   Tito Apps — Design Tokens (3 capas)
+   1) Primitivos  -> valores crudos, NO cambian por tema
+   2) Semánticos  -> roles; cambian por tema y por marca (applyBrand)
+   3) Componente  -> los usan los componentes de @titoapps/ui
+   Principio rector: simplicidad. No agregar un token si no simplifica.
+   ===================================================================== */
+
 :root {
-  --tt-primary: #4f46e5;          /* neutral por defecto (se sobreescribe) */
-  --tt-primary-hover: #4338ca;
-  --tt-primary-contrast: #ffffff; /* texto legible sobre primary */
-  --tt-secondary: #64748b;
+  /* ---------- 1) PRIMITIVOS ---------- */
 
-  --tt-surface: #ffffff;          /* fondo de tarjetas */
-  --tt-surface-subtle: #f8fafc;   /* fondo suave de página */
+  /* Marca Tito Apps */
+  --tt-p-green-400: #5BD267;
+  --tt-p-green-500: #3CC54A;   /* PRIMARY oficial Tito Apps */
+  --tt-p-green-600: #2FA23B;   /* hover */
+  --tt-p-navy-900:  #172338;   /* SECONDARY oficial (azul oscuro) */
+  --tt-p-orange-500:#F97316;   /* ACCENT (naranja) */
+  --tt-p-violet-500:#8B5CF6;   /* ACCENT secundario (uso ocasional) */
 
-  --tt-fg: #111827;               /* texto principal */
-  --tt-fg-muted: #6b7280;         /* texto secundario */
-  --tt-border: #e5e7eb;
+  /* Neutrales (slate) */
+  --tt-p-slate-50:  #F8FAFC;
+  --tt-p-slate-100: #F1F5F9;
+  --tt-p-slate-200: #E2E8F0;
+  --tt-p-slate-300: #CBD5E1;
+  --tt-p-slate-400: #94A3B8;
+  --tt-p-slate-500: #64748B;
+  --tt-p-slate-600: #475569;
+  --tt-p-slate-700: #334155;
+  --tt-p-slate-800: #1E293B;
+  --tt-p-slate-900: #0F172A;
+  --tt-p-slate-950: #020617;
 
-  --tt-danger: #ef4444;
-  --tt-warning: #f59e0b;
-  --tt-success: #22c55e;
+  /* Colores de sistema (semánticos base) */
+  --tt-p-success: #16A34A;
+  --tt-p-warning: #F59E0B;
+  --tt-p-danger:  #EF4444;
+  --tt-p-info:    #2563EB;   /* azul del Brand Kit (informacion / enlaces) */
 
-  --tt-radius: 0.75rem;
+  /* Tipografía (una sola familia: Inter) */
+  --tt-p-font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --tt-p-text-xs:  0.75rem;   /* 12 */
+  --tt-p-text-sm:  0.875rem;  /* 14 */
+  --tt-p-text-base:1rem;      /* 16 */
+  --tt-p-text-md:  1.125rem;  /* 18 */
+  --tt-p-text-lg:  1.25rem;   /* 20 */
+  --tt-p-text-xl:  1.5rem;    /* 24 */
+  --tt-p-text-2xl: 1.875rem;  /* 30 */
+  --tt-p-text-3xl: 2.25rem;   /* 36 */
+  --tt-p-text-4xl: 3rem;      /* 48 */
+
+  /* Espaciado (base 4px) */
+  --tt-p-space-1: 4px;
+  --tt-p-space-2: 8px;
+  --tt-p-space-3: 12px;
+  --tt-p-space-4: 16px;
+  --tt-p-space-5: 20px;
+  --tt-p-space-6: 24px;
+  --tt-p-space-8: 32px;
+  --tt-p-space-10: 40px;
+  --tt-p-space-12: 48px;
+  --tt-p-space-16: 64px;
+
+  /* Radios */
+  --tt-p-radius-sm: 6px;
+  --tt-p-radius-md: 8px;
+  --tt-p-radius-lg: 12px;
+  --tt-p-radius-xl: 16px;
+  --tt-p-radius-full: 9999px;
+
+  /* Sombras */
+  --tt-p-shadow-sm: 0 1px 2px rgba(23, 35, 56, 0.06);
+  --tt-p-shadow-md: 0 4px 12px rgba(23, 35, 56, 0.08);
+  --tt-p-shadow-lg: 0 12px 32px rgba(23, 35, 56, 0.12);
+
+  /* Motion */
+  --tt-p-dur-fast: 120ms;
+  --tt-p-dur-base: 200ms;
+  --tt-p-dur-slow: 320ms;
+  --tt-p-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---------- 2) SEMÁNTICOS (tema claro, marca Tito Apps por defecto) ---------- */
+  --tt-primary:          var(--tt-p-green-500);
+  --tt-primary-hover:    var(--tt-p-green-600);
+  --tt-primary-contrast: #FFFFFF;
+  --tt-secondary:        var(--tt-p-navy-900);
+  --tt-accent:           var(--tt-p-orange-500);
+  --tt-accent-alt:       var(--tt-p-violet-500);
+
+  --tt-bg:             var(--tt-p-slate-50);
+  --tt-surface:        #FFFFFF;
+  --tt-surface-subtle: var(--tt-p-slate-100);
+  --tt-fg:             var(--tt-p-slate-900);
+  --tt-fg-muted:       var(--tt-p-slate-500);
+  --tt-border:         var(--tt-p-slate-200);
+  --tt-ring:           var(--tt-primary);
+
+  --tt-success: var(--tt-p-success);
+  --tt-warning: var(--tt-p-warning);
+  --tt-danger:  var(--tt-p-danger);
+  --tt-info:    var(--tt-p-info);
+
+  --tt-radius: var(--tt-p-radius-lg);
+  --tt-shadow-sm: var(--tt-p-shadow-sm);
+  --tt-shadow-md: var(--tt-p-shadow-md);
+  --tt-shadow-lg: var(--tt-p-shadow-lg);
+
+  /* ---------- 3) COMPONENTE ---------- */
+  --tt-button-bg:       var(--tt-primary);
+  --tt-button-bg-hover: var(--tt-primary-hover);
+  --tt-button-fg:       var(--tt-primary-contrast);
+  --tt-input-bg:        var(--tt-surface);
+  --tt-input-border:    var(--tt-border);
+  --tt-card-bg:         var(--tt-surface);
+}
+
+/* ---------- Dark mode: SOLO se sobreescriben tokens semánticos ---------- */
+[data-theme="dark"] {
+  --tt-bg:             var(--tt-p-slate-950);
+  --tt-surface:        var(--tt-p-slate-900);
+  --tt-surface-subtle: var(--tt-p-slate-800);
+  --tt-fg:             var(--tt-p-slate-50);
+  --tt-fg-muted:       var(--tt-p-slate-400);
+  --tt-border:         var(--tt-p-slate-800);
+}
+
+/* Respeto de accesibilidad: reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tt-p-dur-fast: 0ms;
+    --tt-p-dur-base: 0ms;
+    --tt-p-dur-slow: 0ms;
+  }
 }

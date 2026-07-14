@@ -1,0 +1,11 @@
+@import "@titoapps/brand/tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: var(--tt-p-font-sans);
+  background: var(--tt-bg);
+  color: var(--tt-fg);
+}

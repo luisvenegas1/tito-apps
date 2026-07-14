@@ -3,5 +3,6 @@
 export { formatCurrency } from "./currency";
 export type { CurrencyOptions } from "./currency";
 export { formatDate } from "./date";
+export { formatTime } from "./time";
 export { generatePin } from "./pin";
 export { copyToClipboard } from "./clipboard";

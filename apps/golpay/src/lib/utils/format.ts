@@ -1,6 +1,6 @@
 // Utilidades neutrales ahora viven en @titoapps/utils.
 // Se re-exportan para no cambiar los imports existentes de GolPay.
-export { generatePin, formatDate } from "@titoapps/utils";
+export { generatePin, formatDate, formatTime } from "@titoapps/utils";
 
 /** Formatea colones costarricenses: 2200 -> ₡2.200 (fijo de GolPay). */
 export function crc(amount: number): string {

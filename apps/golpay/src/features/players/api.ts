@@ -7,7 +7,11 @@ export async function listFrequent(): Promise<FrequentPlayer[]> {
   return data as FrequentPlayer[];
 }
 
-export type FrequentInput = Omit<FrequentPlayer, "id" | "owner_id" | "created_at" | "last_played_at">;
+// El input de creación/edición no incluye is_active (se gestiona con setActive).
+export type FrequentInput = Omit<
+  FrequentPlayer,
+  "id" | "owner_id" | "created_at" | "last_played_at" | "is_active"
+>;
 
 export async function createFrequent(input: FrequentInput, ownerId: string): Promise<void> {
   const { error } = await supabase.from("frequent_players").insert({ ...input, owner_id: ownerId });
@@ -19,18 +23,34 @@ export async function updateFrequent(id: string, patch: Partial<FrequentInput>):
   if (error) throw error;
 }
 
-export async function deleteFrequent(id: string): Promise<void> {
-  const { error } = await supabase.from("frequent_players").delete().eq("id", id);
+/** Desactiva/reactiva un jugador (soft delete). */
+export async function setActive(id: string, active: boolean): Promise<void> {
+  const { error } = await supabase.from("frequent_players").update({ is_active: active }).eq("id", id);
   if (error) throw error;
 }
 
+/** Devuelve un jugador ACTIVO con el mismo nombre (para evitar duplicados). */
+export function findDuplicate(
+  name: string,
+  list: FrequentPlayer[],
+  excludeId?: string,
+): FrequentPlayer | null {
+  const n = name.toLowerCase().trim();
+  return (
+    list.find(
+      (f) => f.is_active && f.id !== excludeId && f.name.toLowerCase().trim() === n,
+    ) ?? null
+  );
+}
+
 /**
- * Sugiere posibles coincidencias entre un nombre importado y jugadores frecuentes.
- * NO fusiona: sólo sugiere. La UI confirma.
+ * Sugiere posibles coincidencias entre un nombre importado y jugadores frecuentes
+ * ACTIVOS. NO fusiona: sólo sugiere. La UI confirma.
  */
 export function suggestMatches(name: string, frequent: FrequentPlayer[]): FrequentPlayer[] {
   const n = name.toLowerCase().trim();
   return frequent.filter((f) => {
+    if (!f.is_active) return false;
     const fn = f.name.toLowerCase();
     const nick = (f.nickname ?? "").toLowerCase();
     return (

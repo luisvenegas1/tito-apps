@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicMatch, reportPayment, PublicPlayer } from "./api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { crc, formatDate } from "@/lib/utils/format";
+import { crc, formatDate, formatTime } from "@/lib/utils/format";
+import { Button } from "@titoapps/ui";
 
 export function PublicMatchPage() {
   const { token } = useParams<{ token: string }>();
@@ -22,7 +23,7 @@ export function PublicMatchPage() {
         <div className="text-3xl">⚽</div>
         <h1 className="mt-1 text-2xl font-extrabold">{match.title}</h1>
         <p className="text-sm opacity-90">
-          {formatDate(match.date)} {match.time && `· ${match.time}`}
+          {formatDate(match.date)} {match.time && `· ${formatTime(match.time)}`}
           {match.location && ` · ${match.location}`}
         </p>
         <p className="mt-1 font-semibold">{crc(match.cost_per_player)} por jugador</p>
@@ -164,9 +165,9 @@ function ReportModal({
 
           {err && <p className="text-sm text-red-500">{err}</p>}
 
-          <button className="btn-primary w-full" disabled={busy || pin.length !== 4} onClick={submit}>
+          <Button fullWidth disabled={busy || pin.length !== 4} onClick={submit}>
             {busy ? "…" : "Ya pagué ✅"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

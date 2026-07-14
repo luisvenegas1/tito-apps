@@ -11,7 +11,7 @@ function darken(hex: string, amount = 0.12): string {
   return "#" + [r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("");
 }
 
-/** Devuelve negro o blanco según cuál contraste mejor con el color dado. */
+/** Devuelve negro o blanco según cuál contraste mejor (WCAG aproximado). */
 function contrastColor(hex: string): string {
   const h = hex.replace("#", "");
   if (h.length !== 6) return "#ffffff";
@@ -19,14 +19,13 @@ function contrastColor(hex: string): string {
   const r = (num >> 16) & 0xff;
   const g = (num >> 8) & 0xff;
   const b = num & 0xff;
-  // Luminancia relativa aproximada.
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.6 ? "#111827" : "#ffffff";
 }
 
 /**
- * Inyecta los colores de un AppBrand como variables CSS en el documento.
- * Los demás tokens (surface, fg, border…) vienen de tokens.css.
+ * Inyecta los colores de un AppBrand como tokens semánticos.
+ * El resto de los tokens (neutrales, tipografía, espaciado…) viene de tokens.css.
  * Llamar una vez al iniciar la app.
  */
 export function applyBrand(
@@ -35,7 +34,10 @@ export function applyBrand(
 ): void {
   const s = target.style;
   s.setProperty("--tt-primary", brand.primaryColor);
-  s.setProperty("--tt-primary-hover", darken(brand.primaryColor));
+  s.setProperty("--tt-primary-hover", brand.primaryColorHover ?? darken(brand.primaryColor));
   s.setProperty("--tt-primary-contrast", contrastColor(brand.primaryColor));
   s.setProperty("--tt-secondary", brand.secondaryColor);
+  s.setProperty("--tt-ring", brand.primaryColor);
+  if (brand.accentColor) s.setProperty("--tt-accent", brand.accentColor);
+  if (brand.accentAltColor) s.setProperty("--tt-accent-alt", brand.accentAltColor);
 }

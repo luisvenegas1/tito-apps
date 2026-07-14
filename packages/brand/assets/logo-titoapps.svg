@@ -1,0 +1,8 @@
+<svg width="420" height="112" viewBox="0 0 420 112" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tito Apps">
+  <!-- PROVISIONAL: reemplazar por el logotipo oficial aprobado (verde + azul oscuro). -->
+  <rect x="8" y="8" width="96" height="96" rx="22" fill="#3CC54A"/>
+  <path d="M56 26c-2 0-3 .6-4.4 1.7L34 43c-2.7 2.4-1 6.9 2.7 6.9H49v27c0 4.2 3.4 7.6 7.6 7.6h1.8c4.2 0 7.6-3.4 7.6-7.6V49.9h12.3c3.7 0 5.4-4.5 2.7-6.9L60.4 27.7C59 26.6 58 26 56 26z" fill="#172338"/>
+  <text x="128" y="70" font-family="Inter, system-ui, sans-serif" font-size="52" font-weight="800" letter-spacing="-1">
+    <tspan fill="#172338">Tito</tspan><tspan fill="#3CC54A"> Apps</tspan>
+  </text>
+</svg>

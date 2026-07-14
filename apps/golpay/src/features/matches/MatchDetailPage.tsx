@@ -8,9 +8,10 @@ import {
   getMatch, listMatchPlayers, setPaymentStatus, updatePlayer, removePlayer, setMatchPin, deleteMatch,
 } from "./api";
 import { useAuth } from "../auth/AuthProvider";
-import { crc, formatDate, generatePin } from "@/lib/utils/format";
+import { crc, formatDate, formatTime, generatePin } from "@/lib/utils/format";
 import { computeTotals, pendingMessage, summaryMessage, inviteMessage } from "../payments/messages";
 import type { MatchPlayer, PaymentStatus } from "@/lib/supabase/types";
+import { Button } from "@titoapps/ui";
 
 const ORDER: Record<PaymentStatus, number> = {
   pendiente: 0, reportado: 1, parcial: 2, confirmado: 3, exonerado: 4, no_asistio: 5,
@@ -47,6 +48,14 @@ export function MatchDetailPage() {
     refresh();
   }
 
+  function reportedAtLabel(iso: string | null): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${d.toLocaleDateString("es-CR", { day: "numeric", month: "short" })} · ${formatTime(`${hh}:${mm}`)}`;
+  }
+
   async function copy(text: string, label: string) {
     const ok = await copyToClipboard(text);
     flash(ok ? `${label} copiado` : "No se pudo copiar");
@@ -77,7 +86,7 @@ export function MatchDetailPage() {
       <div className="space-y-4 p-4">
         <div className="card">
           <div className="text-sm text-gray-500">
-            {formatDate(match.date)} {match.time && `· ${match.time}`}
+            {formatDate(match.date)} {match.time && `· ${formatTime(match.time)}`}
             {match.location && ` · ${match.location}`}
           </div>
           <div className="mt-1 text-sm">
@@ -93,9 +102,48 @@ export function MatchDetailPage() {
           <Stat label="Jugadores" value={`${totals.confirmed}/${totals.total} ✔`} />
         </div>
 
+        {/* Bandeja de aprobación de pagos reportados */}
+        {(() => {
+          const reported = players.filter((p) => p.payment_status === "reportado");
+          if (reported.length === 0) return null;
+          return (
+            <div className="card border-l-4 border-yellow-400">
+              <div className="mb-2 flex items-center gap-2 font-semibold">
+                <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-yellow-400 px-1.5 text-sm text-white">
+                  {reported.length}
+                </span>
+                Pendientes de aprobar
+              </div>
+              <div className="space-y-2">
+                {reported.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2 first:border-0 first:pt-0">
+                    <div className="min-w-0">
+                      <div className="font-medium">{p.display_name}</div>
+                      <div className="text-xs text-gray-400">
+                        {crc(p.amount_due)}
+                        {p.reported_at && ` · ${reportedAtLabel(p.reported_at)}`}
+                        {p.payment_method && ` · ${p.payment_method}`}
+                      </div>
+                      {p.note && <div className="text-xs text-gray-400">“{p.note}”</div>}
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button className="rounded-lg bg-pitch-500 px-3 py-1.5 text-sm font-medium text-white" onClick={() => change(p, "confirmado")}>
+                        Aprobar
+                      </button>
+                      <button className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600" onClick={() => change(p, "pendiente")}>
+                        Rechazar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Acciones */}
         <div className="grid grid-cols-2 gap-2">
-          <button className="btn-primary" onClick={share}>Compartir enlace + PIN</button>
+          <Button onClick={share}>Compartir enlace + PIN</Button>
           <Link to={`/partido/${match.id}/importar`} className="btn-ghost">+ Importar</Link>
           <button className="btn-ghost" onClick={() => copy(pendingMessage(match, players), "Pendientes")}>Copiar pendientes</button>
           <button className="btn-ghost" onClick={() => copy(summaryMessage(players), "Resumen")}>Copiar resumen</button>

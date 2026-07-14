@@ -4,7 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { applyBrand, golpayBrand } from "@titoapps/brand";
+import "@titoapps/brand/tokens.css";
 import "./index.css";
+
+// Aplica los design tokens de la marca GolPay (verde #16A34A, hover #15803d).
+applyBrand(golpayBrand);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },

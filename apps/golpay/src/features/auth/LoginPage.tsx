@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
 import { useEffect } from "react";
+import { Button } from "@titoapps/ui";
 
 export function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -66,9 +67,9 @@ export function LoginPage() {
           <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
         </div>
         {msg && <p className="text-sm text-pitch-600">{msg}</p>}
-        <button className="btn-primary w-full" disabled={busy}>
+        <Button fullWidth disabled={busy}>
           {busy ? "…" : mode === "login" ? "Entrar" : "Crear cuenta"}
-        </button>
+        </Button>
       </form>
 
       <button

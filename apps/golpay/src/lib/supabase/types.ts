@@ -57,6 +57,8 @@ export interface FrequentPlayer {
   skill_level: number | null; // privado
   preferred_position: PreferredPosition | null;
   can_be_goalkeeper: boolean;
+  notes: string | null;
+  is_active: boolean;
   last_played_at: string | null;
   created_at: string;
 }

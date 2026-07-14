@@ -5,6 +5,7 @@ import { TopBar } from "@/components/ui/TopBar";
 import { createMatch, updateMatch, getMatch, setMatchPin, MatchInput } from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import { generatePin } from "@/lib/utils/format";
+import { Button } from "@titoapps/ui";
 
 const empty: MatchInput = {
   title: "Mejenga lunes",
@@ -122,9 +123,9 @@ export function MatchFormPage() {
           <textarea className="input" rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
         </div>
 
-        <button className="btn-primary w-full" disabled={busy}>
+        <Button fullWidth disabled={busy}>
           {busy ? "Guardando…" : editing ? "Guardar cambios" : "Crear y agregar jugadores"}
-        </button>
+        </Button>
       </form>
     </div>
   );

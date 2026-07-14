@@ -1,13 +1,21 @@
 /**
- * Identidad de marca por aplicación.
- * Cada app de Tito Apps define su propio AppBrand.
+ * Identidad de marca por aplicación dentro de Tito Apps.
+ *
+ * Arquitectura de marca: Tito Apps es una marca fuerte por sí misma
+ * (no un simple "endorsed brand"). Su presencia es elegante y discreta.
+ *
+ *   Tito Apps
+ *   ├── GolPay      (verde dominante)
+ *   ├── SplitPay    (azul dominante)
+ *   └── MoneyTrack  (identidad por definir)
+ *
  * Los componentes de @titoapps/ui NO conocen estos valores: los reciben
- * como variables CSS (design tokens) inyectadas por applyBrand().
+ * como design tokens (variables CSS) inyectados por applyBrand().
  */
 export type AppBrand = {
   /** Identificador corto y único, ej. "golpay". */
   id: string;
-  /** Siempre "Tito Apps" (empresa paraguas). */
+  /** Siempre "Tito Apps" (marca madre). */
   companyName: "Tito Apps";
   /** Nombre visible del producto, ej. "GolPay". */
   productName: string;
@@ -17,10 +25,16 @@ export type AppBrand = {
   description: string;
   /** Eslogan. */
   tagline: string;
-  /** Color primario de marca (hex). */
+  /** Color primario (hex). Es el color dominante del producto. */
   primaryColor: string;
-  /** Color secundario de marca (hex). */
+  /** Hover del primario (hex). Opcional; si falta, se calcula oscureciendo primaryColor. */
+  primaryColorHover?: string;
+  /** Color secundario (hex). */
   secondaryColor: string;
+  /** Acento (hex). Opcional; por defecto hereda el naranja de Tito Apps. */
+  accentColor?: string;
+  /** Acento secundario (hex). Uso muy ocasional. */
+  accentAltColor?: string;
   /** Ruta al logo (relativa a /public de la app). */
   logoPath: string;
   /** Ruta al ícono. */

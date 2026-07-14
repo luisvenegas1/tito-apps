@@ -8,6 +8,8 @@ import { suggestMatches } from "../players/api";
 import { importPlayers, listFrequentForMatch, ImportRow } from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer } from "@/lib/supabase/types";
+import { levelLabel } from "@/lib/levels";
+import { Button } from "@titoapps/ui";
 
 interface Row {
   name: string;
@@ -15,7 +17,8 @@ interface Row {
   suggestions?: string[];
   isGoalkeeper: boolean;
   frequentPlayerId: string | null;
-  known: boolean; // ya existía en la BD
+  known: boolean; // vinculado a un perfil existente
+  candidates: FrequentPlayer[]; // coincidencias ambiguas sin resolver
 }
 
 export function ImportPage() {
@@ -30,28 +33,35 @@ export function ImportPage() {
   const { data: existing } = useQuery({ queryKey: ["players", id], queryFn: () => listMatchPlayers(id!) });
   const { data: frequent } = useQuery({ queryKey: ["frequent"], queryFn: listFrequentForMatch });
 
-  /** Empareja un nombre con un perfil; devuelve el perfil si hay match confiable. */
-  function matchProfile(name: string): FrequentPlayer | null {
-    if (!frequent) return null;
-    const lower = name.toLowerCase().trim();
-    const exact = frequent.find(
-      (f) => f.name.toLowerCase() === lower || (f.nickname ?? "").toLowerCase() === lower,
-    );
-    if (exact) return exact;
-    const suggestions = suggestMatches(name, frequent);
-    return suggestions.length === 1 ? suggestions[0] : null;
+  function profileById(pid: string | null): FrequentPlayer | null {
+    return pid ? (frequent ?? []).find((f) => f.id === pid) ?? null : null;
   }
 
   function buildRow(name: string, gk: boolean, splittable = false, suggestions?: string[]): Row {
-    const profile = matchProfile(name);
+    let frequentPlayerId: string | null = null;
+    let candidates: FrequentPlayer[] = [];
+    if (frequent && name.trim()) {
+      const lower = name.toLowerCase().trim();
+      const exact = frequent.find(
+        (f) => f.is_active && (f.name.toLowerCase() === lower || (f.nickname ?? "").toLowerCase() === lower),
+      );
+      if (exact) {
+        frequentPlayerId = exact.id;
+      } else {
+        const matches = suggestMatches(name, frequent);
+        if (matches.length === 1) frequentPlayerId = matches[0].id;
+        else if (matches.length > 1) candidates = matches; // ambiguo: el usuario elige
+      }
+    }
+    const profile = profileById(frequentPlayerId);
     return {
       name,
       splittable,
       suggestions,
-      // El guante detectado manda; si no, el valor "de siempre" del perfil.
       isGoalkeeper: gk || (profile?.can_be_goalkeeper ?? false),
-      frequentPlayerId: profile?.id ?? null,
-      known: Boolean(profile),
+      frequentPlayerId,
+      known: Boolean(frequentPlayerId),
+      candidates,
     };
   }
 
@@ -76,6 +86,22 @@ export function ImportPage() {
 
   function toggleKeeper(i: number, value: boolean) {
     setRows((rs) => rs?.map((r, idx) => (idx === i ? { ...r, isGoalkeeper: value } : r)) ?? rs);
+  }
+
+  /** Resuelve una coincidencia ambigua: elegir un perfil o marcar como nuevo. */
+  function resolveCandidate(i: number, pid: string | null) {
+    setRows((rs) =>
+      rs?.map((r, idx) => {
+        if (idx !== i) return r;
+        const profile = profileById(pid);
+        return {
+          ...r,
+          frequentPlayerId: pid,
+          known: Boolean(pid),
+          isGoalkeeper: r.isGoalkeeper || (profile?.can_be_goalkeeper ?? false),
+        };
+      }) ?? rs,
+    );
   }
 
   function removeRow(i: number) {
@@ -110,6 +136,7 @@ export function ImportPage() {
   }
 
   const keeperCount = rows?.filter((r) => r.isGoalkeeper).length ?? 0;
+  const knownCount = rows?.filter((r) => r.known).length ?? 0;
 
   return (
     <div className="pb-8">
@@ -119,7 +146,7 @@ export function ImportPage() {
           <>
             <p className="text-sm text-gray-500">
               Pegá la lista de WhatsApp. Detectamos nombres, ignoramos números y emojis,
-              y marcamos como portero a quien tenga el 🧤.
+              y marcamos como portero a quien tenga el 🧤. Reconocemos a tus jugadores frecuentes.
             </p>
             <textarea
               className="input font-mono text-sm"
@@ -128,58 +155,87 @@ export function ImportPage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <button className="btn-primary w-full" onClick={preview} disabled={!text.trim()}>
+            <Button fullWidth onClick={preview} disabled={!text.trim()}>
               Ver vista previa
-            </button>
+            </Button>
           </>
         )}
 
         {rows && (
           <>
             <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>{rows.length} jugadores · {keeperCount} 🧤</span>
+              <span>{rows.length} jugadores · {knownCount} conocidos · {keeperCount} 🧤</span>
               <button className="text-pitch-600 underline" onClick={() => setRows(null)}>
                 Volver a pegar
               </button>
             </div>
 
             <div className="space-y-1.5">
-              {rows.map((r, i) => (
-                <div key={i} className="card flex items-center gap-2 px-2.5 py-2">
-                  {r.known && (
-                    <span className="text-sm text-pitch-500" title="Perfil guardado">✓</span>
-                  )}
-                  <input
-                    className="input min-w-0 flex-1 py-1.5 text-sm"
-                    value={r.name}
-                    onChange={(e) => editName(i, e.target.value)}
-                  />
-                  {/* Dropdown compacto Portero / Campo, pre-cargado */}
-                  <select
-                    className={`w-24 shrink-0 rounded-lg border px-1.5 py-1.5 text-sm ${r.isGoalkeeper ? "border-pitch-500 bg-pitch-50 font-medium text-pitch-700" : "border-gray-200 text-gray-600"}`}
-                    value={r.isGoalkeeper ? "gk" : "field"}
-                    onChange={(e) => toggleKeeper(i, e.target.value === "gk")}
-                  >
-                    <option value="field">Campo</option>
-                    <option value="gk">🧤 Portero</option>
-                  </select>
-                  {r.splittable && (
-                    <button className="shrink-0 text-xs text-pitch-600 underline" onClick={() => splitRow(i)}>
-                      Separar
-                    </button>
-                  )}
-                  <button className="shrink-0 px-1 text-red-400" onClick={() => removeRow(i)} aria-label="Eliminar">✕</button>
-                </div>
-              ))}
+              {rows.map((r, i) => {
+                const profile = r.frequentPlayerId ? profileById(r.frequentPlayerId) : null;
+                return (
+                  <div key={i} className="card space-y-1.5 px-2.5 py-2">
+                    <div className="flex items-center gap-2">
+                      {r.known ? (
+                        <span className="shrink-0 text-sm text-pitch-500"
+                          title={profile ? `Perfil: ${levelLabel(profile.skill_level)}${profile.preferred_position ? ", " + profile.preferred_position : ""}` : "Perfil guardado"}>
+                          ✓
+                        </span>
+                      ) : r.candidates.length === 0 && r.name.trim() ? (
+                        <span className="shrink-0 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">nuevo</span>
+                      ) : null}
+                      <input
+                        className="input min-w-0 flex-1 py-1.5 text-sm"
+                        value={r.name}
+                        onChange={(e) => editName(i, e.target.value)}
+                      />
+                      <select
+                        className={`w-24 shrink-0 rounded-lg border px-1.5 py-1.5 text-sm ${r.isGoalkeeper ? "border-pitch-500 bg-pitch-50 font-medium text-pitch-700" : "border-gray-200 text-gray-600"}`}
+                        value={r.isGoalkeeper ? "gk" : "field"}
+                        onChange={(e) => toggleKeeper(i, e.target.value === "gk")}
+                      >
+                        <option value="field">Campo</option>
+                        <option value="gk">🧤 Portero</option>
+                      </select>
+                      {r.splittable && (
+                        <button className="shrink-0 text-xs text-pitch-600 underline" onClick={() => splitRow(i)}>
+                          Separar
+                        </button>
+                      )}
+                      <button className="shrink-0 px-1 text-red-400" onClick={() => removeRow(i)} aria-label="Eliminar">✕</button>
+                    </div>
+
+                    {/* Resolver coincidencia ambigua */}
+                    {r.candidates.length > 0 && !r.frequentPlayerId && (
+                      <div className="flex items-center gap-2 pl-6">
+                        <span className="text-xs text-orange-500">¿Quién es?</span>
+                        <select
+                          className="flex-1 rounded-lg border border-orange-300 bg-orange-50 px-1.5 py-1 text-xs"
+                          value=""
+                          onChange={(e) => resolveCandidate(i, e.target.value || null)}
+                        >
+                          <option value="">Elegir…</option>
+                          {r.candidates.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}{c.nickname ? ` (${c.nickname})` : ""}
+                            </option>
+                          ))}
+                          <option value="">Es nuevo</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <button className="btn-ghost w-full" onClick={addRow}>+ Agregar jugador</button>
             <p className="text-center text-xs text-gray-400">
-              Los jugadores nuevos se guardan como perfil para la próxima vez.
+              Los conocidos reutilizan su nivel y posición. Los nuevos se guardan como perfil.
             </p>
-            <button className="btn-primary w-full" onClick={confirm} disabled={busy}>
+            <Button fullWidth onClick={confirm} disabled={busy}>
               {busy ? "Guardando…" : `Confirmar ${rows.length} jugadores`}
-            </button>
+            </Button>
           </>
         )}
       </div>
