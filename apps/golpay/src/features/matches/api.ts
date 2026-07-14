@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import type { Match, MatchPlayer, PaymentStatus } from "@/lib/supabase/types";
+import { paymentPatch } from "../payments/transitions";
 
 export async function listMatches(): Promise<Match[]> {
   const { data, error } = await supabase
@@ -98,13 +99,12 @@ export async function setPaymentStatus(
   ownerId: string,
   amountPaid?: number,
 ): Promise<void> {
+  const t = paymentPatch(player, status, amountPaid);
   const patch: Partial<MatchPlayer> = {
-    payment_status: status,
-    confirmed_at: status === "confirmado" ? new Date().toISOString() : null,
+    payment_status: t.payment_status,
+    confirmed_at: t.confirmed ? new Date().toISOString() : null,
   };
-  if (amountPaid !== undefined) patch.amount_paid = amountPaid;
-  if (status === "confirmado") patch.amount_paid = player.amount_due;
-  if (status === "pendiente") patch.amount_paid = 0;
+  if (t.amount_paid !== undefined) patch.amount_paid = t.amount_paid;
 
   const { error } = await supabase.from("match_players").update(patch).eq("id", player.id);
   if (error) throw error;
