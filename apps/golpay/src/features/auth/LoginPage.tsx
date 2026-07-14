@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
-import { useEffect } from "react";
+import { signInWithIdentifier, signUpWithUsername, requestPasswordReset } from "./authApi";
+import { validateUsername } from "@/lib/username";
 import { Button } from "@titoapps/ui";
 
+type Mode = "login" | "signup" | "forgot";
+
 export function LoginPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<Mode>("login");
+  const [identifier, setIdentifier] = useState(""); // login: email o username
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -24,17 +28,20 @@ export function LoginPage() {
     setBusy(true);
     setMsg(null);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: name } },
-        });
-        if (error) throw error;
-        setMsg("Revisá tu correo para confirmar la cuenta (si está activada la verificación).");
+      if (mode === "login") {
+        await signInWithIdentifier(identifier, password);
+      } else if (mode === "signup") {
+        const v = validateUsername(username);
+        if (!v.ok) throw new Error(v.error);
+        const { needsConfirmation } = await signUpWithUsername(email, password, username, name);
+        setMsg(
+          needsConfirmation
+            ? "Revisá tu correo para confirmar la cuenta."
+            : "¡Cuenta creada! Ya podés entrar.",
+        );
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        await requestPasswordReset(email);
+        setMsg("Si el correo existe, te enviamos un enlace para recuperar tu contraseña.");
       }
     } catch (err: any) {
       setMsg(err.message ?? "Error");
@@ -52,32 +59,65 @@ export function LoginPage() {
       </div>
 
       <form onSubmit={submit} className="card space-y-4">
+        {mode === "login" && (
+          <>
+            <div>
+              <label className="label">Correo o usuario</label>
+              <input className="input" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoCapitalize="none" required />
+            </div>
+            <div>
+              <label className="label">Contraseña</label>
+              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+          </>
+        )}
+
         {mode === "signup" && (
+          <>
+            <div>
+              <label className="label">Nombre</label>
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div>
+              <label className="label">Usuario</label>
+              <input className="input" value={username} onChange={(e) => setUsername(e.target.value.trim())} autoCapitalize="none" placeholder="ej. tito" required />
+              <p className="mt-1 text-xs text-gray-400">3–24, letras/números/- /_, sin espacios.</p>
+            </div>
+            <div>
+              <label className="label">Correo</label>
+              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label className="label">Contraseña</label>
+              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+            </div>
+          </>
+        )}
+
+        {mode === "forgot" && (
           <div>
-            <label className="label">Nombre</label>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+            <label className="label">Correo</label>
+            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
         )}
-        <div>
-          <label className="label">Correo</label>
-          <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div>
-          <label className="label">Contraseña</label>
-          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-        </div>
+
         {msg && <p className="text-sm text-pitch-600">{msg}</p>}
         <Button fullWidth disabled={busy}>
-          {busy ? "…" : mode === "login" ? "Entrar" : "Crear cuenta"}
+          {busy ? "…" : mode === "login" ? "Entrar" : mode === "signup" ? "Crear cuenta" : "Enviar enlace"}
         </Button>
       </form>
 
-      <button
-        className="mt-4 text-center text-sm text-gray-500 underline"
-        onClick={() => setMode(mode === "login" ? "signup" : "login")}
-      >
-        {mode === "login" ? "¿No tenés cuenta? Registrate" : "¿Ya tenés cuenta? Entrá"}
-      </button>
+      <div className="mt-4 flex flex-col items-center gap-2 text-sm text-gray-500">
+        {mode === "login" && (
+          <>
+            <button onClick={() => { setMode("signup"); setMsg(null); }} className="underline">¿No tenés cuenta? Registrate</button>
+            <button onClick={() => { setMode("forgot"); setMsg(null); }} className="underline">¿Olvidaste tu contraseña?</button>
+          </>
+        )}
+        {mode !== "login" && (
+          <button onClick={() => { setMode("login"); setMsg(null); }} className="underline">Volver a iniciar sesión</button>
+        )}
+      </div>
     </div>
   );
 }
