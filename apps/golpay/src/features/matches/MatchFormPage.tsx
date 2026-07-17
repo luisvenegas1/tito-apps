@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
-import { createMatch, updateMatch, getMatch, setMatchPin, MatchInput } from "./api";
+import {
+  createMatch, updateMatch, getMatch, setMatchPin, listTemplates, createTemplate, MatchInput,
+} from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import { generatePin } from "@/lib/utils/format";
+import type { MatchTemplate } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 
 const empty: MatchInput = {
@@ -26,6 +29,15 @@ export function MatchFormPage() {
   const { session } = useAuth();
   const [form, setForm] = useState<MatchInput>(empty);
   const [busy, setBusy] = useState(false);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const { data: templates } = useQuery({ queryKey: ["templates"], queryFn: listTemplates, enabled: !editing });
+
+  function applyTemplate(t: MatchTemplate) {
+    setForm((f) => ({
+      ...f, title: t.name, type: t.type, time: t.time, location: t.location,
+      cost_per_player: t.cost_per_player, max_players: t.max_players, notes: t.notes,
+    }));
+  }
 
   useEffect(() => {
     if (id) {
@@ -56,6 +68,12 @@ export function MatchFormPage() {
         const m = await createMatch(form, session.user.id);
         // PIN inicial automático
         await setMatchPin(m.id, generatePin());
+        if (saveAsTemplate) {
+          await createTemplate({
+            name: form.title, type: form.type, time: form.time, location: form.location,
+            cost_per_player: form.cost_per_player, max_players: form.max_players, notes: form.notes,
+          }, session.user.id);
+        }
         await qc.invalidateQueries({ queryKey: ["matches"] });
         nav(`/partido/${m.id}/importar`);
       }
@@ -70,6 +88,19 @@ export function MatchFormPage() {
     <div>
       <TopBar title={editing ? "Editar partido" : "Nuevo partido"} back />
       <form onSubmit={save} className="space-y-4 p-4">
+        {!editing && templates && templates.length > 0 && (
+          <div>
+            <label className="label">Usar plantilla (crear como una anterior)</label>
+            <select
+              className="input"
+              defaultValue=""
+              onChange={(e) => { const t = templates.find((x) => x.id === e.target.value); if (t) applyTemplate(t); }}
+            >
+              <option value="">— Elegir plantilla —</option>
+              {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <label className="label">Nombre / descripción</label>
           <input className="input" value={form.title} onChange={(e) => set("title", e.target.value)} required />
@@ -123,6 +154,12 @@ export function MatchFormPage() {
           <textarea className="input" rows={2} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
         </div>
 
+        {!editing && (
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} />
+            Guardar como plantilla para la próxima
+          </label>
+        )}
         <Button fullWidth disabled={busy}>
           {busy ? "Guardando…" : editing ? "Guardar cambios" : "Crear y agregar jugadores"}
         </Button>

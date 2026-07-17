@@ -7,7 +7,9 @@ function mp(over: Partial<MatchPlayer>): MatchPlayer {
     id: over.id ?? "x", match_id: "m", frequent_player_id: null,
     display_name: over.display_name ?? "P", amount_due: over.amount_due ?? 2200,
     amount_paid: over.amount_paid ?? 0, is_goalkeeper: false,
-    payment_status: over.payment_status ?? "pendiente", payment_method: null, note: null,
+    payment_status: over.payment_status ?? "pendiente",
+    attendance_status: "pendiente", confirmed_attendance_at: null,
+    payment_method: null, note: null,
     reported_at: null, confirmed_at: null, paid_by_player_id: null, created_at: "",
   };
 }

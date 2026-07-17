@@ -21,6 +21,7 @@ export function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link to="/frecuentes" className="btn-ghost text-sm">Jugadores</Link>
+          <Link to="/campeones" className="btn-ghost text-sm">🏆</Link>
           <Link to="/ajustes" className="btn-ghost text-sm">Ajustes</Link>
           <button onClick={signOut} className="text-sm text-gray-400 underline">Salir</button>
         </div>

@@ -10,6 +10,7 @@ import { MatchDetailPage } from "./features/matches/MatchDetailPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { TeamsPage } from "./features/teams/TeamsPage";
 import { FrequentPlayersPage } from "./features/players/FrequentPlayersPage";
+import { ChampionsPage } from "./features/matches/ChampionsPage";
 import { PublicMatchPage } from "./features/public/PublicMatchPage";
 
 function Protected({ children }: { children: JSX.Element }) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/partido/:id/importar" element={<Protected><ImportPage /></Protected>} />
         <Route path="/partido/:id/equipos" element={<Protected><TeamsPage /></Protected>} />
         <Route path="/frecuentes" element={<Protected><FrequentPlayersPage /></Protected>} />
+        <Route path="/campeones" element={<Protected><ChampionsPage /></Protected>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -6,11 +6,14 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { copyToClipboard } from "@/components/ui/toast";
 import {
   getMatch, listMatchPlayers, setPaymentStatus, updatePlayer, removePlayer, setMatchPin, deleteMatch,
+  setAttendance, setListClosed, getResult, saveResult,
 } from "./api";
+import { listPublishedTeams } from "../teams/api";
 import { useAuth } from "../auth/AuthProvider";
 import { crc, formatDate, formatTime, generatePin } from "@/lib/utils/format";
 import { computeTotals, pendingMessage, summaryMessage, inviteMessage } from "../payments/messages";
-import type { MatchPlayer, PaymentStatus } from "@/lib/supabase/types";
+import { attendanceCounts, spotsLeft } from "../attendance/attendance";
+import type { Match, MatchPlayer, PaymentStatus, AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 
 const ORDER: Record<PaymentStatus, number> = {
@@ -141,6 +144,9 @@ export function MatchDetailPage() {
           );
         })()}
 
+        {/* Asistencia + resultado */}
+        <AttendanceAndResult match={match} players={players} onChange={refresh} />
+
         {/* Acciones */}
         <div className="grid grid-cols-2 gap-2">
           <Button onClick={share}>Compartir enlace + PIN</Button>
@@ -255,5 +261,135 @@ function Act({ label, onClick, primary }: { label: string; onClick: () => void; 
     >
       {label}
     </button>
+  );
+}
+
+function AttendanceAndResult({ match, players, onChange }: {
+  match: Match; players: MatchPlayer[]; onChange: () => void;
+}) {
+  const [checkin, setCheckin] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const { data: result, refetch: refetchResult } = useQuery({ queryKey: ["result", match.id], queryFn: () => getResult(match.id) });
+  const { data: teams } = useQuery({ queryKey: ["pubteams", match.id], queryFn: () => listPublishedTeams(match.id) });
+  const counts = attendanceCounts(players);
+  const left = spotsLeft(counts.confirmed, match.max_players);
+
+  async function toggleList() { await setListClosed(match.id, !match.list_closed); onChange(); }
+  async function check(p: MatchPlayer, status: AttendanceStatus) { await setAttendance(p.id, status); onChange(); }
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="font-semibold">Asistencia</div>
+        <button className="text-xs text-pitch-600 underline" onClick={toggleList}>
+          {match.list_closed ? "Abrir lista" : "Cerrar lista"}
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+        <span>✅ {counts.confirmed} confirmados{match.max_players ? ` / ${match.max_players}` : ""}</span>
+        {counts.waitlist > 0 && <span>⏳ {counts.waitlist} lista de espera</span>}
+        {counts.maybe > 0 && <span>🤔 {counts.maybe} tal vez</span>}
+        {counts.declined > 0 && <span>🚫 {counts.declined} no van</span>}
+        {left != null && <span>{left > 0 ? `${left} libres` : "cupo lleno"}</span>}
+      </div>
+
+      <button className="text-xs text-pitch-600 underline" onClick={() => setCheckin(!checkin)}>
+        {checkin ? "Ocultar check-in" : "Check-in del día"}
+      </button>
+      {checkin && (
+        <div className="space-y-1">
+          {players.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm">
+              <span>{p.display_name}</span>
+              <div className="flex gap-1">
+                <Act label="Asistió" primary={p.attendance_status === "asistio"} onClick={() => check(p, "asistio")} />
+                <Act label="No asistió" primary={p.attendance_status === "no_asistio"} onClick={() => check(p, "no_asistio")} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <hr className="border-gray-100" />
+      {result?.winner_team_id ? (
+        <div className="text-sm">
+          🏆 Campeón registrado{result.score ? ` · ${result.score}` : ""}.{" "}
+          <button className="text-pitch-600 underline" onClick={() => setShowResult(true)}>Editar</button>
+        </div>
+      ) : (
+        <button className="btn-ghost w-full" onClick={() => setShowResult(true)} disabled={!teams || teams.length === 0}>
+          🏆 Registrar resultado{(!teams || teams.length === 0) ? " (publicá equipos primero)" : ""}
+        </button>
+      )}
+
+      {showResult && (
+        <ResultModal
+          match={match} teams={teams ?? []} players={players} initial={result ?? null}
+          onClose={() => setShowResult(false)}
+          onSaved={() => { setShowResult(false); refetchResult(); onChange(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ResultModal({ match, teams, players, initial, onClose, onSaved }: {
+  match: Match;
+  teams: { id: string; name: string }[];
+  players: MatchPlayer[];
+  initial: { winner_team_id: string | null; mvp_match_player_id: string | null; score: string | null } | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [winner, setWinner] = useState(initial?.winner_team_id ?? "");
+  const [mvp, setMvp] = useState(initial?.mvp_match_player_id ?? "");
+  const [score, setScore] = useState(initial?.score ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      await saveResult({
+        match_id: match.id,
+        winner_team_id: winner || null,
+        mvp_match_player_id: mvp || null,
+        score: score.trim() || null,
+      });
+      onSaved();
+    } catch (e: any) {
+      alert(e.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end bg-black/40" onClick={onClose}>
+      <div className="w-full max-w-md rounded-t-3xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 h-1 w-10 rounded bg-gray-200" />
+        <h3 className="mb-3 text-lg font-bold">Registrar resultado</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="label">Equipo campeón</label>
+            <select className="input" value={winner} onChange={(e) => setWinner(e.target.value)}>
+              <option value="">Sin definir</option>
+              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">MVP (opcional)</label>
+            <select className="input" value={mvp} onChange={(e) => setMvp(e.target.value)}>
+              <option value="">Sin MVP</option>
+              {players.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Marcador (opcional)</label>
+            <input className="input" placeholder="ej. 3-2" value={score} onChange={(e) => setScore(e.target.value)} />
+          </div>
+          <Button fullWidth onClick={save} disabled={busy}>{busy ? "…" : "Guardar resultado"}</Button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
@@ -7,6 +7,7 @@ import { listFrequent } from "../players/api";
 import { balanceTeams, rescore, BalancePlayer, Team, DEFAULT_LEVEL } from "@/lib/balancer/balance";
 import { publishTeams } from "./api";
 import { levelLabel } from "@/lib/levels";
+import { recommendFormat } from "@/lib/formats";
 import { Button } from "@titoapps/ui";
 
 export function TeamsPage() {
@@ -25,7 +26,7 @@ export function TeamsPage() {
     if (!players) return [];
     const levelById = new Map((frequent ?? []).map((f) => [f.id, f.skill_level]));
     return players
-      .filter((p) => p.payment_status !== "no_asistio")
+      .filter((p) => p.attendance_status !== "declinado" && p.attendance_status !== "no_asistio")
       .map((p) => ({
         id: p.id,
         name: p.display_name,
@@ -33,6 +34,18 @@ export function TeamsPage() {
         canGoalkeeper: p.is_goalkeeper,
       }));
   }, [players, frequent]);
+
+  const keeperCount = balancePlayers.filter((p) => p.canGoalkeeper).length;
+  const rec = recommendFormat(balancePlayers.length, keeperCount);
+
+  // Precarga la recomendación una vez que hay jugadores (antes de generar).
+  const [applied, setApplied] = useState(false);
+  useEffect(() => {
+    if (!applied && balancePlayers.length > 0 && !teams) {
+      setNumTeams(rec.teams);
+      setApplied(true);
+    }
+  }, [applied, balancePlayers.length, teams, rec.teams]);
 
   function generate() {
     setTeams(balanceTeams(balancePlayers, numTeams));
@@ -72,7 +85,21 @@ export function TeamsPage() {
       <TopBar title="Armar equipos" back />
       <div className="space-y-4 p-4">
         <div className="card">
-          <label className="label">¿Cuántos equipos?</label>
+          {/* Recomendación de formato (el organizador puede sobrescribir) */}
+          <div className="mb-3 rounded-xl bg-pitch-50 p-3 text-sm">
+            <div className="font-semibold text-pitch-700">Recomendado: {rec.label}</div>
+            <div className="text-xs text-gray-500">
+              {balancePlayers.length} jugadores · {keeperCount} 🧤
+              {rec.substitutesPerTeam > 0 && ` · ~${rec.substitutesPerTeam} cambio(s) por equipo`}
+            </div>
+            {rec.keeperWarning && <div className="mt-1 text-xs text-orange-500">{rec.keeperWarning}</div>}
+            {numTeams !== rec.teams && (
+              <button className="mt-1 text-xs text-pitch-600 underline" onClick={() => setNumTeams(rec.teams)}>
+                Usar recomendación ({rec.teams} equipos)
+              </button>
+            )}
+          </div>
+          <label className="label">¿Cuántos equipos? (podés cambiarlo)</label>
           <div className="flex gap-2">
             {Array.from({ length: maxTeams - 1 }, (_, i) => i + 2).map((n) => (
               <button key={n} onClick={() => setNumTeams(n)}
@@ -82,7 +109,7 @@ export function TeamsPage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-gray-400">
-            {balancePlayers.length} jugadores. Los que no tienen nivel registrado usan nivel {levelLabel(DEFAULT_LEVEL)}.
+            Sin nivel registrado usan {levelLabel(DEFAULT_LEVEL)}.
           </p>
           <Button fullWidth className="mt-3" onClick={generate} disabled={balancePlayers.length < numTeams}>
             {teams ? "Regenerar" : "Generar equipos"}

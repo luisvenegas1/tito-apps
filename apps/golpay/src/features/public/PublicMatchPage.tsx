@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicMatch, reportPayment, PublicPlayer } from "./api";
+import { getPublicMatch, reportPayment, setAttendance, PublicPlayer } from "./api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { crc, formatDate, formatTime } from "@/lib/utils/format";
+import { ATTENDANCE_LABELS, attendanceCounts, spotsLeft } from "../attendance/attendance";
+import type { AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 
 export function PublicMatchPage() {
@@ -17,6 +19,9 @@ export function PublicMatchPage() {
   if (isLoading) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
   if (!match) return <p className="p-8 text-center text-gray-500">Partido no encontrado.</p>;
 
+  const counts = attendanceCounts(match.players as { attendance_status: AttendanceStatus }[]);
+  const left = spotsLeft(counts.confirmed, match.max_players);
+
   return (
     <div className="pb-10">
       <div className="bg-pitch-500 px-5 py-6 text-white">
@@ -29,17 +34,35 @@ export function PublicMatchPage() {
         <p className="mt-1 font-semibold">{crc(match.cost_per_player)} por jugador</p>
       </div>
 
+      {/* Campeón */}
+      {match.result?.winner_team_name && (
+        <div className="bg-yellow-50 px-5 py-3 text-center text-yellow-800">
+          🏆 <span className="font-bold">{match.result.winner_team_name}</span> campeón
+          {match.result.score && ` · ${match.result.score}`}
+          {match.result.mvp_name && ` · MVP: ${match.result.mvp_name}`}
+        </div>
+      )}
+
       <div className="p-4">
-        <h2 className="mb-2 text-sm font-semibold text-gray-500">Tocá tu nombre para reportar tu pago</h2>
+        {/* Resumen de asistencia */}
+        <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+          <span>✅ {counts.confirmed} confirmados{match.max_players ? ` / ${match.max_players}` : ""}</span>
+          {counts.waitlist > 0 && <span>⏳ {counts.waitlist} en lista de espera</span>}
+          {left != null && <span>{left > 0 ? `${left} lugares libres` : "cupo lleno"}</span>}
+          {match.list_closed && <span className="text-orange-500">lista cerrada</span>}
+        </div>
+
+        <h2 className="mb-2 text-sm font-semibold text-gray-500">Tocá tu nombre para confirmar o pagar</h2>
         <div className="space-y-2">
           {match.players.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setSelected(p)}
-              className="card flex w-full items-center justify-between"
-            >
-              <span className="font-medium">{p.display_name}</span>
-              <StatusBadge status={p.payment_status} />
+            <button key={p.id} onClick={() => setSelected(p)} className="card flex w-full items-center justify-between gap-2">
+              <span className="font-medium">{p.display_name}{p.is_goalkeeper && " 🧤"}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600 ring-1 ring-gray-200">
+                  {ATTENDANCE_LABELS[p.attendance_status as AttendanceStatus]}
+                </span>
+                <StatusBadge status={p.payment_status} />
+              </span>
             </button>
           ))}
         </div>
@@ -62,26 +85,30 @@ export function PublicMatchPage() {
       </div>
 
       {selected && (
-        <ReportModal
+        <PlayerSheet
           token={token!}
           player={selected}
           others={match.players.filter((p) => p.id !== selected.id)}
+          listClosed={match.list_closed}
           onClose={() => setSelected(null)}
           onDone={() => { setSelected(null); refetch(); }}
+          onRsvpDone={() => refetch()}
         />
       )}
     </div>
   );
 }
 
-function ReportModal({
-  token, player, others, onClose, onDone,
+function PlayerSheet({
+  token, player, others, listClosed, onClose, onDone, onRsvpDone,
 }: {
   token: string;
   player: PublicPlayer;
   others: PublicPlayer[];
+  listClosed: boolean;
   onClose: () => void;
   onDone: () => void;
+  onRsvpDone: () => void;
 }) {
   const [pin, setPin] = useState("");
   const [method, setMethod] = useState("SINPE");
@@ -90,14 +117,27 @@ function ReportModal({
   const [showOthers, setShowOthers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   function toggle(id: string) {
     setCovered((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   }
 
-  async function submit() {
-    setBusy(true);
-    setErr(null);
+  async function rsvp(status: "confirmado" | "declinado" | "tal_vez") {
+    setBusy(true); setErr(null); setInfo(null);
+    try {
+      const res = await setAttendance({ token, pin, matchPlayerId: player.id, status });
+      setInfo(res.status === "lista_espera" ? "Cupo lleno: quedaste en lista de espera." : "¡Listo!");
+      onRsvpDone();
+    } catch (e: any) {
+      setErr(e.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pay() {
+    setBusy(true); setErr(null);
     try {
       await reportPayment({ token, pin, matchPlayerId: player.id, method, note, coveredIds: covered });
       onDone();
@@ -108,66 +148,71 @@ function ReportModal({
     }
   }
 
+  const pinOk = pin.length === 4;
+
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-md rounded-t-3xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-3 h-1 w-10 rounded bg-gray-200" />
-        <h3 className="text-lg font-bold">Reportar pago de {player.display_name}</h3>
-        <p className="text-sm text-gray-500">
-          Confirmá que ya hiciste el SINPE. El organizador lo verificará después.
-        </p>
+        <h3 className="text-lg font-bold">{player.display_name}</h3>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-4">
           <div>
             <label className="label">PIN del partido</label>
             <input
-              className="input tracking-widest"
-              inputMode="numeric"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-              placeholder="4 dígitos"
+              className="input tracking-widest" inputMode="numeric" maxLength={4}
+              value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="4 dígitos"
             />
           </div>
+
+          {/* Asistencia */}
           <div>
-            <label className="label">Método</label>
+            <label className="label">¿Vas al partido?</label>
+            {listClosed ? (
+              <p className="text-sm text-orange-500">La lista está cerrada.</p>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="primary" disabled={!pinOk || busy} onClick={() => rsvp("confirmado")}>Voy</Button>
+                <Button variant="ghost" disabled={!pinOk || busy} onClick={() => rsvp("tal_vez")}>Tal vez</Button>
+                <Button variant="outline" disabled={!pinOk || busy} onClick={() => rsvp("declinado")}>No voy</Button>
+              </div>
+            )}
+            {info && <p className="mt-1 text-sm text-pitch-600">{info}</p>}
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Pago */}
+          <div>
+            <label className="label">Reportar pago</label>
             <div className="flex gap-2">
               {["SINPE", "Efectivo", "Transferencia"].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMethod(m)}
-                  className={`btn px-3 py-1.5 text-sm ${method === m ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-600"}`}
-                >
+                <button key={m} onClick={() => setMethod(m)}
+                  className={`btn px-3 py-1.5 text-sm ${method === m ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-600"}`}>
                   {m}
                 </button>
               ))}
             </div>
-          </div>
-
-          <button className="text-sm text-pitch-600 underline" onClick={() => setShowOthers(!showOthers)}>
-            {showOthers ? "Ocultar" : "Pagué por mí y por otra persona"}
-          </button>
-          {showOthers && (
-            <div className="max-h-40 space-y-1 overflow-y-auto rounded-xl bg-gray-50 p-2">
-              {others.map((o) => (
-                <label key={o.id} className="flex items-center gap-2 py-1 text-sm">
-                  <input type="checkbox" checked={covered.includes(o.id)} onChange={() => toggle(o.id)} />
-                  {o.display_name}
-                </label>
-              ))}
-            </div>
-          )}
-
-          <div>
-            <label className="label">Nota (opcional)</label>
-            <input className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+            <button className="mt-2 text-sm text-pitch-600 underline" onClick={() => setShowOthers(!showOthers)}>
+              {showOthers ? "Ocultar" : "Pagué por mí y por otra persona"}
+            </button>
+            {showOthers && (
+              <div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-xl bg-gray-50 p-2">
+                {others.map((o) => (
+                  <label key={o.id} className="flex items-center gap-2 py-1 text-sm">
+                    <input type="checkbox" checked={covered.includes(o.id)} onChange={() => toggle(o.id)} />
+                    {o.display_name}
+                  </label>
+                ))}
+              </div>
+            )}
+            <input className="input mt-2" placeholder="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} />
+            <Button fullWidth className="mt-3" disabled={busy || !pinOk} onClick={pay}>
+              {busy ? "…" : "Ya pagué ✅"}
+            </Button>
           </div>
 
           {err && <p className="text-sm text-red-500">{err}</p>}
-
-          <Button fullWidth disabled={busy || pin.length !== 4} onClick={submit}>
-            {busy ? "…" : "Ya pagué ✅"}
-          </Button>
         </div>
       </div>
     </div>

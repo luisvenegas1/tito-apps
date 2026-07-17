@@ -13,6 +13,14 @@ export type PaymentStatus =
   | "parcial"
   | "exonerado"
   | "no_asistio";
+export type AttendanceStatus =
+  | "pendiente"
+  | "tal_vez"
+  | "confirmado"
+  | "lista_espera"
+  | "declinado"
+  | "asistio"
+  | "no_asistio";
 export type PreferredPosition = "portero" | "defensa" | "medio" | "delantero";
 
 export interface Match {
@@ -28,6 +36,7 @@ export interface Match {
   notes: string | null;
   public_token: string;
   status: MatchStatus;
+  list_closed: boolean;
   created_at: string;
 }
 
@@ -40,6 +49,8 @@ export interface MatchPlayer {
   amount_paid: number;
   is_goalkeeper: boolean;
   payment_status: PaymentStatus;
+  attendance_status: AttendanceStatus;
+  confirmed_attendance_at: string | null;
   payment_method: string | null;
   note: string | null;
   reported_at: string | null;
@@ -69,6 +80,28 @@ export interface Team {
   name: string;
   total_score: number;
   published: boolean;
+  created_at: string;
+}
+
+export interface MatchTemplate {
+  id: string;
+  owner_id: string;
+  name: string;
+  type: MatchType;
+  time: string | null;
+  location: string | null;
+  cost_per_player: number;
+  max_players: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface MatchResult {
+  match_id: string;
+  winner_team_id: string | null;
+  mvp_match_player_id: string | null;
+  score: string | null;
+  notes: string | null;
   created_at: string;
 }
 

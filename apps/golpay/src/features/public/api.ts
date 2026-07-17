@@ -5,12 +5,20 @@ export interface PublicPlayer {
   display_name: string;
   amount_due: number;
   payment_status: string;
+  attendance_status: string;
+  is_goalkeeper?: boolean;
 }
 
 export interface PublicTeam {
   id: string;
   name: string;
   members: string[];
+}
+
+export interface PublicResult {
+  winner_team_name: string | null;
+  mvp_name: string | null;
+  score: string | null;
 }
 
 export interface PublicMatch {
@@ -22,8 +30,11 @@ export interface PublicMatch {
   location: string | null;
   cost_per_player: number;
   status: string;
+  list_closed: boolean;
+  max_players: number | null;
   players: PublicPlayer[];
   teams: PublicTeam[];
+  result: PublicResult | null;
 }
 
 export async function getPublicMatch(token: string): Promise<PublicMatch | null> {
@@ -49,4 +60,21 @@ export async function reportPayment(params: {
     p_covered_ids: params.coveredIds ?? [],
   });
   if (error) throw error;
+}
+
+/** RSVP del jugador (protegido por PIN). status: confirmado | declinado | tal_vez. */
+export async function setAttendance(params: {
+  token: string;
+  pin: string;
+  matchPlayerId: string;
+  status: "confirmado" | "declinado" | "tal_vez";
+}): Promise<{ status: string }> {
+  const { data, error } = await supabase.rpc("set_attendance", {
+    p_token: params.token,
+    p_pin: params.pin,
+    p_match_player_id: params.matchPlayerId,
+    p_status: params.status,
+  });
+  if (error) throw error;
+  return data as { status: string };
 }
