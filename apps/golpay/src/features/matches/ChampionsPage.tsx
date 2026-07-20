@@ -8,7 +8,7 @@ export function ChampionsPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="🏆 Campeones" back />
+      <TopBar title="🏆 Campeones" back backTo="/" />
       <div className="space-y-2 p-4">
         {isLoading && <p className="text-gray-400">Cargando…</p>}
         {!isLoading && (rows?.length ?? 0) === 0 && (

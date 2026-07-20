@@ -1,10 +1,10 @@
 // Edge Function: emite una SIGNED UPLOAD URL para el comprobante de pago.
 // Seguridad:
-//  - Valida token + PIN + partido + jugador antes de emitir la URL.
+//  - Valida que el jugador pertenezca al partido del token antes de emitir la URL.
 //  - Ruta aleatoria "<match_id>/<uuid>.<ext>"; nunca escritura anónima amplia.
 //  - Solo JPEG/PNG/WebP; el bucket es privado y limita tamaño.
 //  - service_role SOLO acá (inyectado por Supabase), nunca en el frontend.
-//  - Logs seguros (sin PIN, sin tokens).
+//  - Logs seguros (sin tokens).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return bad(); }
-  const token = body.token, pin = body.pin, matchPlayerId = body.matchPlayerId, contentType = body.contentType;
+  const token = body.token, matchPlayerId = body.matchPlayerId, contentType = body.contentType;
   if (
-    typeof token !== "string" || typeof pin !== "string" ||
+    typeof token !== "string" ||
     typeof matchPlayerId !== "string" || typeof contentType !== "string" ||
     !EXT[contentType]
   ) return bad(400, "Datos inválidos o tipo de archivo no permitido");
@@ -41,16 +41,13 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1) PIN + partido.
-  const { data: matchId } = await admin.rpc("verify_match_pin", { p_token: token, p_pin: pin });
-  if (!matchId) return bad(403, "PIN incorrecto");
+  // 1) El token existe y el jugador pertenece a ESE partido (una sola consulta).
+  const { data: matchId } = await admin.rpc("verify_match_player", {
+    p_token: token, p_match_player_id: matchPlayerId,
+  });
+  if (!matchId) return bad(403, "Jugador no pertenece al partido");
 
-  // 2) El jugador pertenece a ese partido.
-  const { data: mp } = await admin
-    .from("match_players").select("id").eq("id", matchPlayerId).eq("match_id", matchId).maybeSingle();
-  if (!mp) return bad(403, "Jugador no pertenece al partido");
-
-  // 3) Ruta aleatoria + signed upload URL.
+  // 2) Ruta aleatoria + signed upload URL.
   const path = `${matchId}/${crypto.randomUUID()}.${EXT[contentType as string]}`;
   const { data: signed, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !signed) { console.log("proof signurl fail"); return bad(500, "No se pudo preparar la subida"); }

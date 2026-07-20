@@ -44,7 +44,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <TopBar title="Ajustes" back />
+      <TopBar title="Ajustes" back backTo="/" />
       <div className="space-y-4 p-4">
         <div className="card space-y-3">
           <div className="text-sm text-gray-500">{profile?.full_name}</div>

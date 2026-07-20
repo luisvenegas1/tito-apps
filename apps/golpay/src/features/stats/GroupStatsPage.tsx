@@ -64,7 +64,7 @@ export function GroupStatsPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Estadísticas del grupo" back />
+      <TopBar title="Estadísticas del grupo" back backTo="/" />
       <div className="space-y-3 p-4">
         <div className="grid grid-cols-3 gap-2">
           <div className="card py-3"><div className="text-xs text-gray-400">Partidos</div><div className="text-lg font-bold">{totalMatches}</div></div>

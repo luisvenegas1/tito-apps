@@ -13,7 +13,7 @@ export function DashboardPage() {
   const past = (matches ?? []).filter((m) => m.date < now);
 
   return (
-    <div className="pb-24">
+    <div className="pb-8">
       <header className="flex items-center justify-between px-4 py-4">
         <div>
           <h1 className="text-2xl font-extrabold text-pitch-600">GolPay ⚽</h1>
@@ -28,7 +28,11 @@ export function DashboardPage() {
         </div>
       </header>
 
-      {isLoading && <p className="px-4 text-gray-400">Cargando…</p>}
+      <div className="px-4">
+        <Link to="/partido/nuevo" className="btn-primary w-full text-center">+ Nuevo partido</Link>
+      </div>
+
+      {isLoading && <p className="mt-3 px-4 text-gray-400">Cargando…</p>}
 
       {!isLoading && (matches?.length ?? 0) === 0 && (
         <div className="card mx-4 text-center">
@@ -40,12 +44,6 @@ export function DashboardPage() {
       <Section title="Próximos" items={upcoming} />
       <Section title="Historial" items={past} muted />
 
-      <Link
-        to="/partido/nuevo"
-        className="btn-primary fixed bottom-5 left-1/2 z-20 -translate-x-1/2 shadow-lg"
-      >
-        + Nuevo partido
-      </Link>
     </div>
   );
 }

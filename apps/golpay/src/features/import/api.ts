@@ -1,5 +1,17 @@
 import { supabase } from "@/lib/supabase/client";
 import type { FrequentPlayer } from "@/lib/supabase/types";
+import { titleCaseName } from "@/lib/names";
+import { normalizeName } from "../players/matching";
+
+/** El índice único de la BD hablando en cristiano. */
+function duplicateFriendly(error: { code?: string; message: string }): Error {
+  if (error.code === "23505") {
+    return new Error(
+      "Ese jugador ya existe en tu lista. Volvé a la vista previa y vinculalo al perfil guardado.",
+    );
+  }
+  return new Error(error.message);
+}
 
 export interface ImportRow {
   name: string;
@@ -22,13 +34,31 @@ export async function importPlayers(
   ownerId: string,
 ): Promise<void> {
   const clean = rows
-    .map((r) => ({ ...r, name: r.name.trim() }))
+    .map((r) => ({ ...r, name: titleCaseName(r.name) }))
     .filter((r) => r.name.length > 0);
   if (clean.length === 0) return;
 
-  // 1) Crear perfiles para los jugadores nuevos (sin frequentPlayerId).
-  const toCreate = clean.filter((r) => !r.frequentPlayerId);
+  // 1) Últimas defensas contra duplicados, ya con los nombres normalizados:
+  //    releemos los perfiles del organizador por si algo cambió desde la vista
+  //    previa, y colapsamos repetidos dentro del mismo lote.
+  const existing = await listFrequentForMatch();
+  const byNorm = new Map(existing.map((f) => [normalizeName(f.name), f.id]));
+
+  const resolved = clean.map((r) => ({
+    ...r,
+    frequentPlayerId: r.frequentPlayerId ?? byNorm.get(normalizeName(r.name)) ?? null,
+  }));
+
   const createdIds: Record<string, string> = {};
+  const toCreate: typeof resolved = [];
+  const seen = new Set<string>();
+  for (const r of resolved) {
+    const key = normalizeName(r.name);
+    if (r.frequentPlayerId || seen.has(key)) continue;
+    seen.add(key);
+    toCreate.push(r);
+  }
+
   if (toCreate.length > 0) {
     const { data, error } = await supabase
       .from("frequent_players")
@@ -41,19 +71,19 @@ export async function importPlayers(
         })),
       )
       .select("id, name");
-    if (error) throw error;
+    if (error) throw duplicateFriendly(error);
     (data as { id: string; name: string }[]).forEach((p) => {
-      createdIds[p.name.toLowerCase()] = p.id;
+      createdIds[normalizeName(p.name)] = p.id;
     });
   }
 
   // 2) Insertar los jugadores del partido.
-  const playerRows = clean.map((r) => ({
+  const playerRows = resolved.map((r) => ({
     match_id: matchId,
     display_name: r.name,
     amount_due: amountDue,
     is_goalkeeper: r.isGoalkeeper,
-    frequent_player_id: r.frequentPlayerId ?? createdIds[r.name.toLowerCase()] ?? null,
+    frequent_player_id: r.frequentPlayerId ?? createdIds[normalizeName(r.name)] ?? null,
   }));
 
   const { error } = await supabase.from("match_players").insert(playerRows);

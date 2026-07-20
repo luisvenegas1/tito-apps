@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { teamLabel } from "@/lib/teamColors";
 import type {
   Match, MatchPlayer, PaymentStatus, AttendanceStatus, MatchTemplate, MatchResult,
 } from "@/lib/supabase/types";
@@ -48,12 +49,6 @@ export async function updateMatch(id: string, input: Partial<MatchInput>): Promi
 
 export async function deleteMatch(id: string): Promise<void> {
   const { error } = await supabase.from("matches").delete().eq("id", id);
-  if (error) throw error;
-}
-
-/** Setea/rota el PIN vía RPC (se hashea en el servidor). */
-export async function setMatchPin(matchId: string, pin: string): Promise<void> {
-  const { error } = await supabase.rpc("set_match_pin", { p_match_id: matchId, p_pin: pin });
   if (error) throw error;
 }
 
@@ -194,14 +189,14 @@ export interface ChampionRow {
 export async function listChampions(): Promise<ChampionRow[]> {
   const { data, error } = await supabase
     .from("match_results")
-    .select("match_id, score, winner_team_id, mvp_match_player_id, matches(title, date), teams:winner_team_id(name), mvp:mvp_match_player_id(display_name)")
+    .select("match_id, score, winner_team_id, mvp_match_player_id, matches(title, date), teams:winner_team_id(name, color), mvp:mvp_match_player_id(display_name)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data as any[]).map((r) => ({
     match_id: r.match_id,
     title: r.matches?.title ?? "",
     date: r.matches?.date ?? "",
-    winner_team_name: r.teams?.name ?? null,
+    winner_team_name: r.teams ? teamLabel(r.teams.color, r.teams.name) : null,
     mvp_name: r.mvp?.display_name ?? null,
     score: r.score ?? null,
   }));

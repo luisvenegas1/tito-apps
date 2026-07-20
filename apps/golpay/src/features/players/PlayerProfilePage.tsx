@@ -60,7 +60,7 @@ export function PlayerProfilePage() {
 
   return (
     <div className="pb-8">
-      <TopBar title={player.name} back />
+      <TopBar title={player.name} back backTo="/frecuentes" />
       <div className="space-y-4 p-4">
         <div className="card">
           <div className="text-lg font-bold">

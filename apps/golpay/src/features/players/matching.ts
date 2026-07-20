@@ -9,14 +9,17 @@ import type { FrequentPlayer } from "@/lib/supabase/types";
  *  - Solo los match EXACTOS se vinculan solos; los probables piden confirmación.
  */
 
-/** minúsculas, sin acentos, sin puntuación, espacios colapsados. */
+/**
+ * minúsculas, sin acentos, sin puntuación, espacios colapsados.
+ * DEBE dar el mismo resultado que public.norm_name() en Postgres (migración
+ * 0016): esa función alimenta el índice único que impide los duplicados.
+ */
 export function normalizeName(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[._,]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
@@ -71,6 +74,23 @@ export function findMatches(name: string, list: FrequentPlayer[]): PlayerMatch[]
 /** Compatibilidad: solo la lista de jugadores sugeridos. */
 export function suggestMatches(name: string, frequent: FrequentPlayer[]): FrequentPlayer[] {
   return findMatches(name, frequent).map((m) => m.player);
+}
+
+/**
+ * Agrupa los perfiles que comparten nombre normalizado — los duplicados reales
+ * ("titi" y "Titi"). Incluye inactivos: un duplicado desactivado sigue chocando
+ * con el índice único de la BD. El más antiguo va primero (candidato a conservar).
+ */
+export function duplicateGroups(list: FrequentPlayer[]): FrequentPlayer[][] {
+  const byNorm = new Map<string, FrequentPlayer[]>();
+  for (const f of list) {
+    const key = normalizeName(f.name);
+    if (!key) continue;
+    byNorm.set(key, [...(byNorm.get(key) ?? []), f]);
+  }
+  return [...byNorm.values()]
+    .filter((g) => g.length > 1)
+    .map((g) => [...g].sort((a, b) => a.created_at.localeCompare(b.created_at)));
 }
 
 /** Devuelve un jugador ACTIVO con el mismo nombre (para evitar duplicados). */

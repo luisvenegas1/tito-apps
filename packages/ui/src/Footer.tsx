@@ -11,8 +11,23 @@ export interface FooterProps {
   developerUrl?: string;
   /** Año; por defecto el actual (para que no quede viejo). */
   year?: number;
+  /**
+   * Cómo se ancla:
+   *  - "flow": al final del contenido (por defecto).
+   *  - "fixed": siempre fijo al fondo de la pantalla.
+   *  - "fixed-desktop": en móvil va al final del contenido (no roba pantalla)
+   *    y a partir de `md` queda fijo abajo.
+   */
+  mode?: "flow" | "fixed" | "fixed-desktop";
   className?: string;
 }
+
+const FLOW = "mt-10 px-4 py-6 text-xs";
+const FIXED = "fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md bg-surface/95 px-4 py-2.5 text-[11px] leading-tight backdrop-blur";
+const FIXED_DESKTOP =
+  "mt-10 px-4 py-6 text-xs " +
+  "md:fixed md:inset-x-0 md:bottom-0 md:z-20 md:mx-auto md:mt-0 md:max-w-md " +
+  "md:bg-surface/95 md:px-4 md:py-2.5 md:text-[11px] md:leading-tight md:backdrop-blur";
 
 /** Pie de página neutral: los nombres llegan por props, nunca hardcodeados. */
 export function Footer({
@@ -21,11 +36,13 @@ export function Footer({
   developerName,
   developerUrl,
   year,
+  mode = "flow",
   className,
 }: FooterProps) {
   const y = year ?? new Date().getFullYear();
+  const anchor = mode === "fixed" ? FIXED : mode === "fixed-desktop" ? FIXED_DESKTOP : FLOW;
   return (
-    <footer className={cn("mt-10 border-t border-border px-4 py-6 text-center text-xs text-muted", className)}>
+    <footer className={cn("border-t border-border text-center text-muted", anchor, className)}>
       <p>
         © {y} {productName ? `${productName} · ` : ""}
         {companyName}. Todos los derechos reservados.

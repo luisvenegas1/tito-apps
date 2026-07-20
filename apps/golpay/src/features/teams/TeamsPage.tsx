@@ -9,6 +9,11 @@ import { publishTeams } from "./api";
 import { levelLabel } from "@/lib/levels";
 import { recommendFormat } from "@/lib/formats";
 import { Button } from "@titoapps/ui";
+import { TEAM_COLORS, defaultColors, colorOf, TeamColorId } from "@/lib/teamColors";
+import { teamsMessageWithTitle } from "./share";
+import { copyToClipboard } from "@/components/ui/toast";
+import { getMatch } from "../matches/api";
+import { formatDate } from "@/lib/utils/format";
 
 export function TeamsPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +24,9 @@ export function TeamsPage() {
   const [teams, setTeams] = useState<Team[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // Color de camiseta por equipo. Se puede cambiar antes de publicar.
+  const [colors, setColors] = useState<TeamColorId[]>(defaultColors(6));
+  const { data: match } = useQuery({ queryKey: ["match", id], queryFn: () => getMatch(id!) });
 
   // Mapea jugadores del partido a BalancePlayer.
   // Portero: el valor por partido (is_goalkeeper). Nivel: del perfil vinculado.
@@ -69,7 +77,7 @@ export function TeamsPage() {
     if (!teams || !id) return;
     setBusy(true);
     try {
-      await publishTeams(id, teams);
+      await publishTeams(id, teams, colors.slice(0, teams.length));
       setMsg("Equipos publicados. Los jugadores ya los pueden ver.");
     } catch (e: any) {
       setMsg(e.message ?? "Error");
@@ -78,11 +86,37 @@ export function TeamsPage() {
     }
   }
 
+  async function copyForWhatsapp() {
+    if (!teams) return;
+    const text = teamsMessageWithTitle(
+      match?.title ?? "Mejenga",
+      match?.date ? formatDate(match.date) : "",
+      teams.map((t, i) => ({
+        color: colors[i] ?? null,
+        name: `Equipo ${i + 1}`,
+        players: t.players.map((p) => p.name),
+      })),
+    );
+    const ok = await copyToClipboard(text);
+    setMsg(ok ? "Equipos copiados: pegalos en el grupo." : "No se pudo copiar");
+  }
+
+  /** Evita que dos equipos queden con el mismo color: intercambia. */
+  function setTeamColor(index: number, color: TeamColorId) {
+    setColors((cur) => {
+      const next = [...cur];
+      const taken = next.indexOf(color);
+      if (taken !== -1 && taken !== index) next[taken] = next[index];
+      next[index] = color;
+      return next;
+    });
+  }
+
   const maxTeams = Math.max(2, Math.min(6, Math.floor(balancePlayers.length / 2)));
 
   return (
     <div className="pb-10">
-      <TopBar title="Armar equipos" back />
+      <TopBar title="Armar equipos" back backTo={`/partido/${id}`} />
       <div className="space-y-4 p-4">
         <div className="card">
           {/* Recomendación de formato (el organizador puede sobrescribir) */}
@@ -121,9 +155,26 @@ export function TeamsPage() {
             <div className="grid grid-cols-2 gap-3">
               {teams.map((t, ti) => (
                 <div key={ti} className="card">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-bold text-pitch-600">Equipo {ti + 1}</span>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className={`font-bold ${colorOf(colors[ti])?.text ?? "text-pitch-600"}`}>
+                      {colorOf(colors[ti])?.label ?? `Equipo ${ti + 1}`}
+                    </span>
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">nivel {t.score}</span>
+                  </div>
+                  {/* Color de camiseta: cambia según lo que lleven ese día. */}
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {TEAM_COLORS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        title={c.label}
+                        aria-label={c.label}
+                        onClick={() => setTeamColor(ti, c.id)}
+                        className={`h-5 w-5 rounded-full ${c.dot} ${
+                          colors[ti] === c.id ? "ring-2 ring-pitch-500 ring-offset-1" : "opacity-60"
+                        }`}
+                      />
+                    ))}
                   </div>
                   <ul className="space-y-1">
                     {t.players.map((p) => (
@@ -143,9 +194,12 @@ export function TeamsPage() {
               ))}
             </div>
 
-            <Button fullWidth onClick={publish} disabled={busy}>
-              {busy ? "Publicando…" : "Publicar equipos"}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={publish} disabled={busy}>
+                {busy ? "Publicando…" : "Publicar equipos"}
+              </Button>
+              <button className="btn-ghost" onClick={copyForWhatsapp}>📋 Copiar para WhatsApp</button>
+            </div>
             {msg && <p className="text-center text-sm text-pitch-600">{msg}</p>}
           </>
         )}

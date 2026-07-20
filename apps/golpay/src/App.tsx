@@ -16,6 +16,7 @@ import { GroupStatsPage } from "./features/stats/GroupStatsPage";
 import { TournamentPage } from "./features/tournaments/TournamentPage";
 import { PublicMatchPage } from "./features/public/PublicMatchPage";
 import { Footer } from "@titoapps/ui";
+import { DialogProvider } from "./components/ui/Dialog";
 
 function Protected({ children }: { children: JSX.Element }) {
   const { session, profile, loading } = useAuth();
@@ -28,7 +29,8 @@ function Protected({ children }: { children: JSX.Element }) {
 
 export default function App() {
   return (
-    <div className="app-shell">
+    <DialogProvider>
+      <div className="app-shell md:pb-14">
       <Routes>
         {/* Público (jugador) */}
         <Route path="/j/:token" element={<PublicMatchPage />} />
@@ -55,11 +57,13 @@ export default function App() {
       </Routes>
 
       <Footer
+        mode="fixed-desktop"
         productName="GolPay"
         companyName="Tito Apps"
         developerName="Luis Diego Venegas"
         developerUrl="https://wa.me/50688238325"
       />
-    </div>
+      </div>
+    </DialogProvider>
   );
 }

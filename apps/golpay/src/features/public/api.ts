@@ -12,6 +12,8 @@ export interface PublicPlayer {
 export interface PublicTeam {
   id: string;
   name: string;
+  /** id del color de camiseta (negro, blanco, rojo…). Null en equipos viejos. */
+  color: string | null;
   members: string[];
 }
 
@@ -51,7 +53,6 @@ export async function getPublicMatch(token: string): Promise<PublicMatch | null>
 
 export async function reportPayment(params: {
   token: string;
-  pin: string;
   matchPlayerId: string;
   method?: string | null;
   note?: string | null;
@@ -60,7 +61,6 @@ export async function reportPayment(params: {
 }): Promise<void> {
   const { error } = await supabase.rpc("report_payment", {
     p_token: params.token,
-    p_pin: params.pin,
     p_match_player_id: params.matchPlayerId,
     p_method: params.method ?? null,
     p_note: params.note ?? null,
@@ -74,18 +74,17 @@ const PROOF_BUCKET = "payment-proofs";
 
 /**
  * Sube un comprobante: pide una signed upload URL a la Edge Function
- * (que valida token/PIN/partido/jugador) y sube el archivo. Devuelve la ruta.
+ * (que valida que el jugador pertenezca al partido del token) y sube el
+ * archivo. Devuelve la ruta.
  */
 export async function uploadProof(params: {
   token: string;
-  pin: string;
   matchPlayerId: string;
   file: File;
 }): Promise<string> {
   const { data, error } = await supabase.functions.invoke("upload-proof", {
     body: {
       token: params.token,
-      pin: params.pin,
       matchPlayerId: params.matchPlayerId,
       contentType: params.file.type,
     },
@@ -96,16 +95,14 @@ export async function uploadProof(params: {
   return data.path as string;
 }
 
-/** RSVP del jugador (protegido por PIN). status: confirmado | declinado | tal_vez. */
+/** RSVP del jugador. El enlace secreto es la credencial. */
 export async function setAttendance(params: {
   token: string;
-  pin: string;
   matchPlayerId: string;
   status: "confirmado" | "declinado" | "tal_vez";
 }): Promise<{ status: string }> {
   const { data, error } = await supabase.rpc("set_attendance", {
     p_token: params.token,
-    p_pin: params.pin,
     p_match_player_id: params.matchPlayerId,
     p_status: params.status,
   });

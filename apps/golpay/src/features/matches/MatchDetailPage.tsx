@@ -5,17 +5,20 @@ import { TopBar } from "@/components/ui/TopBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { copyToClipboard } from "@/components/ui/toast";
 import {
-  getMatch, listMatchPlayers, setPaymentStatus, updatePlayer, removePlayer, setMatchPin, deleteMatch,
+  getMatch, listMatchPlayers, setPaymentStatus, updatePlayer, removePlayer, deleteMatch,
   setAttendance, setListClosed, getResult, saveResult, getProofUrl,
 } from "./api";
 import { listPublishedTeams } from "../teams/api";
+import { UnratedPlayersCard } from "../players/UnratedPlayersCard";
+import { useDialog } from "@/components/ui/Dialog";
 import { useAuth } from "../auth/AuthProvider";
-import { crc, formatDate, formatTime, generatePin } from "@/lib/utils/format";
+import { crc, formatDate, formatTime } from "@/lib/utils/format";
 import { computeTotals, pendingMessage, summaryMessage, inviteMessage } from "../payments/messages";
 import { attendanceCounts, spotsLeft } from "../attendance/attendance";
 import { matchSummary, shareText } from "../share/share";
 import type { Match, MatchPlayer, PaymentStatus, AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
+import { teamLabel } from "@/lib/teamColors";
 
 const ORDER: Record<PaymentStatus, number> = {
   pendiente: 0, reportado: 1, parcial: 2, confirmado: 3, exonerado: 4, no_asistio: 5,
@@ -27,7 +30,7 @@ export function MatchDetailPage() {
   const nav = useNavigate();
   const { session } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
-  const [pin, setPin] = useState<string | null>(null);
+  const dialog = useDialog();
 
   const { data: match } = useQuery({ queryKey: ["match", id], queryFn: () => getMatch(id!) });
   const { data: players } = useQuery({ queryKey: ["players", id], queryFn: () => listMatchPlayers(id!) });
@@ -59,7 +62,14 @@ export function MatchDetailPage() {
   }
 
   async function reject(p: MatchPlayer) {
-    const reason = window.prompt("Motivo del rechazo (opcional):") ?? "";
+    const reason = await dialog.prompt({
+      title: `Rechazar el pago de ${p.display_name}`,
+      message: "Podés dejar un motivo para que el jugador sepa qué pasó.",
+      placeholder: "Ej.: el comprobante no coincide",
+      confirmLabel: "Rechazar",
+      danger: true,
+    });
+    if (reason === null) return; // canceló
     if (reason.trim()) await updatePlayer(p.id, { note: reason.trim() });
     await change(p, "pendiente");
   }
@@ -81,12 +91,8 @@ export function MatchDetailPage() {
 
   async function share() {
     if (!match) return;
-    const newPin = generatePin();
-    await setMatchPin(match.id, newPin);
-    setPin(newPin);
-    const msg = inviteMessage(match, publicUrl, newPin);
-    await copyToClipboard(msg);
-    flash(`Enlace + PIN ${newPin} copiado`);
+    await copyToClipboard(inviteMessage(match, publicUrl));
+    flash("Enlace copiado");
   }
 
   return (
@@ -94,6 +100,7 @@ export function MatchDetailPage() {
       <TopBar
         title={match.title}
         back
+        backTo="/"
         right={
           <Link to={`/partido/${match.id}/editar`} className="text-sm text-gray-400 underline">Editar</Link>
         }
@@ -162,23 +169,20 @@ export function MatchDetailPage() {
           );
         })()}
 
+        {/* Jugadores recién importados sin nivel */}
+        <UnratedPlayersCard players={players} />
+
         {/* Asistencia + resultado */}
         <AttendanceAndResult match={match} players={players} onChange={refresh} />
 
         {/* Acciones */}
         <div className="grid grid-cols-2 gap-2">
-          <Button onClick={share}>Compartir enlace + PIN</Button>
+          <Button onClick={share}>Compartir enlace</Button>
           <Link to={`/partido/${match.id}/importar`} className="btn-ghost">+ Importar</Link>
           <button className="btn-ghost" onClick={() => copy(pendingMessage(match, players), "Pendientes")}>Copiar pendientes</button>
           <button className="btn-ghost" onClick={() => copy(summaryMessage(players), "Resumen")}>Copiar resumen</button>
           <Link to={`/partido/${match.id}/equipos`} className="btn-ghost col-span-2 text-center">⚖️ Armar equipos</Link>
         </div>
-
-        {pin && (
-          <div className="card bg-pitch-50 text-sm">
-            PIN del partido: <span className="font-bold tracking-widest">{pin}</span> — compartilo junto al enlace.
-          </div>
-        )}
 
         {/* Lista de jugadores */}
         <div className="space-y-2">
@@ -198,7 +202,13 @@ export function MatchDetailPage() {
         <button
           className="mt-6 w-full text-center text-sm text-red-400 underline"
           onClick={async () => {
-            if (confirm("¿Eliminar este partido?")) { await deleteMatch(match.id); nav("/"); }
+            const ok = await dialog.confirm({
+              title: "¿Eliminar este partido?",
+              message: "Se borran los jugadores, pagos y equipos de esta fecha. No se puede deshacer.",
+              confirmLabel: "Eliminar",
+              danger: true,
+            });
+            if (ok) { await deleteMatch(match.id); nav("/"); }
           }}
         >
           Eliminar partido
@@ -344,11 +354,12 @@ function AttendanceAndResult({ match, players, onChange }: {
         <div className="grid grid-cols-2 gap-2">
           <Link to={`/partido/${match.id}/torneo`} className="btn-ghost text-center text-sm">🎯 Minitorneo</Link>
           <button className="btn-ghost text-sm" onClick={() => {
-            const champion = result?.winner_team_id ? (teams.find((t) => t.id === result.winner_team_id)?.name ?? null) : null;
+            const champTeam = result?.winner_team_id ? teams.find((t) => t.id === result.winner_team_id) : undefined;
+            const champion = champTeam ? teamLabel(champTeam.color, champTeam.name) : null;
             const mvp = result?.mvp_match_player_id ? (players.find((p) => p.id === result.mvp_match_player_id)?.display_name ?? null) : null;
             shareText(matchSummary({
               title: match.title, dateLabel: formatDate(match.date),
-              teams: teams.map((t) => ({ name: t.name })), champion, mvp, score: result?.score ?? null,
+              teams: teams.map((t) => ({ name: teamLabel(t.color, t.name) })), champion, mvp, score: result?.score ?? null,
             }));
           }}>📤 Compartir resumen</button>
         </div>
@@ -367,7 +378,7 @@ function AttendanceAndResult({ match, players, onChange }: {
 
 function ResultModal({ match, teams, players, initial, onClose, onSaved }: {
   match: Match;
-  teams: { id: string; name: string }[];
+  teams: { id: string; name: string; color: string | null }[];
   players: MatchPlayer[];
   initial: { winner_team_id: string | null; mvp_match_player_id: string | null; score: string | null } | null;
   onClose: () => void;
@@ -377,6 +388,7 @@ function ResultModal({ match, teams, players, initial, onClose, onSaved }: {
   const [mvp, setMvp] = useState(initial?.mvp_match_player_id ?? "");
   const [score, setScore] = useState(initial?.score ?? "");
   const [busy, setBusy] = useState(false);
+  const dialog = useDialog();
 
   async function save() {
     setBusy(true);
@@ -389,7 +401,7 @@ function ResultModal({ match, teams, players, initial, onClose, onSaved }: {
       });
       onSaved();
     } catch (e: any) {
-      alert(e.message ?? "Error");
+      dialog.alert({ title: "No se pudo guardar el resultado", message: e.message ?? "Error" });
     } finally {
       setBusy(false);
     }
@@ -405,7 +417,7 @@ function ResultModal({ match, teams, players, initial, onClose, onSaved }: {
             <label className="label">Equipo campeón</label>
             <select className="input" value={winner} onChange={(e) => setWinner(e.target.value)}>
               <option value="">Sin definir</option>
-              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {teams.map((t) => <option key={t.id} value={t.id}>{teamLabel(t.color, t.name)}</option>)}
             </select>
           </div>
           <div>

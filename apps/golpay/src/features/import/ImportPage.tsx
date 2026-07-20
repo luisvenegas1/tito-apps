@@ -10,6 +10,7 @@ import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer } from "@/lib/supabase/types";
 import { levelLabel } from "@/lib/levels";
 import { Button } from "@titoapps/ui";
+import { useDialog } from "@/components/ui/Dialog";
 
 interface Row {
   name: string;
@@ -29,6 +30,7 @@ export function ImportPage() {
   const [text, setText] = useState("");
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const dialog = useDialog();
 
   const { data: match } = useQuery({ queryKey: ["match", id], queryFn: () => getMatch(id!) });
   const { data: existing } = useQuery({ queryKey: ["players", id], queryFn: () => listMatchPlayers(id!) });
@@ -68,9 +70,20 @@ export function ImportPage() {
     };
   }
 
+  /**
+   * Primero lo que necesita tu atención: coincidencias por confirmar, después
+   * los nuevos, y de último los ya guardados (que no hay que tocar).
+   * Ordena una sola vez, al generar la vista previa, para que las filas no se
+   * muevan bajo el dedo mientras las resolvés.
+   */
+  function sortByAttention(list: Row[]): Row[] {
+    const rank = (r: Row) => (r.candidates.length > 0 && !r.frequentPlayerId ? 0 : r.known ? 2 : 1);
+    return [...list].sort((a, b) => rank(a) - rank(b));
+  }
+
   function preview() {
     const parsed = parseWhatsappList(text);
-    setRows(parsed.map((p) => buildRow(p.name, p.goalkeeper, p.splittable, p.suggestions)));
+    setRows(sortByAttention(parsed.map((p) => buildRow(p.name, p.goalkeeper, p.splittable, p.suggestions))));
   }
 
   function splitRow(i: number) {
@@ -133,7 +146,7 @@ export function ImportPage() {
       await importPlayers(match.id, toImport, match.cost_per_player, session.user.id);
       nav(`/partido/${match.id}`);
     } catch (err: any) {
-      alert(err.message ?? "Error");
+      dialog.alert({ title: "No se pudo importar", message: err.message ?? "Error" });
     } finally {
       setBusy(false);
     }
@@ -146,7 +159,7 @@ export function ImportPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Importar jugadores" back />
+      <TopBar title="Importar jugadores" back backTo={`/partido/${id}`} />
       <div className="space-y-4 p-4">
         {!rows && (
           <>
@@ -186,11 +199,27 @@ export function ImportPage() {
                 const profile = r.frequentPlayerId ? profileById(r.frequentPlayerId) : null;
                 const pending = r.candidates.length > 0 && !r.frequentPlayerId;
                 const isNew = !r.known && !pending && Boolean(r.name.trim());
+                // Encabezado al cambiar de grupo (van ordenadas por atención).
+                const group = pending ? "Falta confirmar" : r.known ? "Ya guardados" : "Nuevos";
+                const prev = rows[i - 1];
+                const prevGroup = !prev
+                  ? null
+                  : prev.candidates.length > 0 && !prev.frequentPlayerId
+                    ? "Falta confirmar"
+                    : prev.known
+                      ? "Ya guardados"
+                      : "Nuevos";
                 // Colores pastel sutiles: verde = se vincula a un existente,
                 // amarillo = se creará como nuevo, blanco = falta confirmar.
                 const bg = r.known ? "bg-green-50" : isNew ? "bg-amber-50" : "bg-white";
                 return (
-                  <div key={i} className={`card space-y-1.5 px-2.5 py-2 ${bg}`}>
+                  <div key={i}>
+                    {group !== prevGroup && (
+                      <div className="pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400 first:pt-0">
+                        {group}
+                      </div>
+                    )}
+                    <div className={`card space-y-1.5 px-2.5 py-2 ${bg}`}>
                     <div className="flex items-center gap-2">
                       {r.known ? (
                         <span className="shrink-0 text-sm text-pitch-500"
@@ -242,14 +271,25 @@ export function ImportPage() {
                               </button>
                             );
                           })}
-                          <button type="button"
-                            className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700"
-                            onClick={() => resolveCandidate(i, null)}>
-                            Es nuevo
-                          </button>
+                          {/* Si el nombre coincide EXACTO con un perfil, "es nuevo"
+                              crearía un duplicado: la BD lo rechaza, mejor no ofrecerlo. */}
+                          {!r.recommendedId && (
+                            <button type="button"
+                              className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700"
+                              onClick={() => resolveCandidate(i, null)}>
+                              Es nuevo
+                            </button>
+                          )}
                         </div>
+                        {r.recommendedId && (
+                          <div className="mt-1 text-[11px] text-gray-400">
+                            Ese nombre ya existe tal cual. Si es otra persona, cambiale el nombre arriba
+                            (ej. agregale el apellido).
+                          </div>
+                        )}
                       </div>
                     )}
+                    </div>
                   </div>
                 );
               })}

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { teamLabel } from "@/lib/teamColors";
 import type { PlayerMatchRow } from "./stats";
 
 export interface RawStatsData {
@@ -37,7 +38,7 @@ export function buildRows(
 ): PlayerMatchRow[] {
   const matchById = new Map(data.matches.map((m) => [m.id, m]));
   const resultByMatch = new Map(data.results.map((r) => [r.match_id, r]));
-  const teamNameById = new Map(data.teams.map((t) => [t.id, t.name]));
+  const teamNameById = new Map(data.teams.map((t) => [t.id, teamLabel((t as { color?: string | null }).color, t.name)]));
   const teamByMp = new Map(data.teamMembers.map((tm) => [tm.match_player_id, tm.team_id]));
 
   return data.players

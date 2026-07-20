@@ -5,6 +5,7 @@ import { getPublicMatch, reportPayment, setAttendance, uploadProof, PublicPlayer
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { copyToClipboard } from "@/components/ui/toast";
 import { crc, formatDate, formatTime } from "@/lib/utils/format";
+import { colorOf, teamLabel } from "@/lib/teamColors";
 import { ATTENDANCE_LABELS, attendanceCounts, spotsLeft } from "../attendance/attendance";
 import type { AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
@@ -37,11 +38,13 @@ export function PublicMatchPage() {
 
       {/* Campeón — celebración sutil, no bloquea el pago */}
       {match.result?.winner_team_name && (() => {
-        const champ = match.teams.find((t) => t.name === match.result!.winner_team_name);
+        // El backend manda el color si lo hay, si no el nombre viejo.
+        const w = match.result!.winner_team_name;
+        const champ = match.teams.find((t) => t.color === w || t.name === w);
         return (
           <div className="champ-pop bg-gradient-to-b from-yellow-100 to-yellow-50 px-5 py-4 text-center text-yellow-800">
             <div className="text-3xl">🏆</div>
-            <div className="text-lg font-extrabold">¡{match.result!.winner_team_name} campeón!</div>
+            <div className="text-lg font-extrabold">¡{teamLabel(w, w)} campeón!</div>
             {match.result!.score && <div className="text-sm">{match.result!.score}</div>}
             {match.result!.mvp_name && <div className="text-sm">⭐ MVP: {match.result!.mvp_name}</div>}
             {champ && champ.members.length > 0 && (
@@ -61,6 +64,31 @@ export function PublicMatchPage() {
           {match.list_closed && <span className="text-orange-500">lista cerrada</span>}
         </div>
 
+        {/* Equipos primero: es lo que todos vienen a ver. */}
+        {match.teams.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-sm font-semibold text-gray-500">Equipos</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {match.teams.map((t) => {
+                const c = colorOf(t.color);
+                return (
+                  <div key={t.id} className="card">
+                    <div className="flex items-center gap-1.5">
+                      {c && <span className={`h-3 w-3 shrink-0 rounded-full ${c.dot}`} />}
+                      <span className={`font-bold ${c ? c.text : "text-pitch-600"}`}>
+                        {teamLabel(t.color, t.name)}
+                      </span>
+                    </div>
+                    <ul className="mt-1 text-sm text-gray-600">
+                      {t.members.map((m) => <li key={m}>{m}</li>)}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <h2 className="mb-2 text-sm font-semibold text-gray-500">Tocá tu nombre para confirmar o pagar</h2>
         <div className="space-y-2">
           {match.players.map((p) => (
@@ -76,21 +104,6 @@ export function PublicMatchPage() {
           ))}
         </div>
 
-        {match.teams.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-2 text-sm font-semibold text-gray-500">Equipos</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {match.teams.map((t) => (
-                <div key={t.id} className="card">
-                  <div className="font-bold text-pitch-600">{t.name}</div>
-                  <ul className="mt-1 text-sm text-gray-600">
-                    {t.members.map((m) => <li key={m}>{m}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {selected && (
@@ -123,7 +136,6 @@ function PlayerSheet({
   onDone: () => void;
   onRsvpDone: () => void;
 }) {
-  const [pin, setPin] = useState("");
   const [method, setMethod] = useState("SINPE");
   const [note, setNote] = useState("");
   const [covered, setCovered] = useState<string[]>([]);
@@ -140,7 +152,7 @@ function PlayerSheet({
   async function rsvp(status: "confirmado" | "declinado" | "tal_vez") {
     setBusy(true); setErr(null); setInfo(null);
     try {
-      const res = await setAttendance({ token, pin, matchPlayerId: player.id, status });
+      const res = await setAttendance({ token, matchPlayerId: player.id, status });
       setInfo(res.status === "lista_espera" ? "Cupo lleno: quedaste en lista de espera." : "¡Listo!");
       onRsvpDone();
     } catch (e: any) {
@@ -154,8 +166,8 @@ function PlayerSheet({
     setBusy(true); setErr(null);
     try {
       let proofPath: string | null = null;
-      if (file) proofPath = await uploadProof({ token, pin, matchPlayerId: player.id, file });
-      await reportPayment({ token, pin, matchPlayerId: player.id, method, note, coveredIds: covered, proofPath });
+      if (file) proofPath = await uploadProof({ token, matchPlayerId: player.id, file });
+      await reportPayment({ token, matchPlayerId: player.id, method, note, coveredIds: covered, proofPath });
       onDone();
     } catch (e: any) {
       setErr(e.message ?? "Error");
@@ -168,8 +180,6 @@ function PlayerSheet({
     if (sinpe?.number) { await copyToClipboard(sinpe.number); setInfo("SINPE copiado"); }
   }
 
-  const pinOk = pin.length === 4;
-
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" onClick={onClose}>
       <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
@@ -177,14 +187,6 @@ function PlayerSheet({
         <h3 className="text-lg font-bold">{player.display_name}</h3>
 
         <div className="mt-4 space-y-4">
-          <div>
-            <label className="label">PIN del partido</label>
-            <input
-              className="input tracking-widest" inputMode="numeric" maxLength={4}
-              value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="4 dígitos"
-            />
-          </div>
-
           {/* Asistencia */}
           <div>
             <label className="label">¿Vas al partido?</label>
@@ -192,9 +194,9 @@ function PlayerSheet({
               <p className="text-sm text-orange-500">La lista está cerrada.</p>
             ) : (
               <div className="flex gap-2">
-                <Button variant="primary" disabled={!pinOk || busy} onClick={() => rsvp("confirmado")}>Voy</Button>
-                <Button variant="ghost" disabled={!pinOk || busy} onClick={() => rsvp("tal_vez")}>Tal vez</Button>
-                <Button variant="outline" disabled={!pinOk || busy} onClick={() => rsvp("declinado")}>No voy</Button>
+                <Button variant="primary" disabled={busy} onClick={() => rsvp("confirmado")}>Voy</Button>
+                <Button variant="ghost" disabled={busy} onClick={() => rsvp("tal_vez")}>Tal vez</Button>
+                <Button variant="outline" disabled={busy} onClick={() => rsvp("declinado")}>No voy</Button>
               </div>
             )}
             {info && <p className="mt-1 text-sm text-pitch-600">{info}</p>}
@@ -238,7 +240,7 @@ function PlayerSheet({
               <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-xs"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </label>
-            <Button fullWidth className="mt-3" disabled={busy || !pinOk} onClick={pay}>
+            <Button fullWidth className="mt-3" disabled={busy} onClick={pay}>
               {busy ? "…" : "Ya pagué ✅"}
             </Button>
           </div>

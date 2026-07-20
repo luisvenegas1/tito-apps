@@ -3,12 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
 import {
-  createMatch, updateMatch, getMatch, setMatchPin, listTemplates, createTemplate, MatchInput,
+  createMatch, updateMatch, getMatch, listTemplates, createTemplate, MatchInput,
 } from "./api";
 import { useAuth } from "../auth/AuthProvider";
-import { generatePin } from "@/lib/utils/format";
 import type { MatchTemplate } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
+import { useDialog } from "@/components/ui/Dialog";
 
 const empty: MatchInput = {
   title: "Mejenga lunes",
@@ -30,6 +30,7 @@ export function MatchFormPage() {
   const [form, setForm] = useState<MatchInput>(empty);
   const [busy, setBusy] = useState(false);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const dialog = useDialog();
   const { data: templates } = useQuery({ queryKey: ["templates"], queryFn: listTemplates, enabled: !editing });
 
   function applyTemplate(t: MatchTemplate) {
@@ -66,8 +67,6 @@ export function MatchFormPage() {
         nav(`/partido/${id}`);
       } else {
         const m = await createMatch(form, session.user.id);
-        // PIN inicial automático
-        await setMatchPin(m.id, generatePin());
         if (saveAsTemplate) {
           await createTemplate({
             name: form.title, type: form.type, time: form.time, location: form.location,
@@ -78,7 +77,7 @@ export function MatchFormPage() {
         nav(`/partido/${m.id}/importar`);
       }
     } catch (err: any) {
-      alert(err.message ?? "Error al guardar");
+      dialog.alert({ title: "No se pudo guardar el partido", message: err.message ?? "Error al guardar" });
     } finally {
       setBusy(false);
     }
@@ -86,7 +85,7 @@ export function MatchFormPage() {
 
   return (
     <div>
-      <TopBar title={editing ? "Editar partido" : "Nuevo partido"} back />
+      <TopBar title={editing ? "Editar partido" : "Nuevo partido"} back backTo={editing ? `/partido/${id}` : "/"} />
       <form onSubmit={save} className="space-y-4 p-4">
         {!editing && templates && templates.length > 0 && (
           <div>

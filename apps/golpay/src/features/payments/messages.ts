@@ -40,9 +40,9 @@ export function summaryMessage(players: MatchPlayer[]): string {
   )}\nPendiente: ${crc(t.remaining)}`;
 }
 
-/** Mensaje con el enlace + PIN para compartir. */
-export function inviteMessage(match: Match, url: string, pin: string): string {
+/** Mensaje con el enlace para compartir. */
+export function inviteMessage(match: Match, url: string): string {
   return `⚽ ${match.title}\n${match.location ?? ""}\nMonto: ${crc(
     match.cost_per_player,
-  )}\n\nReportá tu pago acá 👇\n${url}\nPIN: ${pin}`;
+  )}\n\nConfirmá tu asistencia y reportá tu pago acá 👇\n${url}`;
 }

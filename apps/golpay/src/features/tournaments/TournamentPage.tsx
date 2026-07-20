@@ -6,6 +6,7 @@ import { listPublishedTeams } from "../teams/api";
 import { listGames, createGame, deleteGame } from "./api";
 import { computeStandings } from "./standings";
 import { Button } from "@titoapps/ui";
+import { teamLabel } from "@/lib/teamColors";
 
 export function TournamentPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,18 +31,18 @@ export function TournamentPage() {
   if (!teams) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
   if (teams.length < 2) {
     return (
-      <div><TopBar title="Minitorneo" back />
+      <div><TopBar title="Minitorneo" back backTo={`/partido/${id}`} />
         <p className="p-8 text-center text-gray-500">Publicá al menos 2 equipos para armar el minitorneo.</p>
       </div>
     );
   }
 
-  const nameById = new Map(teams.map((t) => [t.id, t.name]));
-  const table = computeStandings(games ?? [], teams);
+  const nameById = new Map(teams.map((t) => [t.id, teamLabel(t.color, t.name)]));
+  const table = computeStandings(games ?? [], teams.map((t) => ({ ...t, name: teamLabel(t.color, t.name) })));
 
   return (
     <div className="pb-8">
-      <TopBar title="Minitorneo" back />
+      <TopBar title="Minitorneo" back backTo={`/partido/${id}`} />
       <div className="space-y-4 p-4">
         {/* Tabla de posiciones */}
         <div className="card">
@@ -72,14 +73,14 @@ export function TournamentPage() {
           <div className="flex items-center gap-2">
             <select className="input py-1.5" value={home} onChange={(e) => setHome(e.target.value)}>
               <option value="">Local</option>
-              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {teams.map((t) => <option key={t.id} value={t.id}>{teamLabel(t.color, t.name)}</option>)}
             </select>
             <input className="input w-14 py-1.5 text-center" type="number" min={0} value={hs} onChange={(e) => setHs(Number(e.target.value))} />
             <span>-</span>
             <input className="input w-14 py-1.5 text-center" type="number" min={0} value={as} onChange={(e) => setAs(Number(e.target.value))} />
             <select className="input py-1.5" value={away} onChange={(e) => setAway(e.target.value)}>
               <option value="">Visita</option>
-              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {teams.map((t) => <option key={t.id} value={t.id}>{teamLabel(t.color, t.name)}</option>)}
             </select>
           </div>
           <Button fullWidth onClick={add} disabled={!home || !away || home === away}>Agregar juego</Button>
