@@ -18,7 +18,8 @@ interface Row {
   isGoalkeeper: boolean;
   frequentPlayerId: string | null;
   known: boolean; // vinculado a un perfil existente
-  candidates: FrequentPlayer[]; // coincidencias ambiguas sin resolver
+  candidates: FrequentPlayer[]; // coincidencias sin resolver
+  recommendedId: string | null; // el match exacto, cuando hay más candidatos
 }
 
 export function ImportPage() {
@@ -40,15 +41,18 @@ export function ImportPage() {
   function buildRow(name: string, gk: boolean, splittable = false, suggestions?: string[]): Row {
     let frequentPlayerId: string | null = null;
     let candidates: FrequentPlayer[] = [];
+    let recommendedId: string | null = null;
     if (frequent && name.trim()) {
       const matches = findMatches(name, frequent);
       const exact = matches.find((m) => m.kind === "exact");
-      if (exact) {
-        // "Tito" / "tito" / "TITO" → mismo jugador, se vincula solo.
+      if (exact && matches.length === 1) {
+        // Exacto y ÚNICO candidato ("tito" → Tito): se vincula solo.
         frequentPlayerId = exact.player.id;
       } else if (matches.length > 0) {
-        // "sebas c" ↔ "Sebas Castro" → probable: pedimos confirmación.
+        // Hay ambigüedad ("sebas" con Sebas, Sebas C y Sebas V): confirmamos,
+        // con el exacto pre-marcado como sugerido.
         candidates = matches.map((m) => m.player);
+        recommendedId = exact?.player.id ?? null;
       }
     }
     const profile = profileById(frequentPlayerId);
@@ -60,6 +64,7 @@ export function ImportPage() {
       frequentPlayerId,
       known: Boolean(frequentPlayerId),
       candidates,
+      recommendedId,
     };
   }
 
@@ -136,6 +141,8 @@ export function ImportPage() {
 
   const keeperCount = rows?.filter((r) => r.isGoalkeeper).length ?? 0;
   const knownCount = rows?.filter((r) => r.known).length ?? 0;
+  // Coincidencias sin resolver: bloquean la confirmación para no crear duplicados.
+  const pendingCount = rows?.filter((r) => r.candidates.length > 0 && !r.frequentPlayerId).length ?? 0;
 
   return (
     <div className="pb-8">
@@ -168,12 +175,22 @@ export function ImportPage() {
                 Volver a pegar
               </button>
             </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-400">
+              <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-green-200 align-middle" />se vincula a un jugador guardado</span>
+              <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-amber-200 align-middle" />se creará como nuevo</span>
+              <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-orange-300 align-middle" />falta confirmar</span>
+            </div>
 
             <div className="space-y-1.5">
               {rows.map((r, i) => {
                 const profile = r.frequentPlayerId ? profileById(r.frequentPlayerId) : null;
+                const pending = r.candidates.length > 0 && !r.frequentPlayerId;
+                const isNew = !r.known && !pending && Boolean(r.name.trim());
+                // Colores pastel sutiles: verde = se vincula a un existente,
+                // amarillo = se creará como nuevo, blanco = falta confirmar.
+                const bg = r.known ? "bg-green-50" : isNew ? "bg-amber-50" : "bg-white";
                 return (
-                  <div key={i} className="card space-y-1.5 px-2.5 py-2">
+                  <div key={i} className={`card space-y-1.5 px-2.5 py-2 ${bg}`}>
                     <div className="flex items-center gap-2">
                       {r.known ? (
                         <span className="shrink-0 text-sm text-pitch-500"
@@ -205,21 +222,26 @@ export function ImportPage() {
                     </div>
 
                     {/* Resolver coincidencia ambigua */}
-                    {r.candidates.length > 0 && !r.frequentPlayerId && (
+                    {pending && (
                       <div className="rounded-lg bg-orange-50 p-1.5 pl-2">
                         <div className="text-xs text-orange-600">
                           {r.candidates.length === 1
                             ? `¿Es ${r.candidates[0].name}?`
-                            : "¿Es alguno de estos jugadores?"}
+                            : "¿A cuál corresponde?"}
                         </div>
                         <div className="mt-1 flex flex-wrap gap-1">
-                          {r.candidates.map((c) => (
-                            <button key={c.id} type="button"
-                              className="rounded-md bg-pitch-500 px-2 py-1 text-xs font-medium text-white"
-                              onClick={() => resolveCandidate(i, c.id)}>
-                              Sí, es {c.name}
-                            </button>
-                          ))}
+                          {r.candidates.map((c) => {
+                            const rec = c.id === r.recommendedId;
+                            return (
+                              <button key={c.id} type="button"
+                                className={rec
+                                  ? "rounded-md bg-pitch-500 px-2 py-1 text-xs font-semibold text-white ring-2 ring-pitch-300"
+                                  : "rounded-md bg-white px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-300"}
+                                onClick={() => resolveCandidate(i, c.id)}>
+                                {rec ? "⭐ " : ""}Sí, es {c.name}{rec ? " (sugerido)" : ""}
+                              </button>
+                            );
+                          })}
                           <button type="button"
                             className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700"
                             onClick={() => resolveCandidate(i, null)}>
@@ -237,8 +259,12 @@ export function ImportPage() {
             <p className="text-center text-xs text-gray-400">
               Los conocidos reutilizan su nivel y posición. Los nuevos se guardan como perfil.
             </p>
-            <Button fullWidth onClick={confirm} disabled={busy}>
-              {busy ? "Guardando…" : `Confirmar ${rows.length} jugadores`}
+            <Button fullWidth onClick={confirm} disabled={busy || pendingCount > 0}>
+              {busy
+                ? "Guardando…"
+                : pendingCount > 0
+                  ? `Resolvé ${pendingCount} coincidencia${pendingCount > 1 ? "s" : ""}`
+                  : `Confirmar ${rows.length} jugadores`}
             </Button>
           </>
         )}

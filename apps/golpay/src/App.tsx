@@ -15,6 +15,7 @@ import { ChampionsPage } from "./features/matches/ChampionsPage";
 import { GroupStatsPage } from "./features/stats/GroupStatsPage";
 import { TournamentPage } from "./features/tournaments/TournamentPage";
 import { PublicMatchPage } from "./features/public/PublicMatchPage";
+import { Footer } from "@titoapps/ui";
 
 function Protected({ children }: { children: JSX.Element }) {
   const { session, profile, loading } = useAuth();
@@ -52,6 +53,13 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      <Footer
+        productName="GolPay"
+        companyName="Tito Apps"
+        developerName="Luis Diego Venegas"
+        developerUrl="https://wa.me/50688238325"
+      />
     </div>
   );
 }

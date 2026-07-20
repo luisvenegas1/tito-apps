@@ -27,5 +27,7 @@ export { DateInput } from "./DateInput";
 export type { DateInputProps } from "./DateInput";
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
+export { Footer } from "./Footer";
+export type { FooterProps } from "./Footer";
 export { PageHeader } from "./PageHeader";
 export type { PageHeaderProps } from "./PageHeader";
