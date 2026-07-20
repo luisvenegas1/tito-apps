@@ -6,6 +6,8 @@ export interface OrganizerProfile {
   id: string;
   username: string | null;
   full_name: string | null;
+  sinpe_number: string | null;
+  sinpe_name: string | null;
 }
 
 interface AuthCtx {
@@ -36,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data } = await supabase
       .from("profiles")
-      .select("id, username, full_name")
+      .select("id, username, full_name, sinpe_number, sinpe_name")
       .eq("id", uid)
       .single();
     setProfile((data as OrganizerProfile) ?? null);

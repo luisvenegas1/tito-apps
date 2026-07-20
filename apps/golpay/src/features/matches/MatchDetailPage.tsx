@@ -6,13 +6,14 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { copyToClipboard } from "@/components/ui/toast";
 import {
   getMatch, listMatchPlayers, setPaymentStatus, updatePlayer, removePlayer, setMatchPin, deleteMatch,
-  setAttendance, setListClosed, getResult, saveResult,
+  setAttendance, setListClosed, getResult, saveResult, getProofUrl,
 } from "./api";
 import { listPublishedTeams } from "../teams/api";
 import { useAuth } from "../auth/AuthProvider";
 import { crc, formatDate, formatTime, generatePin } from "@/lib/utils/format";
 import { computeTotals, pendingMessage, summaryMessage, inviteMessage } from "../payments/messages";
 import { attendanceCounts, spotsLeft } from "../attendance/attendance";
+import { matchSummary, shareText } from "../share/share";
 import type { Match, MatchPlayer, PaymentStatus, AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 
@@ -49,6 +50,18 @@ export function MatchDetailPage() {
     if (!session) return;
     await setPaymentStatus(p, status, session.user.id);
     refresh();
+  }
+
+  async function viewProof(path: string) {
+    const url = await getProofUrl(path);
+    if (url) window.open(url, "_blank");
+    else flash("No se pudo abrir el comprobante");
+  }
+
+  async function reject(p: MatchPlayer) {
+    const reason = window.prompt("Motivo del rechazo (opcional):") ?? "";
+    if (reason.trim()) await updatePlayer(p.id, { note: reason.trim() });
+    await change(p, "pendiente");
   }
 
   function reportedAtLabel(iso: string | null): string {
@@ -128,12 +141,17 @@ export function MatchDetailPage() {
                         {p.payment_method && ` · ${p.payment_method}`}
                       </div>
                       {p.note && <div className="text-xs text-gray-400">“{p.note}”</div>}
+                      {p.payment_proof_path && (
+                        <button className="text-xs text-pitch-600 underline" onClick={() => viewProof(p.payment_proof_path!)}>
+                          📎 ver comprobante
+                        </button>
+                      )}
                     </div>
                     <div className="flex shrink-0 gap-1.5">
                       <button className="rounded-lg bg-pitch-500 px-3 py-1.5 text-sm font-medium text-white" onClick={() => change(p, "confirmado")}>
                         Aprobar
                       </button>
-                      <button className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600" onClick={() => change(p, "pendiente")}>
+                      <button className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600" onClick={() => reject(p)}>
                         Rechazar
                       </button>
                     </div>
@@ -320,6 +338,20 @@ function AttendanceAndResult({ match, players, onChange }: {
         <button className="btn-ghost w-full" onClick={() => setShowResult(true)} disabled={!teams || teams.length === 0}>
           🏆 Registrar resultado{(!teams || teams.length === 0) ? " (publicá equipos primero)" : ""}
         </button>
+      )}
+
+      {teams && teams.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          <Link to={`/partido/${match.id}/torneo`} className="btn-ghost text-center text-sm">🎯 Minitorneo</Link>
+          <button className="btn-ghost text-sm" onClick={() => {
+            const champion = result?.winner_team_id ? (teams.find((t) => t.id === result.winner_team_id)?.name ?? null) : null;
+            const mvp = result?.mvp_match_player_id ? (players.find((p) => p.id === result.mvp_match_player_id)?.display_name ?? null) : null;
+            shareText(matchSummary({
+              title: match.title, dateLabel: formatDate(match.date),
+              teams: teams.map((t) => ({ name: t.name })), champion, mvp, score: result?.score ?? null,
+            }));
+          }}>📤 Compartir resumen</button>
+        </div>
       )}
 
       {showResult && (

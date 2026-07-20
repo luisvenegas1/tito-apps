@@ -69,6 +69,17 @@ export async function changeUsername(username: string): Promise<void> {
   if (error) throw new Error("Ese usuario ya está en uso.");
 }
 
+/** Guarda el SINPE del organizador (número + nombre). */
+export async function updateSinpe(sinpeNumber: string | null, sinpeName: string | null): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ sinpe_number: sinpeNumber || null, sinpe_name: sinpeName || null })
+    .eq("id", user.id);
+  if (error) throw error;
+}
+
 /** Recuperación de contraseña SOLO por email. */
 export async function requestPasswordReset(email: string): Promise<void> {
   await supabase.auth.resetPasswordForEmail(email.trim(), {

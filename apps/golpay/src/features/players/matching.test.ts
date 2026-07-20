@@ -7,6 +7,7 @@ function fp(over: Partial<FrequentPlayer>): FrequentPlayer {
     id: over.id ?? "x", owner_id: "o", name: over.name ?? "", nickname: over.nickname ?? null,
     phone: null, skill_level: over.skill_level ?? 2, preferred_position: null,
     can_be_goalkeeper: false, notes: null, is_active: over.is_active ?? true,
+    available_days: [], suggested_level: null,
     last_played_at: null, created_at: "",
   };
 }

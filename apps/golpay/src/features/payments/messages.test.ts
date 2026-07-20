@@ -10,7 +10,7 @@ function mp(over: Partial<MatchPlayer>): MatchPlayer {
     payment_status: over.payment_status ?? "pendiente",
     attendance_status: "pendiente", confirmed_attendance_at: null,
     payment_method: null, note: null,
-    reported_at: null, confirmed_at: null, paid_by_player_id: null, created_at: "",
+    reported_at: null, confirmed_at: null, paid_by_player_id: null, payment_proof_path: null, created_at: "",
   };
 }
 

@@ -10,7 +10,7 @@ export async function listFrequent(): Promise<FrequentPlayer[]> {
 // El input de creación/edición no incluye is_active (se gestiona con setActive).
 export type FrequentInput = Omit<
   FrequentPlayer,
-  "id" | "owner_id" | "created_at" | "last_played_at" | "is_active"
+  "id" | "owner_id" | "created_at" | "last_played_at" | "is_active" | "suggested_level"
 >;
 
 export async function createFrequent(input: FrequentInput, ownerId: string): Promise<void> {

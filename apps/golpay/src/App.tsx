@@ -10,7 +10,10 @@ import { MatchDetailPage } from "./features/matches/MatchDetailPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { TeamsPage } from "./features/teams/TeamsPage";
 import { FrequentPlayersPage } from "./features/players/FrequentPlayersPage";
+import { PlayerProfilePage } from "./features/players/PlayerProfilePage";
 import { ChampionsPage } from "./features/matches/ChampionsPage";
+import { GroupStatsPage } from "./features/stats/GroupStatsPage";
+import { TournamentPage } from "./features/tournaments/TournamentPage";
 import { PublicMatchPage } from "./features/public/PublicMatchPage";
 
 function Protected({ children }: { children: JSX.Element }) {
@@ -41,8 +44,11 @@ export default function App() {
         <Route path="/partido/:id" element={<Protected><MatchDetailPage /></Protected>} />
         <Route path="/partido/:id/importar" element={<Protected><ImportPage /></Protected>} />
         <Route path="/partido/:id/equipos" element={<Protected><TeamsPage /></Protected>} />
+        <Route path="/partido/:id/torneo" element={<Protected><TournamentPage /></Protected>} />
         <Route path="/frecuentes" element={<Protected><FrequentPlayersPage /></Protected>} />
+        <Route path="/jugador/:id" element={<Protected><PlayerProfilePage /></Protected>} />
         <Route path="/campeones" element={<Protected><ChampionsPage /></Protected>} />
+        <Route path="/estadisticas" element={<Protected><GroupStatsPage /></Protected>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -56,6 +56,7 @@ export interface MatchPlayer {
   reported_at: string | null;
   confirmed_at: string | null;
   paid_by_player_id: string | null;
+  payment_proof_path: string | null;
   created_at: string;
 }
 
@@ -70,6 +71,8 @@ export interface FrequentPlayer {
   can_be_goalkeeper: boolean;
   notes: string | null;
   is_active: boolean;
+  available_days: string[];
+  suggested_level: number | null;
   last_played_at: string | null;
   created_at: string;
 }

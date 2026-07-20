@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
 import {
@@ -11,10 +12,13 @@ import { formatDate } from "@/lib/utils/format";
 import { Button } from "@titoapps/ui";
 
 const POSITIONS: PreferredPosition[] = ["portero", "defensa", "medio", "delantero"];
+const DAYS: [string, string][] = [
+  ["lun", "L"], ["mar", "M"], ["mie", "X"], ["jue", "J"], ["vie", "V"], ["sab", "S"], ["dom", "D"],
+];
 
 const emptyInput: FrequentInput = {
   name: "", nickname: null, phone: null, skill_level: DEFAULT_SKILL_LEVEL,
-  preferred_position: null, can_be_goalkeeper: false, notes: null,
+  preferred_position: null, can_be_goalkeeper: false, notes: null, available_days: [],
 };
 
 export function FrequentPlayersPage() {
@@ -54,9 +58,8 @@ export function FrequentPlayersPage() {
         </label>
 
         {filtered.map((p) => (
-          <button key={p.id} onClick={() => setEditing(p)}
-            className={`card flex w-full items-center justify-between ${p.is_active ? "" : "opacity-60"}`}>
-            <div className="text-left">
+          <div key={p.id} className={`card flex items-center justify-between gap-2 ${p.is_active ? "" : "opacity-60"}`}>
+            <button onClick={() => setEditing(p)} className="min-w-0 flex-1 text-left">
               <div className="font-medium">
                 {p.name}{p.nickname && ` (${p.nickname})`}
                 {!p.is_active && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">desactivado</span>}
@@ -67,9 +70,9 @@ export function FrequentPlayersPage() {
                 {p.can_be_goalkeeper && " · 🧤"}
                 {p.last_played_at && ` · últ.: ${formatDate(p.last_played_at.slice(0, 10))}`}
               </div>
-            </div>
-            <span className="text-gray-300">›</span>
-          </button>
+            </button>
+            <Link to={`/jugador/${p.id}`} className="shrink-0 text-lg" title="Ver perfil">📊</Link>
+          </div>
         ))}
         {filtered.length === 0 && (
           <div className="card text-center text-gray-500">
@@ -121,9 +124,19 @@ function PlayerModal({
           name: initial.name, nickname: initial.nickname, phone: initial.phone,
           skill_level: initial.skill_level, preferred_position: initial.preferred_position,
           can_be_goalkeeper: initial.can_be_goalkeeper, notes: initial.notes,
+          available_days: initial.available_days,
         }
       : emptyInput,
   );
+
+  function toggleDay(d: string) {
+    setF((cur) => ({
+      ...cur,
+      available_days: cur.available_days.includes(d)
+        ? cur.available_days.filter((x) => x !== d)
+        : [...cur.available_days, d],
+    }));
+  }
 
   const duplicate = findDuplicate(f.name, existing, initial?.id);
 
@@ -173,6 +186,18 @@ function PlayerModal({
             <input type="checkbox" checked={f.can_be_goalkeeper} onChange={(e) => setF({ ...f, can_be_goalkeeper: e.target.checked })} />
             Puede jugar de portero 🧤
           </label>
+
+          <div>
+            <label className="label">Disponibilidad habitual</label>
+            <div className="flex gap-1.5">
+              {DAYS.map(([d, short]) => (
+                <button key={d} type="button" onClick={() => toggleDay(d)}
+                  className={`h-9 flex-1 rounded-lg text-sm font-semibold ${f.available_days.includes(d) ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-500"}`}>
+                  {short}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div>
             <label className="label">Notas (opcional)</label>

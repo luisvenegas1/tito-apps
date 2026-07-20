@@ -135,6 +135,13 @@ export async function setListClosed(matchId: string, closed: boolean): Promise<v
   if (error) throw error;
 }
 
+/** URL temporal (60s) para ver un comprobante; solo el dueño puede (RLS). */
+export async function getProofUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60);
+  if (error) return null;
+  return data.signedUrl;
+}
+
 // -------- Plantillas --------
 
 export async function listTemplates(): Promise<MatchTemplate[]> {

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicMatch, reportPayment, setAttendance, PublicPlayer } from "./api";
+import { getPublicMatch, reportPayment, setAttendance, uploadProof, PublicPlayer, PublicSinpe } from "./api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { copyToClipboard } from "@/components/ui/toast";
 import { crc, formatDate, formatTime } from "@/lib/utils/format";
 import { ATTENDANCE_LABELS, attendanceCounts, spotsLeft } from "../attendance/attendance";
 import type { AttendanceStatus } from "@/lib/supabase/types";
@@ -34,14 +35,22 @@ export function PublicMatchPage() {
         <p className="mt-1 font-semibold">{crc(match.cost_per_player)} por jugador</p>
       </div>
 
-      {/* Campeón */}
-      {match.result?.winner_team_name && (
-        <div className="bg-yellow-50 px-5 py-3 text-center text-yellow-800">
-          🏆 <span className="font-bold">{match.result.winner_team_name}</span> campeón
-          {match.result.score && ` · ${match.result.score}`}
-          {match.result.mvp_name && ` · MVP: ${match.result.mvp_name}`}
-        </div>
-      )}
+      {/* Campeón — celebración sutil, no bloquea el pago */}
+      {match.result?.winner_team_name && (() => {
+        const champ = match.teams.find((t) => t.name === match.result!.winner_team_name);
+        return (
+          <div className="champ-pop bg-gradient-to-b from-yellow-100 to-yellow-50 px-5 py-4 text-center text-yellow-800">
+            <div className="text-3xl">🏆</div>
+            <div className="text-lg font-extrabold">¡{match.result!.winner_team_name} campeón!</div>
+            {match.result!.score && <div className="text-sm">{match.result!.score}</div>}
+            {match.result!.mvp_name && <div className="text-sm">⭐ MVP: {match.result!.mvp_name}</div>}
+            {champ && champ.members.length > 0 && (
+              <div className="mt-1 text-xs">{champ.members.join(" · ")}</div>
+            )}
+            <div className="mt-1 text-xs opacity-70">¡Grande el equipo! 🎉</div>
+          </div>
+        );
+      })()}
 
       <div className="p-4">
         {/* Resumen de asistencia */}
@@ -90,6 +99,8 @@ export function PublicMatchPage() {
           player={selected}
           others={match.players.filter((p) => p.id !== selected.id)}
           listClosed={match.list_closed}
+          sinpe={match.sinpe}
+          amount={match.cost_per_player}
           onClose={() => setSelected(null)}
           onDone={() => { setSelected(null); refetch(); }}
           onRsvpDone={() => refetch()}
@@ -100,12 +111,14 @@ export function PublicMatchPage() {
 }
 
 function PlayerSheet({
-  token, player, others, listClosed, onClose, onDone, onRsvpDone,
+  token, player, others, listClosed, sinpe, amount, onClose, onDone, onRsvpDone,
 }: {
   token: string;
   player: PublicPlayer;
   others: PublicPlayer[];
   listClosed: boolean;
+  sinpe: PublicSinpe | null;
+  amount: number;
   onClose: () => void;
   onDone: () => void;
   onRsvpDone: () => void;
@@ -115,6 +128,7 @@ function PlayerSheet({
   const [note, setNote] = useState("");
   const [covered, setCovered] = useState<string[]>([]);
   const [showOthers, setShowOthers] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -139,13 +153,19 @@ function PlayerSheet({
   async function pay() {
     setBusy(true); setErr(null);
     try {
-      await reportPayment({ token, pin, matchPlayerId: player.id, method, note, coveredIds: covered });
+      let proofPath: string | null = null;
+      if (file) proofPath = await uploadProof({ token, pin, matchPlayerId: player.id, file });
+      await reportPayment({ token, pin, matchPlayerId: player.id, method, note, coveredIds: covered, proofPath });
       onDone();
     } catch (e: any) {
       setErr(e.message ?? "Error");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function copySinpe() {
+    if (sinpe?.number) { await copyToClipboard(sinpe.number); setInfo("SINPE copiado"); }
   }
 
   const pinOk = pin.length === 4;
@@ -206,7 +226,18 @@ function PlayerSheet({
                 ))}
               </div>
             )}
+            {sinpe?.number && (
+              <div className="mt-2 flex items-center justify-between rounded-xl bg-gray-50 p-2 text-sm">
+                <span>SINPE <b>{sinpe.number}</b>{sinpe.name && ` · ${sinpe.name}`} · {crc(amount)}</span>
+                <button type="button" className="text-pitch-600 underline" onClick={copySinpe}>Copiar</button>
+              </div>
+            )}
             <input className="input mt-2" placeholder="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} />
+            <label className="mt-2 block text-sm text-gray-600">
+              Comprobante (opcional)
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-xs"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            </label>
             <Button fullWidth className="mt-3" disabled={busy || !pinOk} onClick={pay}>
               {busy ? "…" : "Ya pagué ✅"}
             </Button>
