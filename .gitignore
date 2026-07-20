@@ -27,6 +27,9 @@ apps/*/vite.config.d.ts
 __pycache__/
 *.pyc
 
+# Supabase CLI (estado local temporal, no versionar)
+**/supabase/.temp/
+
 # Sistema
 .DS_Store
 *.log
