@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
 import { parseWhatsappList } from "@/lib/parser/whatsapp";
 import { getMatch, listMatchPlayers } from "../matches/api";
-import { suggestMatches } from "../players/api";
+import { findMatches } from "../players/api";
 import { importPlayers, listFrequentForMatch, ImportRow } from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer } from "@/lib/supabase/types";
@@ -41,16 +41,14 @@ export function ImportPage() {
     let frequentPlayerId: string | null = null;
     let candidates: FrequentPlayer[] = [];
     if (frequent && name.trim()) {
-      const lower = name.toLowerCase().trim();
-      const exact = frequent.find(
-        (f) => f.is_active && (f.name.toLowerCase() === lower || (f.nickname ?? "").toLowerCase() === lower),
-      );
+      const matches = findMatches(name, frequent);
+      const exact = matches.find((m) => m.kind === "exact");
       if (exact) {
-        frequentPlayerId = exact.id;
-      } else {
-        const matches = suggestMatches(name, frequent);
-        if (matches.length === 1) frequentPlayerId = matches[0].id;
-        else if (matches.length > 1) candidates = matches; // ambiguo: el usuario elige
+        // "Tito" / "tito" / "TITO" → mismo jugador, se vincula solo.
+        frequentPlayerId = exact.player.id;
+      } else if (matches.length > 0) {
+        // "sebas c" ↔ "Sebas Castro" → probable: pedimos confirmación.
+        candidates = matches.map((m) => m.player);
       }
     }
     const profile = profileById(frequentPlayerId);
@@ -88,7 +86,7 @@ export function ImportPage() {
     setRows((rs) => rs?.map((r, idx) => (idx === i ? { ...r, isGoalkeeper: value } : r)) ?? rs);
   }
 
-  /** Resuelve una coincidencia ambigua: elegir un perfil o marcar como nuevo. */
+  /** Confirma una coincidencia probable: es este jugador, o es nuevo. */
   function resolveCandidate(i: number, pid: string | null) {
     setRows((rs) =>
       rs?.map((r, idx) => {
@@ -98,6 +96,7 @@ export function ImportPage() {
           ...r,
           frequentPlayerId: pid,
           known: Boolean(pid),
+          candidates: [], // ya confirmado: dejamos de preguntar
           isGoalkeeper: r.isGoalkeeper || (profile?.can_be_goalkeeper ?? false),
         };
       }) ?? rs,
@@ -207,21 +206,26 @@ export function ImportPage() {
 
                     {/* Resolver coincidencia ambigua */}
                     {r.candidates.length > 0 && !r.frequentPlayerId && (
-                      <div className="flex items-center gap-2 pl-6">
-                        <span className="text-xs text-orange-500">¿Quién es?</span>
-                        <select
-                          className="flex-1 rounded-lg border border-orange-300 bg-orange-50 px-1.5 py-1 text-xs"
-                          value=""
-                          onChange={(e) => resolveCandidate(i, e.target.value || null)}
-                        >
-                          <option value="">Elegir…</option>
+                      <div className="rounded-lg bg-orange-50 p-1.5 pl-2">
+                        <div className="text-xs text-orange-600">
+                          {r.candidates.length === 1
+                            ? `¿Es ${r.candidates[0].name}?`
+                            : "¿Es alguno de estos jugadores?"}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
                           {r.candidates.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}{c.nickname ? ` (${c.nickname})` : ""}
-                            </option>
+                            <button key={c.id} type="button"
+                              className="rounded-md bg-pitch-500 px-2 py-1 text-xs font-medium text-white"
+                              onClick={() => resolveCandidate(i, c.id)}>
+                              Sí, es {c.name}
+                            </button>
                           ))}
-                          <option value="">Es nuevo</option>
-                        </select>
+                          <button type="button"
+                            className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700"
+                            onClick={() => resolveCandidate(i, null)}>
+                            Es nuevo
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

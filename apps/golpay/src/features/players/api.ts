@@ -30,4 +30,5 @@ export async function setActive(id: string, active: boolean): Promise<void> {
 }
 
 // Lógica pura de emparejamiento (testeable, sin Supabase).
-export { findDuplicate, suggestMatches } from "./matching";
+export { findDuplicate, suggestMatches, findMatches, normalizeName } from "./matching";
+export type { PlayerMatch, MatchKind } from "./matching";

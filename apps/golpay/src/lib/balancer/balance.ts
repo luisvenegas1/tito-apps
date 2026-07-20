@@ -1,8 +1,9 @@
 /**
  * Balanceador de equipos para mejengas / mini-cuadrangulares.
  *
- * Escala de nivel 1–3 (1 recreativo, 2 intermedio, 3 avanzado).
- * Jugadores sin nivel reciben DEFAULT_LEVEL (intermedio).
+ * Escala de nivel 1–5 (1 Recreativo, 2 Casual, 3 Intermedio, 4 Avanzado, 5 Élite).
+ * Jugadores SIN EVALUAR reciben DEFAULT_LEVEL = 2 (Casual): un escalón por
+ * debajo del medio, para no inflar al equipo que recibe a un desconocido.
  *
  * Estrategia:
  *  1. Repartir porteros primero (uno por equipo, por nivel desc) — restricción dura.
@@ -14,12 +15,13 @@
  *     PORTERO: nunca dejar sin arquero a un equipo que ya tenía uno.
  */
 
+/** Nivel asumido para jugadores sin evaluar (Casual, un escalón bajo el medio). */
 export const DEFAULT_LEVEL = 2;
 
 export interface BalancePlayer {
   id: string;
   name: string;
-  level: number | null; // 1-3, null = sin evaluar
+  level: number | null; // 1-5, null = sin evaluar
   canGoalkeeper?: boolean;
   position?: string | null;
 }

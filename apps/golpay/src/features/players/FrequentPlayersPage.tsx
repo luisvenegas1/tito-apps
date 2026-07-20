@@ -7,7 +7,7 @@ import {
 } from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer, PreferredPosition } from "@/lib/supabase/types";
-import { LEVELS, LEVEL_LABELS, DEFAULT_SKILL_LEVEL } from "@/lib/levels";
+import { LEVELS, LEVEL_LABELS, DEFAULT_SKILL_LEVEL, levelLabel } from "@/lib/levels";
 import { formatDate } from "@/lib/utils/format";
 import { Button } from "@titoapps/ui";
 
@@ -65,7 +65,7 @@ export function FrequentPlayersPage() {
                 {!p.is_active && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">desactivado</span>}
               </div>
               <div className="text-xs text-gray-400">
-                {p.skill_level ? LEVEL_LABELS[p.skill_level as 1 | 2 | 3] : "Sin evaluar"}
+                {levelLabel(p.skill_level)}
                 {" · "}{p.preferred_position ?? "sin posición"}
                 {p.can_be_goalkeeper && " · 🧤"}
                 {p.last_played_at && ` · últ.: ${formatDate(p.last_played_at.slice(0, 10))}`}
@@ -160,10 +160,10 @@ function PlayerModal({
 
           <div>
             <label className="label">Nivel (privado)</label>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {LEVELS.map((n) => (
-                <button key={n} onClick={() => setF({ ...f, skill_level: n })}
-                  className={`h-10 flex-1 rounded-lg text-sm font-semibold ${f.skill_level === n ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-500"}`}>
+                <button key={n} type="button" onClick={() => setF({ ...f, skill_level: n })}
+                  className={`h-10 rounded-lg text-xs font-semibold ${f.skill_level === n ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-500"}`}>
                   {LEVEL_LABELS[n]}
                 </button>
               ))}

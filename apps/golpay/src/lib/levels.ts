@@ -1,22 +1,26 @@
 /**
  * Niveles de habilidad de GolPay (privados, solo para armar equipos).
- * Escala 1–3, sin términos despectivos.
- *   3 = Avanzado · 2 = Intermedio · 1 = Recreativo
+ * Escala 1–5, sin términos despectivos.
+ *   5 Élite · 4 Avanzado · 3 Intermedio · 2 Casual · 1 Recreativo
  */
-export type SkillLevel = 1 | 2 | 3;
+export type SkillLevel = 1 | 2 | 3 | 4 | 5;
 
-export const LEVELS: SkillLevel[] = [1, 2, 3];
+export const LEVELS: SkillLevel[] = [1, 2, 3, 4, 5];
 
 export const LEVEL_LABELS: Record<SkillLevel, string> = {
-  3: "Avanzado",
-  2: "Intermedio",
+  5: "Élite",
+  4: "Avanzado",
+  3: "Intermedio",
+  2: "Casual",
   1: "Recreativo",
 };
 
-/** Nivel por defecto cuando un jugador no tiene nivel registrado: Intermedio. */
-export const DEFAULT_SKILL_LEVEL: SkillLevel = 2;
+/** Nivel preseleccionado al crear un jugador a mano: Intermedio (el medio). */
+export const DEFAULT_SKILL_LEVEL: SkillLevel = 3;
 
 export function levelLabel(level: number | null | undefined): string {
-  if (level === 1 || level === 2 || level === 3) return LEVEL_LABELS[level];
+  if (typeof level === "number" && Number.isInteger(level) && level >= 1 && level <= 5) {
+    return LEVEL_LABELS[level as SkillLevel];
+  }
   return "Sin evaluar";
 }

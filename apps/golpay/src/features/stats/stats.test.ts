@@ -60,9 +60,10 @@ describe("suggestLevel", () => {
       row({ date: `2026-02-0${i + 1}`, attendance_status: "asistio", is_mvp: i < 2 }));
     const s = playerStats(rows);
     expect(suggestLevel(2, s)).toMatchObject({ level: 3 });
+    expect(suggestLevel(4, s)).toMatchObject({ level: 5 });
   });
-  it("no sugiere por encima de Avanzado", () => {
+  it("no sugiere por encima de Élite (5)", () => {
     const rows = Array.from({ length: 6 }, () => row({ attendance_status: "asistio", is_mvp: true }));
-    expect(suggestLevel(3, playerStats(rows))).toBeNull();
+    expect(suggestLevel(5, playerStats(rows))).toBeNull();
   });
 });

@@ -113,8 +113,8 @@ export interface LevelSuggestion {
  */
 export function suggestLevel(currentLevel: number | null, s: PlayerStats): LevelSuggestion | null {
   if (s.played < 5) return null;
-  const cur = currentLevel ?? 2;
-  if (cur < 3 && (s.mvps >= 2 || s.championships >= 3)) {
+  const cur = currentLevel ?? 2; // sin evaluar se asume Casual
+  if (cur < 5 && (s.mvps >= 2 || s.championships >= 3)) {
     return { level: cur + 1, reason: `${s.mvps} MVP(s) y ${s.championships} campeonato(s) en ${s.played} partidos.` };
   }
   return null;

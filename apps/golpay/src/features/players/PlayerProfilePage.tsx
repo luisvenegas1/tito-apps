@@ -8,7 +8,7 @@ import { playerBalance, BalanceRow } from "../payments/balances";
 import { playerDebtMessage } from "../payments/collection";
 import { useAuth } from "../auth/AuthProvider";
 import { copyToClipboard } from "@/components/ui/toast";
-import { levelLabel, LEVEL_LABELS } from "@/lib/levels";
+import { levelLabel } from "@/lib/levels";
 import { crc, formatDate } from "@/lib/utils/format";
 import { Button } from "@titoapps/ui";
 
@@ -101,7 +101,7 @@ export function PlayerProfilePage() {
           <div className="card border-l-4 border-yellow-400">
             <div className="text-sm font-semibold">Sugerencia de nivel</div>
             <div className="text-xs text-gray-500">
-              Considerá subir a <b>{LEVEL_LABELS[suggestion.level as 1 | 2 | 3]}</b>. {suggestion.reason}
+              Considerá subir a <b>{levelLabel(suggestion.level)}</b>. {suggestion.reason}
             </div>
             <div className="mt-2 flex gap-2">
               <Button size="sm" onClick={() => applySuggestion(suggestion.level)}>Subir nivel</Button>
