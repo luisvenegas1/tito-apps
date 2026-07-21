@@ -61,7 +61,12 @@ function word(w: string, isFirst: boolean): string {
  * Colapsa espacios repetidos y recorta los extremos.
  */
 export function titleCaseName(input: string): string {
-  const clean = stripInvisible(input).replace(/\s+/g, " ").trim();
+  const clean = stripInvisible(input)
+    .replace(/\s+/g, " ")
+    // Ningún nombre empieza con puntuación. Restos de numeración como
+    // ". Javier" no deberían llegar hasta acá, pero si llegan, se van.
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .trim();
   if (!clean) return "";
   return clean.split(" ").map((w, i) => word(w, i === 0)).join(" ");
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
 import { listMatchPlayers } from "../matches/api";
@@ -14,6 +14,7 @@ import { teamsMessageWithTitle } from "./share";
 import { copyToClipboard } from "@/components/ui/toast";
 import { getMatch } from "../matches/api";
 import { formatDate } from "@/lib/utils/format";
+import { KeepersCard } from "./KeepersCard";
 
 export function TeamsPage() {
   const { id } = useParams<{ id: string }>();
@@ -118,6 +119,23 @@ export function TeamsPage() {
     <div className="pb-10">
       <TopBar title="Armar equipos" back backTo={`/partido/${id}`} />
       <div className="space-y-4 p-4">
+        {/* Partido sin jugadores: no hay nada que balancear. Antes esto se veía
+            como un botón gris sin explicación. */}
+        {players && balancePlayers.length === 0 && (
+          <div className="card text-center">
+            <p className="text-gray-600">Este partido todavía no tiene jugadores.</p>
+            <Link to={`/partido/${id}/importar`} className="mt-2 inline-block text-pitch-600 underline">
+              Importar la lista de WhatsApp
+            </Link>
+          </div>
+        )}
+
+        {/* Porteros: quién ataja hoy lo decide el organizador, no el perfil. */}
+        {players && balancePlayers.length > 0 && (
+          <KeepersCard matchId={id!} players={players} frequent={frequent ?? []} numTeams={numTeams} />
+        )}
+
+        {balancePlayers.length > 0 && (
         <div className="card">
           {/* Recomendación de formato (el organizador puede sobrescribir) */}
           <div className="mb-3 rounded-xl bg-pitch-50 p-3 text-sm">
@@ -148,7 +166,13 @@ export function TeamsPage() {
           <Button fullWidth className="mt-3" onClick={generate} disabled={balancePlayers.length < numTeams}>
             {teams ? "Regenerar" : "Generar equipos"}
           </Button>
+          {balancePlayers.length < numTeams && (
+            <p className="mt-1.5 text-center text-xs text-orange-500">
+              Necesitás al menos {numTeams} jugadores confirmados para armar {numTeams} equipos.
+            </p>
+          )}
         </div>
+        )}
 
         {teams && (
           <>

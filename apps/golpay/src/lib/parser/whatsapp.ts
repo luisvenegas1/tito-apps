@@ -70,10 +70,16 @@ function stripEmojis(input: string): string {
 
 /** Quita numeración inicial: "1.", "2)", "3 -", "4)", "- ", "• ", "*". */
 function stripLeadingMarkers(input: string): string {
-  return input
-    .replace(/^\s*[-•*·]+\s*/, "")
-    .replace(/^\s*\d+\s*[.)\-–:]?\s*/, "")
-    .trim();
+  return (
+    input
+      .replace(/^\s*[-•*·]+\s*/, "")
+      // Numeración: "1.", "2)", "3 -"…
+      .replace(/^\s*\d+\s*[.)\-–:]?\s*/, "")
+      // Puntuación suelta al inicio: pasa cuando se copia "1. Javier" pero el
+      // número queda afuera de la selección y llega ". Javier".
+      .replace(/^\s*[.)\-–:,;]+\s*/, "")
+      .trim()
+  );
 }
 
 /** ¿La línea es solo un título / encabezado? */

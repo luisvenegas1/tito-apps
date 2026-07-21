@@ -57,12 +57,11 @@ export function ImportPage() {
         recommendedId = exact?.player.id ?? null;
       }
     }
-    const profile = profileById(frequentPlayerId);
     return {
       name,
       splittable,
       suggestions,
-      isGoalkeeper: gk || (profile?.can_be_goalkeeper ?? false),
+      isGoalkeeper: gk, // solo el 🧤 de la lista: poder atajar ≠ atajar hoy
       frequentPlayerId,
       known: Boolean(frequentPlayerId),
       candidates,
@@ -109,14 +108,9 @@ export function ImportPage() {
     setRows((rs) =>
       rs?.map((r, idx) => {
         if (idx !== i) return r;
-        const profile = profileById(pid);
-        return {
-          ...r,
-          frequentPlayerId: pid,
-          known: Boolean(pid),
-          candidates: [], // ya confirmado: dejamos de preguntar
-          isGoalkeeper: r.isGoalkeeper || (profile?.can_be_goalkeeper ?? false),
-        };
+        // Ojo: vincular un perfil NO cambia isGoalkeeper. Que alguien pueda
+        // atajar no significa que vaya a atajar hoy.
+        return { ...r, frequentPlayerId: pid, known: Boolean(pid), candidates: [] };
       }) ?? rs,
     );
   }
