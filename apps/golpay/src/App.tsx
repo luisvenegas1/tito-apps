@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./features/auth/AuthProvider";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
-import { SettingsPage } from "./features/auth/SettingsPage";
+import { ProfilePage } from "./features/auth/ProfilePage";
 import { UsernameGate } from "./features/auth/UsernameGate";
 import { DashboardPage } from "./features/matches/DashboardPage";
 import { MatchFormPage } from "./features/matches/MatchFormPage";
@@ -41,7 +41,9 @@ export default function App() {
 
         {/* Organizador */}
         <Route path="/" element={<Protected><DashboardPage /></Protected>} />
-        <Route path="/ajustes" element={<Protected><SettingsPage /></Protected>} />
+        <Route path="/perfil" element={<Protected><ProfilePage /></Protected>} />
+        {/* Ruta vieja: cualquier enlace guardado sigue funcionando. */}
+        <Route path="/ajustes" element={<Navigate to="/perfil" replace />} />
         <Route path="/partido/nuevo" element={<Protected><MatchFormPage /></Protected>} />
         <Route path="/partido/:id/editar" element={<Protected><MatchFormPage /></Protected>} />
         <Route path="/partido/:id" element={<Protected><MatchDetailPage /></Protected>} />
@@ -62,6 +64,7 @@ export default function App() {
         companyName="Tito Apps"
         developerName="Luis Diego Venegas"
         developerUrl="https://wa.me/50688238325"
+        version={__APP_VERSION__}
       />
       </div>
     </DialogProvider>

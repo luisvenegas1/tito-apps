@@ -1,4 +1,5 @@
 import { cn } from "./utils/cn";
+import { InstallAppLink } from "./InstallAppLink";
 
 export interface FooterProps {
   /** Nombre del producto, ej. "GolPay". Opcional. */
@@ -11,6 +12,10 @@ export interface FooterProps {
   developerUrl?: string;
   /** Año; por defecto el actual (para que no quede viejo). */
   year?: number;
+  /** Versión de la app, ej. "1.0.0". Se muestra como "v1.0.0". */
+  version?: string;
+  /** Muestra el enlace para instalar la PWA. Por defecto sí. */
+  showInstall?: boolean;
   /**
    * Cómo se ancla:
    *  - "flow": al final del contenido (por defecto).
@@ -36,6 +41,8 @@ export function Footer({
   developerName,
   developerUrl,
   year,
+  version,
+  showInstall = true,
   mode = "flow",
   className,
 }: FooterProps) {
@@ -47,24 +54,38 @@ export function Footer({
         © {y} {productName ? `${productName} · ` : ""}
         {companyName}. Todos los derechos reservados.
       </p>
-      {developerName && (
-        <p className="mt-1">
-          Desarrollado por{" "}
-          {developerUrl ? (
-            <a
-              href={developerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary underline"
-            >
-              {developerName}
-            </a>
-          ) : (
-            <span className="font-medium">{developerName}</span>
-          )}{" "}
-          para {companyName}
-        </p>
-      )}
+      <p className="mt-1 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
+        {developerName && (
+          <span>
+            Desarrollado por{" "}
+            {developerUrl ? (
+              <a
+                href={developerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline"
+              >
+                {developerName}
+              </a>
+            ) : (
+              <span className="font-medium">{developerName}</span>
+            )}{" "}
+            para {companyName}
+          </span>
+        )}
+        {version && (
+          <>
+            <span aria-hidden>·</span>
+            <span>v{version}</span>
+          </>
+        )}
+        {showInstall && (
+          <>
+            <span aria-hidden>·</span>
+            <InstallAppLink className="font-medium text-primary underline" />
+          </>
+        )}
+      </p>
     </footer>
   );
 }

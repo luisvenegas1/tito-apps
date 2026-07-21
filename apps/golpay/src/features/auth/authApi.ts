@@ -81,6 +81,34 @@ export async function updateSinpe(sinpeNumber: string | null, sinpeName: string 
 }
 
 /** Recuperación de contraseña SOLO por email. */
+/** Actualiza el nombre visible del organizador. */
+export async function updateFullName(fullName: string): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Sesión no válida");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ full_name: fullName.trim() || null })
+    .eq("id", auth.user.id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Cambia la contraseña. Verificamos la actual reautenticando primero:
+ * `updateUser` sola aceptaría el cambio con solo tener la sesión abierta, y
+ * eso deja expuesta la cuenta si alguien agarra el teléfono desbloqueado.
+ */
+export async function changePassword(current: string, next: string): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  const email = auth.user?.email;
+  if (!email) throw new Error("Sesión no válida");
+
+  const { error: reauth } = await supabase.auth.signInWithPassword({ email, password: current });
+  if (reauth) throw new Error("La contraseña actual no es correcta");
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) throw new Error(error.message);
+}
+
 export async function requestPasswordReset(email: string): Promise<void> {
   await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: `${window.location.origin}/reset`,

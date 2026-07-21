@@ -31,3 +31,4 @@ export { Footer } from "./Footer";
 export type { FooterProps } from "./Footer";
 export { PageHeader } from "./PageHeader";
 export type { PageHeaderProps } from "./PageHeader";
+export { InstallAppLink } from "./InstallAppLink";

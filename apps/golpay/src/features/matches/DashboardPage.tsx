@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listMatches } from "./api";
-import { useAuth } from "../auth/AuthProvider";
 import { crc, formatDate } from "@/lib/utils/format";
+import { AvatarMenu } from "@/components/ui/AvatarMenu";
 
 export function DashboardPage() {
-  const { signOut } = useAuth();
   const { data: matches, isLoading } = useQuery({ queryKey: ["matches"], queryFn: listMatches });
 
   const now = new Date().toISOString().slice(0, 10);
@@ -23,8 +22,7 @@ export function DashboardPage() {
           <Link to="/frecuentes" className="btn-ghost text-sm">Jugadores</Link>
           <Link to="/estadisticas" className="btn-ghost text-sm">📊</Link>
           <Link to="/campeones" className="btn-ghost text-sm">🏆</Link>
-          <Link to="/ajustes" className="btn-ghost text-sm">Ajustes</Link>
-          <button onClick={signOut} className="text-sm text-gray-400 underline">Salir</button>
+          <AvatarMenu />
         </div>
       </header>
 

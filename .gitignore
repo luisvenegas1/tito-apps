@@ -35,3 +35,6 @@ __pycache__/
 *.log
 .backups/
 .trash/
+
+# Caché local de pnpm
+.pnpm-store/
