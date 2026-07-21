@@ -42,8 +42,19 @@ export function KeepersCard({
   const fixed = assigned.filter(isFixedKeeper);
   const emergency = assigned.filter((p) => !isFixedKeeper(p));
 
-  // Solo se ofrecen si faltan porteros.
-  const available = active.filter((p) => !p.is_goalkeeper && canKeep(p) && !isFixedKeeper(p));
+  /**
+   * Candidatos cuando faltan porteros: cualquiera que pueda atajar y no esté
+   * ya asignado — incluidos los porteros de puesto.
+   *
+   * Antes excluía a los de puesto dando por hecho que ya estarían asignados.
+   * Pero solo el 🧤 de la lista asigna, así que un portero que vino sin 🧤
+   * (Maravilla) no aparecía ni arriba ni acá: se perdía.
+   *
+   * Los de puesto van primero, que son la elección natural.
+   */
+  const available = active
+    .filter((p) => !p.is_goalkeeper && canKeep(p))
+    .sort((a, b) => Number(isFixedKeeper(b)) - Number(isFixedKeeper(a)));
 
   const missing = numTeams - assigned.length;
   const extra = assigned.length - numTeams;
@@ -110,20 +121,28 @@ export function KeepersCard({
           {available.length > 0 ? (
             <>
               <div className="flex flex-wrap gap-1.5">
-                {available.map((p) => (
-                  <button
-                    key={p.id}
-                    disabled={busyId === p.id}
-                    onClick={() => setKeeper(p, true)}
-                    className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-300 disabled:opacity-50"
-                  >
-                    + {p.display_name}
-                  </button>
-                ))}
+                {available.map((p) => {
+                  const depuesto = isFixedKeeper(p);
+                  return (
+                    <button
+                      key={p.id}
+                      disabled={busyId === p.id}
+                      onClick={() => setKeeper(p, true)}
+                      title={depuesto ? "Portero de puesto" : "Puede atajar, juega en otra posición"}
+                      className={
+                        depuesto
+                          ? "rounded-full bg-pitch-50 px-2.5 py-1 text-xs font-semibold text-pitch-700 ring-1 ring-pitch-300 disabled:opacity-50"
+                          : "rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-300 disabled:opacity-50"
+                      }
+                    >
+                      + {p.display_name}{depuesto && " 🧤"}
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-1.5 text-xs text-gray-400">
-                Estos <b>pueden</b> atajar pero juegan en otra posición. Elegí vos: alguno
-                puede estar lesionado o no querer.
+                Los <b>verdes</b> son porteros de puesto. Los blancos pueden atajar pero
+                juegan en otra posición. Elegí vos: alguno puede estar lesionado o no querer.
               </p>
             </>
           ) : (

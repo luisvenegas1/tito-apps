@@ -48,3 +48,25 @@ export function computeStandings(games: Game[], teams: { id: string; name: strin
     (x, y) => y.points - x.points || y.goalDiff - x.goalDiff || y.wins - x.wins || x.teamName.localeCompare(y.teamName),
   );
 }
+
+/**
+ * Campeón según la tabla: el líder, SOLO si no está empatado en la cima con
+ * otro (mismos puntos, misma diferencia y mismas victorias). Si hay empate
+ * arriba, devuelve null — no inventamos un ganador.
+ * Requiere al menos un juego cargado.
+ */
+export function championId(standings: Standing[]): string | null {
+  if (standings.length === 0) return null;
+  const top = standings[0];
+  if (top.played === 0) return null;
+  const second = standings[1];
+  if (
+    second &&
+    second.points === top.points &&
+    second.goalDiff === top.goalDiff &&
+    second.wins === top.wins
+  ) {
+    return null; // empate en el primer lugar
+  }
+  return top.teamId;
+}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@titoapps/ui";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /** Página a la que redirige el enlace de recuperación (redirectTo=/reset). */
 export function ResetPasswordPage() {
@@ -30,10 +31,15 @@ export function ResetPasswordPage() {
     <div className="flex min-h-screen flex-col justify-center px-6">
       <h1 className="mb-4 text-center text-2xl font-extrabold text-pitch-600">Nueva contraseña</h1>
       <form onSubmit={save} className="card space-y-4">
-        <div>
-          <label className="label">Nueva contraseña</label>
-          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
-        </div>
+        <PasswordInput
+          label="Nueva contraseña"
+          autoComplete="new-password"
+          hint="Mínimo 6 caracteres."
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={6}
+          required
+        />
         {msg && <p className="text-sm text-pitch-600">{msg}</p>}
         <Button fullWidth disabled={busy}>Guardar</Button>
       </form>

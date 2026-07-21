@@ -154,6 +154,16 @@ function improve(buckets: BalancePlayer[][], maxIters = 300): void {
 }
 
 /** Recalcula puntajes tras un movimiento manual. */
+/**
+ * Ordena para mostrar: portero(s) primero, el resto en el orden que ya tenían.
+ * Es como se lee un equipo en la cancha y en el mensaje de WhatsApp. No afecta
+ * el balanceo, solo la presentación.
+ */
+export function keepersFirst(players: BalancePlayer[]): BalancePlayer[] {
+  // sort() es estable, así que los de campo conservan su orden relativo.
+  return [...players].sort((a, b) => Number(b.canGoalkeeper) - Number(a.canGoalkeeper));
+}
+
 export function rescore(teams: Team[]): Team[] {
   return teams.map((t) => ({ ...t, score: teamScore(t.players) }));
 }

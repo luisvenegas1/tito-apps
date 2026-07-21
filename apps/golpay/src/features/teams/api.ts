@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { keepersFirst } from "@/lib/balancer/balance";
 import type { Team } from "@/lib/balancer/balance";
 
 export interface PublishedTeam {
@@ -44,7 +45,9 @@ export async function publishTeams(matchId: string, teams: Team[], colors: strin
       .single();
     if (error) throw error;
     const teamId = (data as { id: string }).id;
-    const members = t.players.map((p) => ({ team_id: teamId, match_player_id: p.id }));
+    // Mismo orden que en pantalla: la página pública lee los miembros en el
+    // orden en que se insertan.
+    const members = keepersFirst(t.players).map((p) => ({ team_id: teamId, match_player_id: p.id }));
     if (members.length) {
       const { error: mErr } = await supabase.from("team_members").insert(members);
       if (mErr) throw mErr;

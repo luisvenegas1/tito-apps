@@ -27,11 +27,28 @@ export interface GroupInvite {
   created_at: string;
 }
 
-/** Los grupos donde estoy, con mi rol. */
+/** Id del usuario actual. Sin sesión no hay grupos que mostrar. */
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
+}
+
+/**
+ * Los grupos donde estoy, con MI rol.
+ *
+ * El filtro por user_id es imprescindible: la política `gm_read` permite leer
+ * todas las filas de group_members de los grupos donde estás (lo necesita la
+ * pantalla de Miembros). Sin filtrar, el grupo aparecía una vez por cada
+ * miembro, y el rol mostrado era el del otro.
+ */
 export async function listGroups(): Promise<Group[]> {
+  const uid = await currentUserId();
+  if (!uid) return [];
+
   const { data, error } = await supabase
     .from("group_members")
     .select("role, groups(id, name, created_by, created_at)")
+    .eq("user_id", uid)
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
 
@@ -42,10 +59,16 @@ export async function listGroups(): Promise<Group[]> {
 }
 
 export async function getGroup(id: string): Promise<Group | null> {
+  const uid = await currentUserId();
+  if (!uid) return null;
+
+  // Igual que arriba: sin el filtro por user_id, maybeSingle() falla apenas
+  // el grupo tiene más de un miembro.
   const { data, error } = await supabase
     .from("group_members")
     .select("role, groups(id, name, created_by, created_at)")
     .eq("group_id", id)
+    .eq("user_id", uid)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
