@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicMatch, reportPayment, setAttendance, uploadProof, PublicPlayer, PublicSinpe } from "./api";
+import { getPublicMatch, reportPayment, uploadProof, PublicPlayer, PublicSinpe } from "./api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { copyToClipboard } from "@/components/ui/toast";
 import { crc, formatDate, formatTime } from "@/lib/utils/format";
 import { colorOf, teamLabel } from "@/lib/teamColors";
-import { ATTENDANCE_LABELS, attendanceCounts, spotsLeft } from "../attendance/attendance";
-import type { AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 
 export function PublicMatchPage() {
@@ -21,10 +19,7 @@ export function PublicMatchPage() {
   if (isLoading) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
   if (!match) return <p className="p-8 text-center text-gray-500">Partido no encontrado.</p>;
 
-  const counts = attendanceCounts(match.players as { attendance_status: AttendanceStatus }[]);
-  const left = spotsLeft(counts.confirmed, match.max_players);
-
-  return (
+    return (
     <div className="pb-10">
       <div className="bg-pitch-500 px-5 py-6 text-white">
         <div className="text-3xl">⚽</div>
@@ -56,12 +51,9 @@ export function PublicMatchPage() {
       })()}
 
       <div className="p-4">
-        {/* Resumen de asistencia */}
-        <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-          <span>✅ {counts.confirmed} confirmados{match.max_players ? ` / ${match.max_players}` : ""}</span>
-          {counts.waitlist > 0 && <span>⏳ {counts.waitlist} en lista de espera</span>}
-          {left != null && <span>{left > 0 ? `${left} lugares libres` : "cupo lleno"}</span>}
-          {match.list_closed && <span className="text-orange-500">lista cerrada</span>}
+        <div className="mb-3 text-xs text-gray-500">
+          {match.players.length} jugadores
+          {match.max_players ? ` de ${match.max_players}` : ""}
         </div>
 
         {/* Equipos primero: es lo que todos vienen a ver. */}
@@ -89,17 +81,12 @@ export function PublicMatchPage() {
           </div>
         )}
 
-        <h2 className="mb-2 text-sm font-semibold text-gray-500">Tocá tu nombre para confirmar o pagar</h2>
+        <h2 className="mb-2 text-sm font-semibold text-gray-500">Tocá tu nombre para reportar tu pago</h2>
         <div className="space-y-2">
           {match.players.map((p) => (
             <button key={p.id} onClick={() => setSelected(p)} className="card flex w-full items-center justify-between gap-2">
               <span className="font-medium">{p.display_name}{p.is_goalkeeper && " 🧤"}</span>
-              <span className="flex items-center gap-1.5">
-                <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600 ring-1 ring-gray-200">
-                  {ATTENDANCE_LABELS[p.attendance_status as AttendanceStatus]}
-                </span>
-                <StatusBadge status={p.payment_status} />
-              </span>
+              <StatusBadge status={p.payment_status} />
             </button>
           ))}
         </div>
@@ -111,12 +98,10 @@ export function PublicMatchPage() {
           token={token!}
           player={selected}
           others={match.players.filter((p) => p.id !== selected.id)}
-          listClosed={match.list_closed}
           sinpe={match.sinpe}
           amount={match.cost_per_player}
           onClose={() => setSelected(null)}
           onDone={() => { setSelected(null); refetch(); }}
-          onRsvpDone={() => refetch()}
         />
       )}
     </div>
@@ -124,17 +109,15 @@ export function PublicMatchPage() {
 }
 
 function PlayerSheet({
-  token, player, others, listClosed, sinpe, amount, onClose, onDone, onRsvpDone,
+  token, player, others, sinpe, amount, onClose, onDone,
 }: {
   token: string;
   player: PublicPlayer;
   others: PublicPlayer[];
-  listClosed: boolean;
   sinpe: PublicSinpe | null;
   amount: number;
   onClose: () => void;
   onDone: () => void;
-  onRsvpDone: () => void;
 }) {
   const [method, setMethod] = useState("SINPE");
   const [note, setNote] = useState("");
@@ -147,19 +130,6 @@ function PlayerSheet({
 
   function toggle(id: string) {
     setCovered((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
-  }
-
-  async function rsvp(status: "confirmado" | "declinado" | "tal_vez") {
-    setBusy(true); setErr(null); setInfo(null);
-    try {
-      const res = await setAttendance({ token, matchPlayerId: player.id, status });
-      setInfo(res.status === "lista_espera" ? "Cupo lleno: quedaste en lista de espera." : "¡Listo!");
-      onRsvpDone();
-    } catch (e: any) {
-      setErr(e.message ?? "Error");
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function pay() {
@@ -187,23 +157,6 @@ function PlayerSheet({
         <h3 className="text-lg font-bold">{player.display_name}</h3>
 
         <div className="mt-4 space-y-4">
-          {/* Asistencia */}
-          <div>
-            <label className="label">¿Vas al partido?</label>
-            {listClosed ? (
-              <p className="text-sm text-orange-500">La lista está cerrada.</p>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="primary" disabled={busy} onClick={() => rsvp("confirmado")}>Voy</Button>
-                <Button variant="ghost" disabled={busy} onClick={() => rsvp("tal_vez")}>Tal vez</Button>
-                <Button variant="outline" disabled={busy} onClick={() => rsvp("declinado")}>No voy</Button>
-              </div>
-            )}
-            {info && <p className="mt-1 text-sm text-pitch-600">{info}</p>}
-          </div>
-
-          <hr className="border-gray-100" />
-
           {/* Pago */}
           <div>
             <label className="label">Reportar pago</label>
@@ -234,6 +187,9 @@ function PlayerSheet({
                 <button type="button" className="text-pitch-600 underline" onClick={copySinpe}>Copiar</button>
               </div>
             )}
+            {/* Confirmación del "Copiar": antes se mostraba en el bloque de
+                asistencia, que ya no existe. */}
+            {info && <p className="mt-1 text-sm text-pitch-600">{info}</p>}
             <input className="input mt-2" placeholder="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} />
             <label className="mt-2 block text-sm text-gray-600">
               Comprobante (opcional)

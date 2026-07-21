@@ -6,6 +6,7 @@ import { validateUsername } from "@/lib/username";
 import { Button } from "@titoapps/ui";
 import { takePendingInvite } from "../groups/pendingInvite";
 import { errorMessage } from "@/lib/errors";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -73,10 +74,13 @@ export function LoginPage() {
               <label className="label">Correo o usuario</label>
               <input className="input" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoCapitalize="none" required />
             </div>
-            <div>
-              <label className="label">Contraseña</label>
-              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
+            <PasswordInput
+              label="Contraseña"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </>
         )}
 
@@ -95,10 +99,15 @@ export function LoginPage() {
               <label className="label">Correo</label>
               <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
-            <div>
-              <label className="label">Contraseña</label>
-              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-            </div>
+            <PasswordInput
+              label="Contraseña"
+              autoComplete="new-password"
+              hint="Mínimo 6 caracteres."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
           </>
         )}
 

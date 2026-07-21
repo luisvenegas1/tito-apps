@@ -5,6 +5,7 @@ import { changeUsername, updateSinpe, updateFullName, changePassword } from "./a
 import { validateUsername } from "@/lib/username";
 import { Button } from "@titoapps/ui";
 import { errorMessage } from "@/lib/errors";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /** Iniciales para el avatar grande de la cabecera. */
 function initials(name: string | null | undefined, fallback: string): string {
@@ -161,37 +162,25 @@ export function ProfilePage() {
         </Section>
 
         <Section title="Contraseña" hint="Te pedimos la actual para confirmar que sos vos.">
-          <div>
-            <label className="label">Contraseña actual</label>
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-            />
-          </div>
+          <PasswordInput
+            label="Contraseña actual"
+            autoComplete="current-password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+          />
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="label">Nueva</label>
-              <input
-                className="input"
-                type="password"
-                autoComplete="new-password"
-                value={next}
-                onChange={(e) => setNext(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">Repetir</label>
-              <input
-                className="input"
-                type="password"
-                autoComplete="new-password"
-                value={repeat}
-                onChange={(e) => setRepeat(e.target.value)}
-              />
-            </div>
+            <PasswordInput
+              label="Nueva"
+              autoComplete="new-password"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+            />
+            <PasswordInput
+              label="Repetir"
+              autoComplete="new-password"
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value)}
+            />
           </div>
           {passwordProblem && <p className="text-sm text-orange-500">{passwordProblem}</p>}
           <Button

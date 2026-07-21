@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
 import { listMatchPlayers } from "../matches/api";
 import { listFrequent } from "../players/api";
-import { balanceTeams, rescore, BalancePlayer, Team, DEFAULT_LEVEL } from "@/lib/balancer/balance";
+import { balanceTeams, rescore, keepersFirst, BalancePlayer, Team, DEFAULT_LEVEL } from "@/lib/balancer/balance";
 import { publishTeams } from "./api";
 import { levelLabelLong } from "@/lib/levels";
 import { recommendFormat } from "@/lib/formats";
@@ -97,7 +97,7 @@ export function TeamsPage() {
       teams.map((t, i) => ({
         color: colors[i] ?? null,
         name: `Equipo ${i + 1}`,
-        players: t.players.map((p) => p.name),
+        players: keepersFirst(t.players).map((p) => p.name),
       })),
     );
     const ok = await copyToClipboard(text);
@@ -203,7 +203,7 @@ export function TeamsPage() {
                     ))}
                   </div>
                   <ul className="space-y-1">
-                    {t.players.map((p) => (
+                    {keepersFirst(t.players).map((p) => (
                       <li key={p.id} className="flex items-center justify-between text-sm">
                         <span>{p.name}{p.canGoalkeeper && " 🧤"}</span>
                         <select

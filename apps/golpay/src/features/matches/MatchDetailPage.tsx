@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
@@ -9,13 +9,15 @@ import {
   setAttendance, setListClosed, getResult, saveResult, getProofUrl,
 } from "./api";
 import { listPublishedTeams } from "../teams/api";
+import { listGames } from "../tournaments/api";
+import { computeStandings, championId } from "../tournaments/standings";
 import { UnratedPlayersCard } from "../players/UnratedPlayersCard";
 import { useDialog } from "@/components/ui/Dialog";
 import { useAuth } from "../auth/AuthProvider";
 import { crc, formatDate, formatTime } from "@/lib/utils/format";
 import { computeTotals, pendingMessage, summaryMessage, inviteMessage } from "../payments/messages";
 import { attendanceCounts, spotsLeft } from "../attendance/attendance";
-import { matchSummary, shareText } from "../share/share";
+import { matchSummary, shareToWhatsapp } from "../share/share";
 import type { Match, MatchPlayer, PaymentStatus, AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 import { teamLabel } from "@/lib/teamColors";
@@ -301,8 +303,35 @@ function AttendanceAndResult({ match, players, onChange, gid }: {
   const [showResult, setShowResult] = useState(false);
   const { data: result, refetch: refetchResult } = useQuery({ queryKey: ["result", match.id], queryFn: () => getResult(match.id) });
   const { data: teams } = useQuery({ queryKey: ["pubteams", match.id], queryFn: () => listPublishedTeams(match.id) });
+  const { data: games } = useQuery({ queryKey: ["games", match.id], queryFn: () => listGames(match.id) });
   const counts = attendanceCounts(players);
   const left = spotsLeft(counts.confirmed, match.max_players);
+
+  // El campeón se deduce de la tabla, no se elige a mano: el marcador ya se
+  // cargó en Resultados.
+  const champTeamId = useMemo(() => {
+    if (!teams || teams.length < 2 || !games || games.length === 0) return null;
+    const table = computeStandings(games, teams.map((t) => ({ ...t, name: teamLabel(t.color, t.name) })));
+    return championId(table);
+  }, [teams, games]);
+
+  const champTeam = champTeamId ? teams?.find((t) => t.id === champTeamId) ?? null : null;
+
+  // Cuando la tabla cambia, sincronizamos winner_team_id en la BD (lo usan
+  // Campeones y la página pública). El ref evita reescrituras en bucle.
+  const savingWinner = useRef(false);
+  useEffect(() => {
+    if (champTeamId == null || result?.winner_team_id === champTeamId || savingWinner.current) return;
+    savingWinner.current = true;
+    saveResult({
+      match_id: match.id,
+      winner_team_id: champTeamId,
+      mvp_match_player_id: result?.mvp_match_player_id ?? null,
+      score: null,
+    })
+      .then(() => refetchResult())
+      .finally(() => { savingWinner.current = false; });
+  }, [champTeamId, result?.winner_team_id, result?.mvp_match_player_id, match.id, refetchResult]);
 
   async function toggleList() { await setListClosed(match.id, !match.list_closed); onChange(); }
   async function check(p: MatchPlayer, status: AttendanceStatus) { await setAttendance(p.id, status); onChange(); }
@@ -341,35 +370,60 @@ function AttendanceAndResult({ match, players, onChange, gid }: {
       )}
 
       <hr className="border-gray-100" />
-      {result?.winner_team_id ? (
-        <div className="text-sm">
-          🏆 Campeón registrado{result.score ? ` · ${result.score}` : ""}.{" "}
-          <button className="text-pitch-600 underline" onClick={() => setShowResult(true)}>Editar</button>
-        </div>
-      ) : (
-        <button className="btn-ghost w-full" onClick={() => setShowResult(true)} disabled={!teams || teams.length === 0}>
-          🏆 Registrar resultado{(!teams || teams.length === 0) ? " (publicá equipos primero)" : ""}
-        </button>
-      )}
+
+      {/* Campeón automático + MVP a mano */}
+      {(() => {
+        const mvpName = result?.mvp_match_player_id
+          ? players.find((p) => p.id === result.mvp_match_player_id)?.display_name ?? null
+          : null;
+
+        if (!teams || teams.length === 0) {
+          return <p className="text-xs text-gray-400">Publicá los equipos para ver campeón y MVP.</p>;
+        }
+
+        return (
+          <div className="space-y-2">
+            {champTeam ? (
+              <div className="rounded-xl bg-yellow-50 p-2.5 text-sm text-yellow-800">
+                🏆 Campeón: <b>{teamLabel(champTeam.color, champTeam.name)}</b>
+                <span className="text-xs text-yellow-700/70"> · según la tabla</span>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">
+                Cargá los marcadores en{" "}
+                <Link to={`/g/${gid}/partido/${match.id}/torneo`} className="text-pitch-600 underline">Resultados</Link>{" "}
+                y el campeón sale solo.
+              </p>
+            )}
+
+            <div className="flex items-center justify-between rounded-xl bg-gray-50 p-2.5 text-sm">
+              <span>⭐ MVP: {mvpName ? <b>{mvpName}</b> : <span className="text-gray-400">sin definir</span>}</span>
+              <button className="text-pitch-600 underline" onClick={() => setShowResult(true)}>
+                {mvpName ? "Cambiar" : "Elegir"}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {teams && teams.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          <Link to={`/g/${gid}/partido/${match.id}/torneo`} className="btn-ghost text-center text-sm">🎯 Minitorneo</Link>
+          <Link to={`/g/${gid}/partido/${match.id}/torneo`} className="btn-ghost text-center text-sm">📊 Resultados</Link>
           <button className="btn-ghost text-sm" onClick={() => {
-            const champTeam = result?.winner_team_id ? teams.find((t) => t.id === result.winner_team_id) : undefined;
             const champion = champTeam ? teamLabel(champTeam.color, champTeam.name) : null;
             const mvp = result?.mvp_match_player_id ? (players.find((p) => p.id === result.mvp_match_player_id)?.display_name ?? null) : null;
-            shareText(matchSummary({
+            shareToWhatsapp(matchSummary({
               title: match.title, dateLabel: formatDate(match.date),
-              teams: teams.map((t) => ({ name: teamLabel(t.color, t.name) })), champion, mvp, score: result?.score ?? null,
+              teams: teams.map((t) => ({ name: teamLabel(t.color, t.name), color: t.color })),
+              champion, championColor: champTeam?.color ?? null, mvp, score: null,
             }));
-          }}>📤 Compartir resumen</button>
+          }}>📤 Compartir a WhatsApp</button>
         </div>
       )}
 
       {showResult && (
-        <ResultModal
-          match={match} teams={teams ?? []} players={players} initial={result ?? null}
+        <MvpModal
+          match={match} players={players} winnerTeamId={champTeamId} initialMvp={result?.mvp_match_player_id ?? null}
           onClose={() => setShowResult(false)}
           onSaved={() => { setShowResult(false); refetchResult(); onChange(); }}
         />
@@ -378,62 +432,48 @@ function AttendanceAndResult({ match, players, onChange, gid }: {
   );
 }
 
-function ResultModal({ match, teams, players, initial, onClose, onSaved }: {
+/** Solo MVP: el campeón y el marcador salen de Resultados. */
+function MvpModal({ match, players, winnerTeamId, initialMvp, onClose, onSaved }: {
   match: Match;
-  teams: { id: string; name: string; color: string | null }[];
   players: MatchPlayer[];
-  initial: { winner_team_id: string | null; mvp_match_player_id: string | null; score: string | null } | null;
+  winnerTeamId: string | null;
+  initialMvp: string | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [winner, setWinner] = useState(initial?.winner_team_id ?? "");
-  const [mvp, setMvp] = useState(initial?.mvp_match_player_id ?? "");
-  const [score, setScore] = useState(initial?.score ?? "");
+  const [mvp, setMvp] = useState(initialMvp ?? "");
   const [busy, setBusy] = useState(false);
   const dialog = useDialog();
 
   async function save() {
     setBusy(true);
     try {
+      // Conservamos el campeón deducido de la tabla; solo cambia el MVP.
       await saveResult({
         match_id: match.id,
-        winner_team_id: winner || null,
+        winner_team_id: winnerTeamId,
         mvp_match_player_id: mvp || null,
-        score: score.trim() || null,
+        score: null,
       });
       onSaved();
     } catch (e: any) {
-      dialog.alert({ title: "No se pudo guardar el resultado", message: e.message ?? "Error" });
+      dialog.alert({ title: "No se pudo guardar el MVP", message: e.message ?? "Error" });
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" onClick={onClose}>
       <div className="w-full max-w-md rounded-t-3xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-3 h-1 w-10 rounded bg-gray-200" />
-        <h3 className="mb-3 text-lg font-bold">Registrar resultado</h3>
+        <h3 className="mb-3 text-lg font-bold">MVP del partido</h3>
         <div className="space-y-3">
-          <div>
-            <label className="label">Equipo campeón</label>
-            <select className="input" value={winner} onChange={(e) => setWinner(e.target.value)}>
-              <option value="">Sin definir</option>
-              {teams.map((t) => <option key={t.id} value={t.id}>{teamLabel(t.color, t.name)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">MVP (opcional)</label>
-            <select className="input" value={mvp} onChange={(e) => setMvp(e.target.value)}>
-              <option value="">Sin MVP</option>
-              {players.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Marcador (opcional)</label>
-            <input className="input" placeholder="ej. 3-2" value={score} onChange={(e) => setScore(e.target.value)} />
-          </div>
-          <Button fullWidth onClick={save} disabled={busy}>{busy ? "…" : "Guardar resultado"}</Button>
+          <select className="input" value={mvp} onChange={(e) => setMvp(e.target.value)}>
+            <option value="">Sin MVP</option>
+            {players.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
+          </select>
+          <Button fullWidth onClick={save} disabled={busy}>{busy ? "…" : "Guardar MVP"}</Button>
         </div>
       </div>
     </div>
