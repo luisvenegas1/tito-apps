@@ -1,3 +1,4 @@
+import { stripInvisible } from "@/lib/names";
 /**
  * Parser de listas de WhatsApp -> jugadores.
  *
@@ -119,7 +120,9 @@ function looksLikeName(candidate: string): boolean {
 }
 
 export function parseWhatsappList(text: string): ParsedPlayer[] {
-  const lines = text.split(/\r?\n/);
+  // WhatsApp pega caracteres invisibles (U+2060 y compañía). Si no se quitan
+  // acá, viajan pegados al nombre hasta la base de datos.
+  const lines = stripInvisible(text).split(/\r?\n/);
   const players: ParsedPlayer[] = [];
   const seen = new Set<string>();
 

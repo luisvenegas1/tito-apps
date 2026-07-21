@@ -22,13 +22,38 @@ function friendly(error: { code?: string; message: string }): Error {
 }
 
 export async function createFrequent(input: FrequentInput, ownerId: string): Promise<void> {
-  const { error } = await supabase.from("frequent_players").insert({ ...input, owner_id: ownerId });
+  const { data, error } = await supabase
+    .from("frequent_players")
+    .insert({ ...input, owner_id: ownerId })
+    .select("id");
   if (error) throw friendly(error);
+  if (!data || data.length === 0) {
+    throw new Error("No se creó el jugador (la base no aceptó la fila).");
+  }
 }
 
+/**
+ * Ojo: sin .select(), PostgREST responde 204 aunque no haya actualizado NADA
+ * (p. ej. si RLS filtra la fila). Eso se veía como "guardé y no cambió".
+ * Pedimos la fila de vuelta y comprobamos que efectivamente cambió.
+ */
 export async function updateFrequent(id: string, patch: Partial<FrequentInput>): Promise<void> {
-  const { error } = await supabase.from("frequent_players").update(patch).eq("id", id);
+  const { data, error } = await supabase
+    .from("frequent_players")
+    .update(patch)
+    .eq("id", id)
+    .select("id, name");
   if (error) throw friendly(error);
+
+  if (!data || data.length === 0) {
+    throw new Error(
+      "La base no actualizó ninguna fila. Suele ser que el jugador pertenece a otra cuenta " +
+        "(owner_id distinto al usuario con el que iniciaste sesión).",
+    );
+  }
+  if (patch.name !== undefined && data[0].name !== patch.name) {
+    throw new Error(`Guardaste “${patch.name}” pero la base devolvió “${data[0].name}”.`);
+  }
 }
 
 /**

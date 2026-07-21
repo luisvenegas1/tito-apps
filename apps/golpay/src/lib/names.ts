@@ -4,6 +4,21 @@
  * cortos que se usan en las listas de WhatsApp.
  */
 
+/**
+ * Caracteres invisibles que WhatsApp pega al copiar una lista.
+ * El culpable habitual es U+2060 WORD JOINER: no se ve, pero queda ADELANTE
+ * del nombre, y entonces `"⁠roly"[0].toUpperCase()` no hace nada — la "r"
+ * nunca se capitaliza. Hay que eliminarlos ANTES de tocar mayúsculas.
+ */
+const ZERO_WIDTH = /[​-‍⁠﻿]/g;
+/** Espacios que no son el espacio normal (duro, fino, de figura…). */
+const ODD_SPACES = /[  -   　]/g;
+
+/** Deja solo texto visible con espacios normales. */
+export function stripInvisible(s: string): string {
+  return s.replace(ZERO_WIDTH, "").replace(ODD_SPACES, " ");
+}
+
 /** Partículas que van en minúscula cuando NO son la primera palabra. */
 const PARTICLES = new Set(["de", "del", "la", "las", "los", "y", "e", "da", "das", "do", "dos", "van", "von", "di", "el"]);
 
@@ -46,7 +61,7 @@ function word(w: string, isFirst: boolean): string {
  * Colapsa espacios repetidos y recorta los extremos.
  */
 export function titleCaseName(input: string): string {
-  const clean = input.replace(/\s+/g, " ").trim();
+  const clean = stripInvisible(input).replace(/\s+/g, " ").trim();
   if (!clean) return "";
   return clean.split(" ").map((w, i) => word(w, i === 0)).join(" ");
 }
