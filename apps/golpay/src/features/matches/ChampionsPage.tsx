@@ -2,13 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { TopBar } from "@/components/ui/TopBar";
 import { listChampions } from "./api";
 import { formatDate } from "@/lib/utils/format";
+import { useGroupId } from "@/features/groups/useGroup";
 
 export function ChampionsPage() {
+  const gid = useGroupId();
   const { data: rows, isLoading } = useQuery({ queryKey: ["champions"], queryFn: listChampions });
 
   return (
     <div className="pb-8">
-      <TopBar title="🏆 Campeones" back backTo="/" />
+      <TopBar title="🏆 Campeones" back backTo={`/g/${gid}`} />
       <div className="space-y-2 p-4">
         {isLoading && <p className="text-gray-400">Cargando…</p>}
         {!isLoading && (rows?.length ?? 0) === 0 && (

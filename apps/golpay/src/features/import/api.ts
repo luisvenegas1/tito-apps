@@ -32,6 +32,7 @@ export async function importPlayers(
   rows: ImportRow[],
   amountDue: number,
   ownerId: string,
+  groupId: string,
 ): Promise<void> {
   const clean = rows
     .map((r) => ({ ...r, name: titleCaseName(r.name) }))
@@ -41,7 +42,7 @@ export async function importPlayers(
   // 1) Últimas defensas contra duplicados, ya con los nombres normalizados:
   //    releemos los perfiles del organizador por si algo cambió desde la vista
   //    previa, y colapsamos repetidos dentro del mismo lote.
-  const existing = await listFrequentForMatch();
+  const existing = await listFrequentForMatch(groupId);
   const byNorm = new Map(existing.map((f) => [normalizeName(f.name), f.id]));
 
   const resolved = clean.map((r) => ({
@@ -65,6 +66,7 @@ export async function importPlayers(
       .insert(
         toCreate.map((r) => ({
           owner_id: ownerId,
+          group_id: groupId,
           name: r.name,
           can_be_goalkeeper: r.isGoalkeeper,
           skill_level: null,
@@ -100,8 +102,12 @@ export async function importPlayers(
 }
 
 /** Trae los perfiles del organizador para emparejar al importar. */
-export async function listFrequentForMatch(): Promise<FrequentPlayer[]> {
-  const { data, error } = await supabase.from("frequent_players").select("*").order("name");
+export async function listFrequentForMatch(groupId: string): Promise<FrequentPlayer[]> {
+  const { data, error } = await supabase
+    .from("frequent_players")
+    .select("*")
+    .eq("group_id", groupId)
+    .order("name");
   if (error) throw error;
   return data as FrequentPlayer[];
 }

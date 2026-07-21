@@ -4,6 +4,7 @@ import { useAuth } from "./AuthProvider";
 import { changeUsername, updateSinpe, updateFullName, changePassword } from "./authApi";
 import { validateUsername } from "@/lib/username";
 import { Button } from "@titoapps/ui";
+import { errorMessage } from "@/lib/errors";
 
 /** Iniciales para el avatar grande de la cabecera. */
 function initials(name: string | null | undefined, fallback: string): string {
@@ -50,7 +51,7 @@ export function ProfilePage() {
       await refreshProfile();
       setMsg({ kind: "ok", text: okText });
     } catch (e: any) {
-      setMsg({ kind: "err", text: e.message ?? "No se pudo guardar" });
+      setMsg({ kind: "err", text: errorMessage(e, "No se pudo guardar") });
     } finally {
       setBusy(null);
     }

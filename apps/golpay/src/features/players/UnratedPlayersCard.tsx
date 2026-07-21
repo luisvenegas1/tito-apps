@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listFrequent, updateFrequent } from "./api";
-import { LEVELS, LEVEL_LABELS, SkillLevel } from "@/lib/levels";
+import { LEVELS, LEVEL_LABELS, SkillLevel, LEVEL_SCALE_HINT } from "@/lib/levels";
 import type { MatchPlayer } from "@/lib/supabase/types";
+import { useGroupId } from "@/features/groups/useGroup";
 
 /**
  * Muestra los jugadores del partido cuyo perfil todavía no tiene nivel
@@ -10,7 +11,8 @@ import type { MatchPlayer } from "@/lib/supabase/types";
  */
 export function UnratedPlayersCard({ players }: { players: MatchPlayer[] }) {
   const qc = useQueryClient();
-  const { data: frequent } = useQuery({ queryKey: ["frequent"], queryFn: listFrequent });
+  const gid = useGroupId();
+  const { data: frequent } = useQuery({ queryKey: ["frequent", gid], queryFn: () => listFrequent(gid) });
 
   if (!frequent) return null;
 
@@ -25,7 +27,7 @@ export function UnratedPlayersCard({ players }: { players: MatchPlayer[] }) {
 
   async function setLevel(id: string, level: SkillLevel) {
     await updateFrequent(id, { skill_level: level });
-    qc.invalidateQueries({ queryKey: ["frequent"] });
+    qc.invalidateQueries({ queryKey: ["frequent", gid] });
   }
 
   return (
@@ -37,7 +39,7 @@ export function UnratedPlayersCard({ players }: { players: MatchPlayer[] }) {
         Jugadores sin nivel
       </div>
       <p className="mb-2 text-xs text-gray-400">
-        Asignales un nivel para que los equipos queden parejos. Podés cambiarlo después.
+        Asignales un nivel para que los equipos queden parejos. {LEVEL_SCALE_HINT}.
       </p>
       <div className="space-y-2">
         {pending.map((f) => (

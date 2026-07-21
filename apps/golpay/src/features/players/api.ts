@@ -1,8 +1,12 @@
 import { supabase } from "@/lib/supabase/client";
 import type { FrequentPlayer } from "@/lib/supabase/types";
 
-export async function listFrequent(): Promise<FrequentPlayer[]> {
-  const { data, error } = await supabase.from("frequent_players").select("*").order("name");
+export async function listFrequent(groupId: string): Promise<FrequentPlayer[]> {
+  const { data, error } = await supabase
+    .from("frequent_players")
+    .select("*")
+    .eq("group_id", groupId)
+    .order("name");
   if (error) throw error;
   return data as FrequentPlayer[];
 }
@@ -21,10 +25,14 @@ function friendly(error: { code?: string; message: string }): Error {
   return new Error(error.message);
 }
 
-export async function createFrequent(input: FrequentInput, ownerId: string): Promise<void> {
+export async function createFrequent(
+  input: FrequentInput,
+  ownerId: string,
+  groupId: string,
+): Promise<void> {
   const { data, error } = await supabase
     .from("frequent_players")
-    .insert({ ...input, owner_id: ownerId })
+    .insert({ ...input, owner_id: ownerId, group_id: groupId })
     .select("id");
   if (error) throw friendly(error);
   if (!data || data.length === 0) {

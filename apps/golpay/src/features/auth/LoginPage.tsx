@@ -4,6 +4,8 @@ import { useAuth } from "./AuthProvider";
 import { signInWithIdentifier, signUpWithUsername, requestPasswordReset } from "./authApi";
 import { validateUsername } from "@/lib/username";
 import { Button } from "@titoapps/ui";
+import { takePendingInvite } from "../groups/pendingInvite";
+import { errorMessage } from "@/lib/errors";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -15,18 +17,23 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
   const { session } = useAuth();
 
   useEffect(() => {
-    if (session) nav("/", { replace: true });
+    if (!session) return;
+    // Si venías de una invitación, volvemos ahí en vez de al inicio.
+    const pending = takePendingInvite();
+    nav(pending ? `/invitacion/${pending}` : "/", { replace: true });
   }, [session, nav]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setMsg(null);
+    setFailed(false);
     try {
       if (mode === "login") {
         await signInWithIdentifier(identifier, password);
@@ -43,8 +50,9 @@ export function LoginPage() {
         await requestPasswordReset(email);
         setMsg("Si el correo existe, te enviamos un enlace para recuperar tu contraseña.");
       }
-    } catch (err: any) {
-      setMsg(err.message ?? "Error");
+    } catch (err: unknown) {
+      setFailed(true);
+      setMsg(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -101,7 +109,15 @@ export function LoginPage() {
           </div>
         )}
 
-        {msg && <p className="text-sm text-pitch-600">{msg}</p>}
+        {msg && (
+          <p
+            className={`rounded-lg px-3 py-2 text-sm ${
+              failed ? "bg-red-50 text-red-600" : "bg-pitch-50 text-pitch-700"
+            }`}
+          >
+            {msg}
+          </p>
+        )}
         <Button fullWidth disabled={busy}>
           {busy ? "…" : mode === "login" ? "Entrar" : mode === "signup" ? "Crear cuenta" : "Enviar enlace"}
         </Button>
@@ -110,12 +126,12 @@ export function LoginPage() {
       <div className="mt-4 flex flex-col items-center gap-2 text-sm text-gray-500">
         {mode === "login" && (
           <>
-            <button onClick={() => { setMode("signup"); setMsg(null); }} className="underline">¿No tenés cuenta? Registrate</button>
-            <button onClick={() => { setMode("forgot"); setMsg(null); }} className="underline">¿Olvidaste tu contraseña?</button>
+            <button onClick={() => { setMode("signup"); setMsg(null); setFailed(false); }} className="underline">¿No tenés cuenta? Registrate</button>
+            <button onClick={() => { setMode("forgot"); setMsg(null); setFailed(false); }} className="underline">¿Olvidaste tu contraseña?</button>
           </>
         )}
         {mode !== "login" && (
-          <button onClick={() => { setMode("login"); setMsg(null); }} className="underline">Volver a iniciar sesión</button>
+          <button onClick={() => { setMode("login"); setMsg(null); setFailed(false); }} className="underline">Volver a iniciar sesión</button>
         )}
       </div>
     </div>

@@ -8,9 +8,10 @@ import { findMatches } from "../players/api";
 import { importPlayers, listFrequentForMatch, ImportRow } from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer } from "@/lib/supabase/types";
-import { levelLabel } from "@/lib/levels";
+import { levelLabelLong } from "@/lib/levels";
 import { Button } from "@titoapps/ui";
 import { useDialog } from "@/components/ui/Dialog";
+import { useGroupId } from "@/features/groups/useGroup";
 
 interface Row {
   name: string;
@@ -25,6 +26,7 @@ interface Row {
 
 export function ImportPage() {
   const { id } = useParams<{ id: string }>();
+  const gid = useGroupId();
   const nav = useNavigate();
   const { session } = useAuth();
   const [text, setText] = useState("");
@@ -34,7 +36,7 @@ export function ImportPage() {
 
   const { data: match } = useQuery({ queryKey: ["match", id], queryFn: () => getMatch(id!) });
   const { data: existing } = useQuery({ queryKey: ["players", id], queryFn: () => listMatchPlayers(id!) });
-  const { data: frequent } = useQuery({ queryKey: ["frequent"], queryFn: listFrequentForMatch });
+  const { data: frequent } = useQuery({ queryKey: ["frequent", gid], queryFn: () => listFrequentForMatch(gid) });
 
   function profileById(pid: string | null): FrequentPlayer | null {
     return pid ? (frequent ?? []).find((f) => f.id === pid) ?? null : null;
@@ -137,8 +139,8 @@ export function ImportPage() {
         seen.add(key);
         toImport.push({ name, isGoalkeeper: r.isGoalkeeper, frequentPlayerId: r.frequentPlayerId });
       }
-      await importPlayers(match.id, toImport, match.cost_per_player, session.user.id);
-      nav(`/partido/${match.id}`);
+      await importPlayers(match.id, toImport, match.cost_per_player, session.user.id, gid);
+      nav(`/g/${gid}/partido/${match.id}`);
     } catch (err: any) {
       dialog.alert({ title: "No se pudo importar", message: err.message ?? "Error" });
     } finally {
@@ -153,7 +155,7 @@ export function ImportPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Importar jugadores" back backTo={`/partido/${id}`} />
+      <TopBar title="Importar jugadores" back backTo={`/g/${gid}/partido/${id}`} />
       <div className="space-y-4 p-4">
         {!rows && (
           <>
@@ -217,7 +219,7 @@ export function ImportPage() {
                     <div className="flex items-center gap-2">
                       {r.known ? (
                         <span className="shrink-0 text-sm text-pitch-500"
-                          title={profile ? `Perfil: ${levelLabel(profile.skill_level)}${profile.preferred_position ? ", " + profile.preferred_position : ""}` : "Perfil guardado"}>
+                          title={profile ? `Perfil: ${levelLabelLong(profile.skill_level)}${profile.preferred_position ? ", " + profile.preferred_position : ""}` : "Perfil guardado"}>
                           ✓
                         </span>
                       ) : r.candidates.length === 0 && r.name.trim() ? (

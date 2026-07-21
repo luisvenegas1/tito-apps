@@ -8,11 +8,12 @@ import {
 } from "./api";
 import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer, PreferredPosition } from "@/lib/supabase/types";
-import { LEVELS, LEVEL_LABELS, DEFAULT_SKILL_LEVEL, levelLabel } from "@/lib/levels";
+import { LEVELS, LEVEL_LABELS, DEFAULT_SKILL_LEVEL, levelLabelLong, LEVEL_SCALE_HINT } from "@/lib/levels";
 import { formatDate } from "@/lib/utils/format";
 import { Button } from "@titoapps/ui";
 import { titleCaseName } from "@/lib/names";
 import { useDialog } from "@/components/ui/Dialog";
+import { useGroupId } from "@/features/groups/useGroup";
 
 const POSITIONS: PreferredPosition[] = ["portero", "defensa", "medio", "delantero"];
 const DAYS: [string, string][] = [
@@ -26,13 +27,14 @@ const emptyInput: FrequentInput = {
 
 export function FrequentPlayersPage() {
   const qc = useQueryClient();
+  const gid = useGroupId();
   const { session } = useAuth();
-  const { data: players } = useQuery({ queryKey: ["frequent"], queryFn: listFrequent });
+  const { data: players } = useQuery({ queryKey: ["frequent", gid], queryFn: () => listFrequent(gid) });
   const [editing, setEditing] = useState<FrequentPlayer | "new" | null>(null);
   const [query, setQuery] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["frequent"] });
+  const refresh = () => qc.invalidateQueries({ queryKey: ["frequent", gid] });
 
   const all = players ?? [];
   const q = query.toLowerCase().trim();
@@ -44,7 +46,7 @@ export function FrequentPlayersPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Mis jugadores" back backTo="/" />
+      <TopBar title="Mis jugadores" back backTo={`/g/${gid}`} />
       <div className="space-y-2 p-4">
         <p className="text-sm text-gray-500">
           El nivel es privado: sólo vos lo ves. Se usa para armar equipos parejos.
@@ -73,13 +75,13 @@ export function FrequentPlayersPage() {
                 {!p.is_active && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">desactivado</span>}
               </div>
               <div className="text-xs text-gray-400">
-                {levelLabel(p.skill_level)}
+                {levelLabelLong(p.skill_level)}
                 {" · "}{p.preferred_position ?? "sin posición"}
                 {p.can_be_goalkeeper && " · 🧤"}
                 {p.last_played_at && ` · últ.: ${formatDate(p.last_played_at.slice(0, 10))}`}
               </div>
             </button>
-            <Link to={`/jugador/${p.id}`} className="shrink-0 text-lg" title="Ver perfil">📊</Link>
+            <Link to={`/g/${gid}/jugador/${p.id}`} className="shrink-0 text-lg" title="Ver perfil">📊</Link>
           </div>
         ))}
         {filtered.length === 0 && (
@@ -98,7 +100,7 @@ export function FrequentPlayersPage() {
             // Devolvemos el error para que el modal lo muestre: antes se perdía
             // en la consola y parecía que "no dejaba guardar".
             try {
-              if (editing === "new") await createFrequent(input, session!.user.id);
+              if (editing === "new") await createFrequent(input, session!.user.id, gid);
               else await updateFrequent(editing.id, input);
               refresh(); setEditing(null);
               return null;
@@ -165,7 +167,7 @@ function DuplicatesCard({ players, onMerged }: { players: FrequentPlayer[]; onMe
               {g.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-2 text-xs text-gray-500">
                   <span className="min-w-0 truncate">
-                    {levelLabel(p.skill_level)} · {p.preferred_position ?? "sin posición"}
+                    {levelLabelLong(p.skill_level)} · {p.preferred_position ?? "sin posición"}
                     {p.last_played_at && ` · últ.: ${formatDate(p.last_played_at.slice(0, 10))}`}
                   </span>
                   <button
@@ -270,7 +272,8 @@ function PlayerModal({
 
           <div>
             <label className="label">Nivel (privado)</label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <p className="mb-1 text-xs text-gray-400">{LEVEL_SCALE_HINT}</p>
+            <div className="grid grid-cols-5 gap-1.5">
               {LEVELS.map((n) => (
                 <button key={n} type="button" onClick={() => setF({ ...f, skill_level: n })}
                   className={`h-10 rounded-lg text-xs font-semibold ${f.skill_level === n ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-500"}`}>

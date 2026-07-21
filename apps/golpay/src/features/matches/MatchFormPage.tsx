@@ -9,6 +9,7 @@ import { useAuth } from "../auth/AuthProvider";
 import type { MatchTemplate } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 import { useDialog } from "@/components/ui/Dialog";
+import { useGroupId } from "@/features/groups/useGroup";
 
 const empty: MatchInput = {
   title: "Mejenga lunes",
@@ -23,6 +24,7 @@ const empty: MatchInput = {
 
 export function MatchFormPage() {
   const { id } = useParams();
+  const gid = useGroupId();
   const editing = Boolean(id);
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -64,17 +66,17 @@ export function MatchFormPage() {
       if (editing && id) {
         await updateMatch(id, form);
         await qc.invalidateQueries({ queryKey: ["match", id] });
-        nav(`/partido/${id}`);
+        nav(`/g/${gid}/partido/${id}`);
       } else {
-        const m = await createMatch(form, session.user.id);
+        const m = await createMatch(form, session.user.id, gid);
         if (saveAsTemplate) {
           await createTemplate({
             name: form.title, type: form.type, time: form.time, location: form.location,
             cost_per_player: form.cost_per_player, max_players: form.max_players, notes: form.notes,
           }, session.user.id);
         }
-        await qc.invalidateQueries({ queryKey: ["matches"] });
-        nav(`/partido/${m.id}/importar`);
+        await qc.invalidateQueries({ queryKey: ["matches", gid] });
+        nav(`/g/${gid}/partido/${m.id}/importar`);
       }
     } catch (err: any) {
       dialog.alert({ title: "No se pudo guardar el partido", message: err.message ?? "Error al guardar" });
@@ -85,7 +87,7 @@ export function MatchFormPage() {
 
   return (
     <div>
-      <TopBar title={editing ? "Editar partido" : "Nuevo partido"} back backTo={editing ? `/partido/${id}` : "/"} />
+      <TopBar title={editing ? "Editar partido" : "Nuevo partido"} back backTo={editing ? `/g/${gid}/partido/${id}` : `/g/${gid}`} />
       <form onSubmit={save} className="space-y-4 p-4">
         {!editing && templates && templates.length > 0 && (
           <div>

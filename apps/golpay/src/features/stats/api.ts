@@ -13,15 +13,34 @@ export interface RawStatsData {
   teamMembers: { team_id: string; match_player_id: string }[];
 }
 
-/** Carga (una vez) todo lo necesario para estadísticas del organizador. RLS limita a lo suyo. */
-export async function fetchStatsData(): Promise<RawStatsData> {
-  const [matches, players, results, teams, teamMembers] = await Promise.all([
-    supabase.from("matches").select("id, title, date"),
-    supabase.from("match_players").select("id, match_id, frequent_player_id, display_name, amount_due, amount_paid, attendance_status, payment_status"),
-    supabase.from("match_results").select("match_id, winner_team_id, mvp_match_player_id"),
-    supabase.from("teams").select("id, name, match_id"),
-    supabase.from("team_members").select("team_id, match_player_id"),
+/**
+ * Carga (una vez) todo lo necesario para estadísticas del grupo.
+ * Filtramos por los partidos del grupo: RLS ya limita a los grupos donde estás,
+ * pero sin este filtro se mezclarían las estadísticas de todos tus grupos.
+ */
+export async function fetchStatsData(groupId: string): Promise<RawStatsData> {
+  const { data: gm } = await supabase.from("matches").select("id").eq("group_id", groupId);
+  const matchIds = (gm ?? []).map((m: { id: string }) => m.id);
+  if (matchIds.length === 0) {
+    return { matches: [], players: [], results: [], teams: [], teamMembers: [] };
+  }
+
+  const [matches, players, results, teams] = await Promise.all([
+    supabase.from("matches").select("id, title, date").in("id", matchIds),
+    supabase
+      .from("match_players")
+      .select("id, match_id, frequent_player_id, display_name, amount_due, amount_paid, attendance_status, payment_status")
+      .in("match_id", matchIds),
+    supabase.from("match_results").select("match_id, winner_team_id, mvp_match_player_id").in("match_id", matchIds),
+    supabase.from("teams").select("id, name, match_id, color").in("match_id", matchIds),
   ]);
+
+  // team_members se filtra por los equipos que acabamos de traer.
+  const teamIds = ((teams.data as { id: string }[]) ?? []).map((t) => t.id);
+  const teamMembers = teamIds.length
+    ? await supabase.from("team_members").select("team_id, match_player_id").in("team_id", teamIds)
+    : { data: [] as RawStatsData["teamMembers"] };
+
   return {
     matches: (matches.data as RawStatsData["matches"]) ?? [],
     players: (players.data as RawStatsData["players"]) ?? [],

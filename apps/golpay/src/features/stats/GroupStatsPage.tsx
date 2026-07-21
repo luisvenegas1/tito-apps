@@ -6,11 +6,13 @@ import { fetchStatsData, buildRows } from "./api";
 import { playerStats, groupRankings, RankedPlayer } from "./stats";
 import { topDuos, TeamAppearance } from "./combinations";
 import { crc } from "@/lib/utils/format";
+import { useGroupId } from "@/features/groups/useGroup";
 
-function Ranking({ title, rows, render }: {
+function Ranking({ title, rows, render, gid }: {
   title: string;
   rows: RankedPlayer[];
   render: (p: RankedPlayer) => string;
+  gid: string;
 }) {
   if (rows.length === 0) return null;
   return (
@@ -19,7 +21,7 @@ function Ranking({ title, rows, render }: {
       <ol className="space-y-0.5 text-sm">
         {rows.slice(0, 5).map((p, i) => (
           <li key={p.id} className="flex justify-between">
-            <Link to={`/jugador/${p.id}`} className="text-gray-700">{i + 1}. {p.name}</Link>
+            <Link to={`/g/${gid}/jugador/${p.id}`} className="text-gray-700">{i + 1}. {p.name}</Link>
             <span className="text-gray-400">{render(p)}</span>
           </li>
         ))}
@@ -29,8 +31,9 @@ function Ranking({ title, rows, render }: {
 }
 
 export function GroupStatsPage() {
-  const { data: players } = useQuery({ queryKey: ["frequent"], queryFn: listFrequent });
-  const { data: data } = useQuery({ queryKey: ["statsData"], queryFn: fetchStatsData });
+  const gid = useGroupId();
+  const { data: players } = useQuery({ queryKey: ["frequent", gid], queryFn: () => listFrequent(gid) });
+  const { data: data } = useQuery({ queryKey: ["statsData", gid], queryFn: () => fetchStatsData(gid) });
 
   if (!players || !data) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
 
@@ -64,7 +67,7 @@ export function GroupStatsPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Estadísticas del grupo" back backTo="/" />
+      <TopBar title="Estadísticas del grupo" back backTo={`/g/${gid}`} />
       <div className="space-y-3 p-4">
         <div className="grid grid-cols-3 gap-2">
           <div className="card py-3"><div className="text-xs text-gray-400">Partidos</div><div className="text-lg font-bold">{totalMatches}</div></div>
@@ -72,11 +75,11 @@ export function GroupStatsPage() {
           <div className="card py-3"><div className="text-xs text-gray-400">Pendiente</div><div className="text-lg font-bold text-red-500">{crc(pendiente)}</div></div>
         </div>
 
-        <Ranking title="🏆 Más campeonatos" rows={r.byChampionships} render={(p) => `${p.stats.championships}`} />
-        <Ranking title="⭐ Más MVPs" rows={r.byMvps} render={(p) => `${p.stats.mvps}`} />
-        <Ranking title="✅ Top asistencia" rows={r.byAttendance} render={(p) => `${p.stats.attendancePct}%`} />
-        <Ranking title="💚 Mejor puntualidad de pago" rows={r.byPayment} render={(p) => `${p.stats.paymentPct}%`} />
-        <Ranking title="⚠️ Más pendientes" rows={r.byDebt} render={(p) => `${p.stats.pending}`} />
+        <Ranking title="🏆 Más campeonatos" rows={r.byChampionships} render={(p) => `${p.stats.championships}`} gid={gid} />
+        <Ranking title="⭐ Más MVPs" rows={r.byMvps} render={(p) => `${p.stats.mvps}`} gid={gid} />
+        <Ranking title="✅ Top asistencia" rows={r.byAttendance} render={(p) => `${p.stats.attendancePct}%`} gid={gid} />
+        <Ranking title="💚 Mejor puntualidad de pago" rows={r.byPayment} render={(p) => `${p.stats.paymentPct}%`} gid={gid} />
+        <Ranking title="⚠️ Más pendientes" rows={r.byDebt} render={(p) => `${p.stats.pending}`} gid={gid} />
 
         {duos.length > 0 && (
           <div className="card">

@@ -4,6 +4,9 @@ import { LoginPage } from "./features/auth/LoginPage";
 import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
 import { ProfilePage } from "./features/auth/ProfilePage";
 import { UsernameGate } from "./features/auth/UsernameGate";
+import { GroupsPage } from "./features/groups/GroupsPage";
+import { MembersPage } from "./features/groups/MembersPage";
+import { InvitePage } from "./features/groups/InvitePage";
 import { DashboardPage } from "./features/matches/DashboardPage";
 import { MatchFormPage } from "./features/matches/MatchFormPage";
 import { MatchDetailPage } from "./features/matches/MatchDetailPage";
@@ -17,6 +20,8 @@ import { TournamentPage } from "./features/tournaments/TournamentPage";
 import { PublicMatchPage } from "./features/public/PublicMatchPage";
 import { Footer } from "@titoapps/ui";
 import { DialogProvider } from "./components/ui/Dialog";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
+import { APP_VERSION } from "./lib/appVersion";
 
 function Protected({ children }: { children: JSX.Element }) {
   const { session, profile, loading } = useAuth();
@@ -29,44 +34,61 @@ function Protected({ children }: { children: JSX.Element }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <DialogProvider>
       <div className="app-shell md:pb-14">
-      <Routes>
-        {/* Público (jugador) */}
-        <Route path="/j/:token" element={<PublicMatchPage />} />
+        <Routes>
+          {/* Público (jugador) */}
+          <Route path="/j/:token" element={<PublicMatchPage />} />
 
-        {/* Auth */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/reset" element={<ResetPasswordPage />} />
+          {/* Auth */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset" element={<ResetPasswordPage />} />
 
-        {/* Organizador */}
-        <Route path="/" element={<Protected><DashboardPage /></Protected>} />
-        <Route path="/perfil" element={<Protected><ProfilePage /></Protected>} />
-        {/* Ruta vieja: cualquier enlace guardado sigue funcionando. */}
-        <Route path="/ajustes" element={<Navigate to="/perfil" replace />} />
-        <Route path="/partido/nuevo" element={<Protected><MatchFormPage /></Protected>} />
-        <Route path="/partido/:id/editar" element={<Protected><MatchFormPage /></Protected>} />
-        <Route path="/partido/:id" element={<Protected><MatchDetailPage /></Protected>} />
-        <Route path="/partido/:id/importar" element={<Protected><ImportPage /></Protected>} />
-        <Route path="/partido/:id/equipos" element={<Protected><TeamsPage /></Protected>} />
-        <Route path="/partido/:id/torneo" element={<Protected><TournamentPage /></Protected>} />
-        <Route path="/frecuentes" element={<Protected><FrequentPlayersPage /></Protected>} />
-        <Route path="/jugador/:id" element={<Protected><PlayerProfilePage /></Protected>} />
-        <Route path="/campeones" element={<Protected><ChampionsPage /></Protected>} />
-        <Route path="/estadisticas" element={<Protected><GroupStatsPage /></Protected>} />
+          {/* Invitación: la pantalla decide si hace falta iniciar sesión */}
+          <Route path="/invitacion/:token" element={<InvitePage />} />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="/" element={<Protected><GroupsPage autoEnter /></Protected>} />
+          {/* Lista explícita: acá nunca saltamos al grupo único. */}
+          <Route path="/grupos" element={<Protected><GroupsPage /></Protected>} />
+          <Route path="/perfil" element={<Protected><ProfilePage /></Protected>} />
 
-      <Footer
-        mode="fixed-desktop"
-        productName="GolPay"
-        companyName="Tito Apps"
-        developerName="Luis Diego Venegas"
-        developerUrl="https://wa.me/50688238325"
-        version={__APP_VERSION__}
-      />
+          {/* Todo lo del organizador vive dentro de un grupo. El grupo va en la
+              URL para que un enlace compartido abra el grupo correcto. */}
+          <Route path="/g/:gid" element={<Protected><DashboardPage /></Protected>} />
+          <Route path="/g/:gid/miembros" element={<Protected><MembersPage /></Protected>} />
+          <Route path="/g/:gid/partido/nuevo" element={<Protected><MatchFormPage /></Protected>} />
+          <Route path="/g/:gid/partido/:id/editar" element={<Protected><MatchFormPage /></Protected>} />
+          <Route path="/g/:gid/partido/:id" element={<Protected><MatchDetailPage /></Protected>} />
+          <Route path="/g/:gid/partido/:id/importar" element={<Protected><ImportPage /></Protected>} />
+          <Route path="/g/:gid/partido/:id/equipos" element={<Protected><TeamsPage /></Protected>} />
+          <Route path="/g/:gid/partido/:id/torneo" element={<Protected><TournamentPage /></Protected>} />
+          <Route path="/g/:gid/jugadores" element={<Protected><FrequentPlayersPage /></Protected>} />
+          <Route path="/g/:gid/jugador/:id" element={<Protected><PlayerProfilePage /></Protected>} />
+          <Route path="/g/:gid/campeones" element={<Protected><ChampionsPage /></Protected>} />
+          <Route path="/g/:gid/estadisticas" element={<Protected><GroupStatsPage /></Protected>} />
+
+          {/* Rutas viejas sin grupo: al selector, en vez de romper. */}
+          <Route path="/ajustes" element={<Navigate to="/perfil" replace />} />
+          <Route path="/frecuentes" element={<Navigate to="/grupos" replace />} />
+          <Route path="/campeones" element={<Navigate to="/grupos" replace />} />
+          <Route path="/estadisticas" element={<Navigate to="/grupos" replace />} />
+          <Route path="/partido/*" element={<Navigate to="/grupos" replace />} />
+          <Route path="/jugador/*" element={<Navigate to="/grupos" replace />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        <Footer
+          mode="fixed-desktop"
+          productName="GolPay"
+          companyName="Tito Apps"
+          developerName="Luis Diego Venegas"
+          developerUrl="https://wa.me/50688238325"
+          version={APP_VERSION}
+        />
       </div>
     </DialogProvider>
+    </ErrorBoundary>
   );
 }

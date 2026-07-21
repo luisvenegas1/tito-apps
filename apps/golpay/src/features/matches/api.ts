@@ -5,10 +5,11 @@ import type {
 } from "@/lib/supabase/types";
 import { paymentPatch } from "../payments/transitions";
 
-export async function listMatches(): Promise<Match[]> {
+export async function listMatches(groupId: string): Promise<Match[]> {
   const { data, error } = await supabase
     .from("matches")
     .select("*")
+    .eq("group_id", groupId)
     .order("date", { ascending: false });
   if (error) throw error;
   return data as Match[];
@@ -31,10 +32,10 @@ export interface MatchInput {
   notes: string | null;
 }
 
-export async function createMatch(input: MatchInput, ownerId: string): Promise<Match> {
+export async function createMatch(input: MatchInput, ownerId: string, groupId: string): Promise<Match> {
   const { data, error } = await supabase
     .from("matches")
-    .insert({ ...input, owner_id: ownerId })
+    .insert({ ...input, owner_id: ownerId, group_id: groupId })
     .select()
     .single();
   if (error) throw error;

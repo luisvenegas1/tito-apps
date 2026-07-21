@@ -19,6 +19,7 @@ import { matchSummary, shareText } from "../share/share";
 import type { Match, MatchPlayer, PaymentStatus, AttendanceStatus } from "@/lib/supabase/types";
 import { Button } from "@titoapps/ui";
 import { teamLabel } from "@/lib/teamColors";
+import { useGroupId } from "@/features/groups/useGroup";
 
 const ORDER: Record<PaymentStatus, number> = {
   pendiente: 0, reportado: 1, parcial: 2, confirmado: 3, exonerado: 4, no_asistio: 5,
@@ -26,6 +27,7 @@ const ORDER: Record<PaymentStatus, number> = {
 
 export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const gid = useGroupId();
   const qc = useQueryClient();
   const nav = useNavigate();
   const { session } = useAuth();
@@ -100,9 +102,9 @@ export function MatchDetailPage() {
       <TopBar
         title={match.title}
         back
-        backTo="/"
+        backTo={`/g/${gid}`}
         right={
-          <Link to={`/partido/${match.id}/editar`} className="text-sm text-gray-400 underline">Editar</Link>
+          <Link to={`/g/${gid}/partido/${match.id}/editar`} className="text-sm text-gray-400 underline">Editar</Link>
         }
       />
 
@@ -173,15 +175,15 @@ export function MatchDetailPage() {
         <UnratedPlayersCard players={players} />
 
         {/* Asistencia + resultado */}
-        <AttendanceAndResult match={match} players={players} onChange={refresh} />
+        <AttendanceAndResult match={match} players={players} onChange={refresh} gid={gid} />
 
         {/* Acciones */}
         <div className="grid grid-cols-2 gap-2">
           <Button onClick={share}>Compartir enlace</Button>
-          <Link to={`/partido/${match.id}/importar`} className="btn-ghost">+ Importar</Link>
+          <Link to={`/g/${gid}/partido/${match.id}/importar`} className="btn-ghost">+ Importar</Link>
           <button className="btn-ghost" onClick={() => copy(pendingMessage(match, players), "Pendientes")}>Copiar pendientes</button>
           <button className="btn-ghost" onClick={() => copy(summaryMessage(players), "Resumen")}>Copiar resumen</button>
-          <Link to={`/partido/${match.id}/equipos`} className="btn-ghost col-span-2 text-center">⚖️ Armar equipos</Link>
+          <Link to={`/g/${gid}/partido/${match.id}/equipos`} className="btn-ghost col-span-2 text-center">⚖️ Armar equipos</Link>
         </div>
 
         {/* Lista de jugadores */}
@@ -194,7 +196,7 @@ export function MatchDetailPage() {
           ))}
           {players.length === 0 && (
             <div className="card text-center text-gray-500">
-              Sin jugadores. <Link to={`/partido/${match.id}/importar`} className="text-pitch-600 underline">Importá la lista</Link>.
+              Sin jugadores. <Link to={`/g/${gid}/partido/${match.id}/importar`} className="text-pitch-600 underline">Importá la lista</Link>.
             </div>
           )}
         </div>
@@ -208,7 +210,7 @@ export function MatchDetailPage() {
               confirmLabel: "Eliminar",
               danger: true,
             });
-            if (ok) { await deleteMatch(match.id); nav("/"); }
+            if (ok) { await deleteMatch(match.id); nav(`/g/${gid}`); }
           }}
         >
           Eliminar partido
@@ -292,8 +294,8 @@ function Act({ label, onClick, primary }: { label: string; onClick: () => void; 
   );
 }
 
-function AttendanceAndResult({ match, players, onChange }: {
-  match: Match; players: MatchPlayer[]; onChange: () => void;
+function AttendanceAndResult({ match, players, onChange, gid }: {
+  match: Match; players: MatchPlayer[]; onChange: () => void; gid: string;
 }) {
   const [checkin, setCheckin] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -352,7 +354,7 @@ function AttendanceAndResult({ match, players, onChange }: {
 
       {teams && teams.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          <Link to={`/partido/${match.id}/torneo`} className="btn-ghost text-center text-sm">🎯 Minitorneo</Link>
+          <Link to={`/g/${gid}/partido/${match.id}/torneo`} className="btn-ghost text-center text-sm">🎯 Minitorneo</Link>
           <button className="btn-ghost text-sm" onClick={() => {
             const champTeam = result?.winner_team_id ? teams.find((t) => t.id === result.winner_team_id) : undefined;
             const champion = champTeam ? teamLabel(champTeam.color, champTeam.name) : null;

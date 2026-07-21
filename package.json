@@ -11,7 +11,10 @@
     "lint": "turbo run lint",
     "golpay:dev": "pnpm --filter golpay dev",
     "golpay:build": "pnpm --filter golpay build",
-    "golpay:test": "pnpm --filter golpay test"
+    "golpay:test": "pnpm --filter golpay test",
+    "titoapps:dev": "pnpm --filter titoapps dev",
+    "titoapps:build": "pnpm --filter titoapps build",
+    "titoapps:test": "pnpm --filter titoapps test"
   },
   "devDependencies": {
     "turbo": "^2.3.0"

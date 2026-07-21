@@ -7,9 +7,11 @@ import { listGames, createGame, deleteGame } from "./api";
 import { computeStandings } from "./standings";
 import { Button } from "@titoapps/ui";
 import { teamLabel } from "@/lib/teamColors";
+import { useGroupId } from "@/features/groups/useGroup";
 
 export function TournamentPage() {
   const { id } = useParams<{ id: string }>();
+  const gid = useGroupId();
   const qc = useQueryClient();
   const { data: teams } = useQuery({ queryKey: ["pubteams", id], queryFn: () => listPublishedTeams(id!) });
   const { data: games } = useQuery({ queryKey: ["games", id], queryFn: () => listGames(id!) });
@@ -31,7 +33,7 @@ export function TournamentPage() {
   if (!teams) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
   if (teams.length < 2) {
     return (
-      <div><TopBar title="Minitorneo" back backTo={`/partido/${id}`} />
+      <div><TopBar title="Minitorneo" back backTo={`/g/${gid}/partido/${id}`} />
         <p className="p-8 text-center text-gray-500">Publicá al menos 2 equipos para armar el minitorneo.</p>
       </div>
     );
@@ -42,7 +44,7 @@ export function TournamentPage() {
 
   return (
     <div className="pb-8">
-      <TopBar title="Minitorneo" back backTo={`/partido/${id}`} />
+      <TopBar title="Minitorneo" back backTo={`/g/${gid}/partido/${id}`} />
       <div className="space-y-4 p-4">
         {/* Tabla de posiciones */}
         <div className="card">

@@ -6,7 +6,7 @@ import { listMatchPlayers } from "../matches/api";
 import { listFrequent } from "../players/api";
 import { balanceTeams, rescore, BalancePlayer, Team, DEFAULT_LEVEL } from "@/lib/balancer/balance";
 import { publishTeams } from "./api";
-import { levelLabel } from "@/lib/levels";
+import { levelLabelLong } from "@/lib/levels";
 import { recommendFormat } from "@/lib/formats";
 import { Button } from "@titoapps/ui";
 import { TEAM_COLORS, defaultColors, colorOf, TeamColorId } from "@/lib/teamColors";
@@ -15,11 +15,13 @@ import { copyToClipboard } from "@/components/ui/toast";
 import { getMatch } from "../matches/api";
 import { formatDate } from "@/lib/utils/format";
 import { KeepersCard } from "./KeepersCard";
+import { useGroupId } from "@/features/groups/useGroup";
 
 export function TeamsPage() {
   const { id } = useParams<{ id: string }>();
+  const gid = useGroupId();
   const { data: players } = useQuery({ queryKey: ["players", id], queryFn: () => listMatchPlayers(id!) });
-  const { data: frequent } = useQuery({ queryKey: ["frequent"], queryFn: listFrequent });
+  const { data: frequent } = useQuery({ queryKey: ["frequent", gid], queryFn: () => listFrequent(gid) });
 
   const [numTeams, setNumTeams] = useState(2);
   const [teams, setTeams] = useState<Team[] | null>(null);
@@ -117,14 +119,14 @@ export function TeamsPage() {
 
   return (
     <div className="pb-10">
-      <TopBar title="Armar equipos" back backTo={`/partido/${id}`} />
+      <TopBar title="Armar equipos" back backTo={`/g/${gid}/partido/${id}`} />
       <div className="space-y-4 p-4">
         {/* Partido sin jugadores: no hay nada que balancear. Antes esto se veía
             como un botón gris sin explicación. */}
         {players && balancePlayers.length === 0 && (
           <div className="card text-center">
             <p className="text-gray-600">Este partido todavía no tiene jugadores.</p>
-            <Link to={`/partido/${id}/importar`} className="mt-2 inline-block text-pitch-600 underline">
+            <Link to={`/g/${gid}/partido/${id}/importar`} className="mt-2 inline-block text-pitch-600 underline">
               Importar la lista de WhatsApp
             </Link>
           </div>
@@ -161,7 +163,7 @@ export function TeamsPage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-gray-400">
-            Sin nivel registrado usan {levelLabel(DEFAULT_LEVEL)}.
+            Sin nivel registrado usan {levelLabelLong(DEFAULT_LEVEL)}.
           </p>
           <Button fullWidth className="mt-3" onClick={generate} disabled={balancePlayers.length < numTeams}>
             {teams ? "Regenerar" : "Generar equipos"}

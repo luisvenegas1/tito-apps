@@ -8,9 +8,10 @@ import { playerBalance, BalanceRow } from "../payments/balances";
 import { playerDebtMessage } from "../payments/collection";
 import { useAuth } from "../auth/AuthProvider";
 import { copyToClipboard } from "@/components/ui/toast";
-import { levelLabel } from "@/lib/levels";
+import { levelLabelLong } from "@/lib/levels";
 import { crc, formatDate } from "@/lib/utils/format";
 import { Button } from "@titoapps/ui";
+import { useGroupId } from "@/features/groups/useGroup";
 
 const DAYS = [
   ["lun", "L"], ["mar", "M"], ["mie", "M"], ["jue", "J"], ["vie", "V"], ["sab", "S"], ["dom", "D"],
@@ -28,9 +29,10 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 export function PlayerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const gid = useGroupId();
   const { profile } = useAuth();
-  const { data: players } = useQuery({ queryKey: ["frequent"], queryFn: listFrequent });
-  const { data: statsData } = useQuery({ queryKey: ["statsData"], queryFn: fetchStatsData });
+  const { data: players } = useQuery({ queryKey: ["frequent", gid], queryFn: () => listFrequent(gid) });
+  const { data: statsData } = useQuery({ queryKey: ["statsData", gid], queryFn: () => fetchStatsData(gid) });
 
   const player = (players ?? []).find((p) => p.id === id);
   if (!player || !statsData) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
@@ -55,12 +57,12 @@ export function PlayerProfilePage() {
 
   async function applySuggestion(level: number) {
     await updateFrequent(player!.id, { skill_level: level });
-    qc.invalidateQueries({ queryKey: ["frequent"] });
+    qc.invalidateQueries({ queryKey: ["frequent", gid] });
   }
 
   return (
     <div className="pb-8">
-      <TopBar title={player.name} back backTo="/frecuentes" />
+      <TopBar title={player.name} back backTo={`/g/${gid}/jugadores`} />
       <div className="space-y-4 p-4">
         <div className="card">
           <div className="text-lg font-bold">
@@ -68,7 +70,7 @@ export function PlayerProfilePage() {
             {player.can_be_goalkeeper && " 🧤"}
           </div>
           <div className="text-sm text-gray-500">
-            {levelLabel(player.skill_level)} · {player.preferred_position ?? "sin posición"}
+            {levelLabelLong(player.skill_level)} · {player.preferred_position ?? "sin posición"}
           </div>
           {player.available_days.length > 0 && (
             <div className="mt-1 text-xs text-gray-400">
@@ -101,7 +103,7 @@ export function PlayerProfilePage() {
           <div className="card border-l-4 border-yellow-400">
             <div className="text-sm font-semibold">Sugerencia de nivel</div>
             <div className="text-xs text-gray-500">
-              Considerá subir a <b>{levelLabel(suggestion.level)}</b>. {suggestion.reason}
+              Considerá subir a <b>{levelLabelLong(suggestion.level)}</b>. {suggestion.reason}
             </div>
             <div className="mt-2 flex gap-2">
               <Button size="sm" onClick={() => applySuggestion(suggestion.level)}>Subir nivel</Button>
