@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: var(--tt-bg); color: var(--tt-fg); font-family: var(--tt-p-font-sans); }
+* { box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
