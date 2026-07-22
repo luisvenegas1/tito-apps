@@ -1,68 +1,183 @@
 import { useState } from "react";
-import { Button, Input, FormField } from "@titoapps/ui";
-import { supabase } from "@/lib/supabase/client";
+import { Button } from "@titoapps/ui";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { validateUsername } from "@/lib/username";
+import { errorMessage } from "@/lib/errors";
+import { signInWithIdentifier, signUpWithUsername, requestPasswordReset } from "./authApi";
 
-/** Login / registro con Supabase (email + password), patrón del monorepo. */
+type Mode = "login" | "signup" | "forgot";
+
+const TITLES: Record<Mode, { title: string; subtitle: string; cta: string }> = {
+  login: { title: "Ingresar a la aplicación", subtitle: "Entrá con tu correo o usuario.", cta: "Entrar" },
+  signup: { title: "Crear cuenta", subtitle: "Unite a NutriCoach en un minuto.", cta: "Crear cuenta" },
+  forgot: { title: "Recuperar contraseña", subtitle: "Te enviamos un enlace por correo.", cta: "Enviar enlace" },
+};
+
 export function AuthPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<Mode>("login");
+  const [identifier, setIdentifier] = useState(""); // login: email o username
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [info, setInfo] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const t = TITLES[mode];
+
+  function switchTo(next: Mode) {
+    setMode(next);
+    setMsg(null);
+    setFailed(false);
+  }
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setInfo(null);
-    setLoading(true);
+    setBusy(true);
+    setMsg(null);
+    setFailed(false);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        await signInWithIdentifier(identifier, password);
+      } else if (mode === "signup") {
+        const v = validateUsername(username);
+        if (!v.ok) throw new Error(v.error);
+        const { needsConfirmation } = await signUpWithUsername(email, password, username, name);
+        setMsg(
+          needsConfirmation
+            ? "Revisá tu correo para confirmar la cuenta."
+            : "¡Cuenta creada! Ya podés entrar.",
+        );
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setInfo("Revisá tu correo para confirmar la cuenta.");
+        await requestPasswordReset(email);
+        setMsg("Si el correo existe, te enviamos un enlace para recuperar tu contraseña.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Algo salió mal.");
+      setFailed(true);
+      setMsg(errorMessage(err));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
+  }
 
   return (
     <div className="app-shell flex min-h-screen flex-col justify-center px-6">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-extrabold text-slate-900">NutriCoach</h1>
-        <p className="mt-1 text-slate-500">Tu nutricionista personal con IA.</p>
+      <div className="mb-6 text-center">
+        <div className="text-4xl">🥗</div>
+        <h1 className="mt-2 text-3xl font-extrabold text-green-700">NutriCoach</h1>
+        {/* Título pequeño que cambia según la página, para diferenciarlas. */}
+        <p className="mt-1 text-sm font-semibold text-slate-600">{t.title}</p>
+        <p className="text-sm text-slate-400">{t.subtitle}</p>
       </div>
+
       <form onSubmit={submit} className="card space-y-4">
-        <FormField label="Correo">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-        </FormField>
-        <FormField label="Contraseña">
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-          />
-        </FormField>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {info && <p className="text-sm text-green-600">{info}</p>}
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "..." : mode === "login" ? "Entrar" : "Crear cuenta"}
+        {mode === "login" && (
+          <>
+            <div>
+              <label className="label">Correo o usuario</label>
+              <input
+                className="input"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoCapitalize="none"
+                required
+              />
+            </div>
+            <PasswordInput
+              label="Contraseña"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </>
+        )}
+
+        {mode === "signup" && (
+          <>
+            <div>
+              <label className="label">Nombre</label>
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div>
+              <label className="label">Usuario</label>
+              <input
+                className="input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.trim())}
+                autoCapitalize="none"
+                placeholder="ej. tito"
+                required
+              />
+              <p className="mt-1 text-xs text-slate-400">3–24, letras/números/- /_, sin espacios.</p>
+            </div>
+            <div>
+              <label className="label">Correo</label>
+              <input
+                className="input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <PasswordInput
+              label="Contraseña"
+              autoComplete="new-password"
+              hint="Mínimo 6 caracteres."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          </>
+        )}
+
+        {mode === "forgot" && (
+          <div>
+            <label className="label">Correo</label>
+            <input
+              className="input"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
+        {msg && (
+          <p
+            className={`rounded-lg px-3 py-2 text-sm ${
+              failed ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"
+            }`}
+          >
+            {msg}
+          </p>
+        )}
+        <Button fullWidth disabled={busy}>
+          {busy ? "…" : t.cta}
         </Button>
       </form>
-      <button
-        className="mt-4 text-center text-sm text-slate-500 underline"
-        onClick={() => setMode(mode === "login" ? "signup" : "login")}
-      >
-        {mode === "login" ? "No tengo cuenta" : "Ya tengo cuenta"}
-      </button>
+
+      <div className="mt-4 flex flex-col items-center gap-2 text-sm text-slate-500">
+        {mode === "login" && (
+          <>
+            <button onClick={() => switchTo("signup")} className="underline">
+              ¿No tenés cuenta? Registrate
+            </button>
+            <button onClick={() => switchTo("forgot")} className="underline">
+              ¿Olvidaste tu contraseña?
+            </button>
+          </>
+        )}
+        {mode !== "login" && (
+          <button onClick={() => switchTo("login")} className="underline">
+            Volver a iniciar sesión
+          </button>
+        )}
+      </div>
     </div>
   );
 }

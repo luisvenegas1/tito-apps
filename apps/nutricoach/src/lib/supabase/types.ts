@@ -32,6 +32,8 @@ export type CoachRole = "user" | "assistant" | "system";
 export interface Profile {
   id: string;
   user_id: string;
+  username: string | null;
+  full_name: string | null;
   display_name: string | null;
   sex: Sex | null;
   birth_date: string | null; // ISO date

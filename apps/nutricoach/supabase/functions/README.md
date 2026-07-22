@@ -5,10 +5,14 @@ vive **solo** en el servidor; el cliente nunca la ve. Ver `../../docs/ai.md`.
 
 ## Funciones
 
+- `login` — login por **usuario**: resuelve usuario → email en el servidor (con `service_role`) y devuelve tokens. Nunca expone el email. Rate limit + timing uniforme.
 - `analyze-food` — foto de un plato → alimentos + cantidades + macros.
 - `analyze-scale` — foto sobre balanza → alimento + peso + valores por 100 g.
 - `analyze-label` — foto de tabla nutricional → valores por 100 g.
 - `coach` — nutricionista conversacional y proactivo.
+- `meal-plan` — plan de comidas por IA (día/semana).
+
+> `login` no necesita `AI_API_KEY`; usa las variables que Supabase inyecta (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Las de IA aplican al resto.
 
 ## Proveedor (abstracción)
 

@@ -7,7 +7,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-FUNCTIONS=(analyze-food analyze-scale analyze-label coach meal-plan)
+FUNCTIONS=(login analyze-food analyze-scale analyze-label coach meal-plan)
 
 for fn in "${FUNCTIONS[@]}"; do
   echo "→ Desplegando $fn"

@@ -65,9 +65,17 @@ En `apps/nutricoach/supabase/functions/`:
 
 Cada una: valida el JWT del usuario (Supabase inyecta el header), parsea el body tipado, llama al adapter de proveedor, devuelve JSON del contrato. Bloque 1 entrega stubs deterministas; Bloque 2 conecta el proveedor real vía `AI_API_KEY`.
 
-## Autenticación
+## Autenticación (igual que GolPay)
 
-Supabase Auth (email/password como GolPay). `useSession()` escucha `onAuthStateChange`. Rutas protegidas redirigen a `/auth`. Un trigger crea la fila `profiles` al registrarse (o se crea en el primer login desde el cliente si no existe).
+Supabase Auth con **login por correo o usuario**. El registro pide nombre, usuario, correo y contraseña; usuarios y correos son únicos (índice único `lower(username)` + unicidad de email de Supabase). Reglas y disponibilidad de username en `lib/username.ts` + RPC `username_available` (ver [database.md](./database.md)).
+
+- **Login por correo:** directo en el cliente (`signInWithPassword`).
+- **Login por usuario:** Edge Function `login` resuelve usuario → email en el servidor (con `service_role`, nunca expone el email) y devuelve tokens; mensaje genérico y timing uniforme (anti-enumeración + rate limit).
+- **Perfil:** cambiar nombre (`updateFullName`), usuario (`changeUsername`) y contraseña (`changePassword`, reautentica con la actual). Recuperación por correo (`/reset`).
+- **UsernameGate:** si una cuenta tiene sesión pero aún no eligió usuario (confirmación de correo activada), se le pide antes de entrar.
+- **PasswordInput** (`components/ui/PasswordInput.tsx`): todos los campos de contraseña tienen toggle ver/ocultar (👁️ / 🙈).
+
+`AuthProvider` expone `session`, `profile` (`username`, `full_name`), `refreshProfile` y `signOut`. Un trigger crea la fila `profiles` al registrarse copiando `full_name` de los metadatos.
 
 ## Errores y estados
 
