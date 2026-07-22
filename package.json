@@ -14,7 +14,10 @@
     "golpay:test": "pnpm --filter golpay test",
     "titoapps:dev": "pnpm --filter titoapps dev",
     "titoapps:build": "pnpm --filter titoapps build",
-    "titoapps:test": "pnpm --filter titoapps test"
+    "titoapps:test": "pnpm --filter titoapps test",
+    "nutricoach:dev": "pnpm --filter nutricoach dev",
+    "nutricoach:build": "pnpm --filter nutricoach build",
+    "nutricoach:test": "pnpm --filter nutricoach test"
   },
   "devDependencies": {
     "turbo": "^2.3.0"

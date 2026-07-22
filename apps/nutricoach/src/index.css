@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* Contenedor mobile-first centrado */
+.app-shell {
+  @apply mx-auto w-full max-w-md min-h-full pb-24;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100;
+  }
+  .metric-label {
+    @apply text-xs font-medium uppercase tracking-wide text-slate-400;
+  }
+  .metric-value {
+    @apply text-lg font-bold text-slate-900 tabular-nums;
+  }
+}

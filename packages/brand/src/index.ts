@@ -9,3 +9,4 @@ export { titoAppsBrand } from "./brands/titoapps";
 export { golpayBrand } from "./brands/golpay";
 export { splitpayBrand } from "./brands/splitpay";
 export { moneytrackBrand } from "./brands/moneytrack";
+export { nutricoachBrand } from "./brands/nutricoach";

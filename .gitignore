@@ -38,3 +38,5 @@ __pycache__/
 
 # Caché local de pnpm
 .pnpm-store/
+
+_tmp_*
