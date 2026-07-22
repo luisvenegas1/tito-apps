@@ -5,13 +5,18 @@ export interface PushSub {
 }
 
 /** Convierte la clave VAPID (base64url) al formato que espera pushManager. */
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+function urlBase64ToUint8Array(base64: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const b64 = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(b64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
+  const buffer = new ArrayBuffer(raw.length);
+  const out = new Uint8Array(buffer);
+
+  for (let i = 0; i < raw.length; i++) {
+    out[i] = raw.charCodeAt(i);
+  }
+
+  return buffer;
 }
 
 export function pushSupported(): boolean {
