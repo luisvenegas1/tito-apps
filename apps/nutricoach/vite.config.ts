@@ -19,6 +19,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // injectManifest: usamos un service worker propio (src/sw.ts) para poder
+      // manejar eventos de Web Push, además del precache de Workbox.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      },
       manifest: {
         name: "NutriCoach",
         short_name: "NutriCoach",

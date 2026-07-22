@@ -11,6 +11,8 @@ vive **solo** en el servidor; el cliente nunca la ve. Ver `../../docs/ai.md`.
 - `analyze-label` — foto de tabla nutricional → valores por 100 g.
 - `coach` — nutricionista conversacional y proactivo.
 - `meal-plan` — plan de comidas por IA (día/semana).
+- `parse-meal-text` — interpreta una comida descrita en texto.
+- `send-reminders` — **cron**: envía Web Push con los faltantes del día (agua/proteína/calorías). Usa `VAPID_*`.
 
 > `login` no necesita `AI_API_KEY`; usa las variables que Supabase inyecta (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Las de IA aplican al resto.
 

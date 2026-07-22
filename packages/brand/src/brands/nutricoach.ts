@@ -13,10 +13,10 @@ export const nutricoachBrand: AppBrand = {
   shortName: "NutriCoach",
   description: "Tu nutricionista personal con IA. Comé mejor sin contar todo.",
   tagline: "La IA hace las cuentas. Vos solo comé mejor.",
-  primaryColor: "#16A34A", // verde salud
-  primaryColorHover: "#15803d",
-  secondaryColor: "#172338", // azul oscuro de la familia Tito Apps
-  accentColor: "#F97316", // naranja energía
+  primaryColor: "#3FA535", // verde del wordmark "Nutri"
+  primaryColorHover: "#2F7D34", // verde oscuro del contorno
+  secondaryColor: "#1E3A5F", // azul marino del wordmark "Coach"
+  accentColor: "#F26E36", // naranja de la vincha / silbato
   logoPath: "/logo.svg",
   iconPath: "/icon-512.png",
   faviconPath: "/favicon.ico",

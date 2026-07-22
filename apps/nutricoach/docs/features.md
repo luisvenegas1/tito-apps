@@ -42,6 +42,14 @@ y la IA interpreta cada ítem, estima las cantidades y calcula calorías/carbos/
 
 Implementación: Edge Function `parse-meal-text` (solo texto, sin visión) sobre la abstracción `AIProvider` (método `parseMealText`), pantalla `/log/text` ("Escribir" en el hub) y escalado de macros con `@titoapps/nutrition`. Con clave de IA usa el modelo real; sin clave, stub de demo.
 
+### Editor de alimentos (foto y texto)
+
+Ambos flujos comparten `MealItemsEditor`: editar nombre y cantidad, quitar con **deshacer** (por si tocás la ✕ sin querer), y **recálculo automático de macros por IA** al renombrar o agregar un alimento. Nunca se guarda una comida en 0 kcal: al confirmar, cualquier fila con nombre pero sin macros (o modificada) se recalcula con `parse-meal-text` antes de registrar (`features/log/estimate.ts`).
+
+### Recordatorios / alertas ✅
+
+Recordatorios locales configurables (Perfil → Recordatorios): elegís la hora y qué recordar (agua, proteína, calorías). A esa hora, si te falta para la meta, salta una notificación tipo *"Te faltan 700 ml de agua para tu objetivo de hoy. ¡Dale un empujón!"* (usa `computeRemaining`). Botón "Probar ahora" para verlo al instante. Funciona con la app abierta o instalada; entrega con la app cerrada requiere Web Push (backend) — siguiente paso.
+
 Todo registro produce `log_items` con macros snapshot y `source` correspondiente. Ver [database.md](./database.md#log_items).
 
 ## Coach IA 🔷

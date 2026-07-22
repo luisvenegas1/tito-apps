@@ -1,8 +1,10 @@
 import { Outlet } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
 import { AppFooter } from "./AppFooter";
+import { useReminders } from "@/features/reminders/useReminders";
 
 export function AppLayout() {
+  useReminders(); // programador de recordatorios locales
   return (
     <div className="app-shell">
       <Outlet />

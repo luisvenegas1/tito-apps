@@ -10,6 +10,7 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { validateUsername } from "@/lib/username";
 import { errorMessage } from "@/lib/errors";
 import { changeUsername, updateFullName, changePassword } from "@/features/auth/authApi";
+import { RemindersCard } from "@/features/reminders/RemindersCard";
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -205,6 +206,8 @@ export function ProfilePage() {
             </div>
           </Section>
         )}
+
+        <RemindersCard />
 
         <Link to="/goals" className="card block active:scale-[.98]">
           <div className="font-medium text-slate-800">Editar objetivo y metas</div>

@@ -64,10 +64,17 @@ export function AuthPage() {
   return (
     <div className="app-shell flex min-h-screen flex-col justify-center px-6">
       <div className="mb-6 text-center">
-        <div className="text-4xl">🥗</div>
-        <h1 className="mt-2 text-3xl font-extrabold text-green-700">NutriCoach</h1>
+        {/* Logo oficial (tu ilustración). Respaldo al vector si faltara el PNG. */}
+        <img
+          src="/logo.png"
+          onError={(e) => {
+            e.currentTarget.src = "/logo.svg";
+          }}
+          alt="NutriCoach"
+          className="mx-auto h-28 w-auto"
+        />
         {/* Título pequeño que cambia según la página, para diferenciarlas. */}
-        <p className="mt-1 text-sm font-semibold text-slate-600">{t.title}</p>
+        <p className="mt-3 text-base font-semibold text-slate-700">{t.title}</p>
         <p className="text-sm text-slate-400">{t.subtitle}</p>
       </div>
 

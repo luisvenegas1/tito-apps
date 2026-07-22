@@ -79,7 +79,9 @@ Exportación de datos (`lib/csv.ts` + `features/settings`, CSV/JSON, con tests) 
 - OAuth de wearables (client id/secret) para emitir el token que consume `FitbitProvider`.
 
 ### Siguientes ideas (futuro)
-Notificaciones push (requiere service worker + backend), planes con lista de compras, y promover `packages/charts` cuando haya un segundo consumidor de gráficos.
+- **Alertas/recordatorios contextuales** (idea del usuario): ej. a las 6pm, si falta mucha agua para la meta, avisar "te faltan XXX ml de agua para tu objetivo de hoy, tomá un poco más". Aplica también a proteína/calorías. Opciones: (a) recordatorios locales con `Notification` + service worker mientras la PWA está instalada; (b) push real vía backend (Edge Function + Web Push) para que llegue con la app cerrada. El cálculo de faltantes ya existe (`computeRemaining`, dashboard). Arrancar por recordatorios locales configurables (hora + tipo).
+- **Web Push ✅ (implementado)** — service worker + `send-reminders` (cron) + suscripciones en BD. Setup en [push.md](./push.md): generar VAPID, secretos, migración `0003_push.sql`, desplegar y agendar cron `*/15 * * * *`.
+- Planes con lista de compras, y promover `packages/charts` cuando haya un segundo consumidor de gráficos.
 
 ## Forma de trabajo
 
