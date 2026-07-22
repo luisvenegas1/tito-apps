@@ -5,6 +5,7 @@
  */
 
 export type MatchType = "mejenga" | "torneo";
+export type CostMode = "fijo" | "dividido" | "gratis";
 export type MatchStatus = "abierto" | "cerrado" | "cancelado";
 export type PaymentStatus =
   | "pendiente"
@@ -32,6 +33,8 @@ export interface Match {
   time: string | null;
   location: string | null;
   cost_per_player: number;
+  cost_mode: CostMode;
+  total_amount: number | null;
   max_players: number | null;
   notes: string | null;
   public_token: string;

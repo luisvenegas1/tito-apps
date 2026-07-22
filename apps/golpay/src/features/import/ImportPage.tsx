@@ -6,6 +6,7 @@ import { parseWhatsappList } from "@/lib/parser/whatsapp";
 import { getMatch, listMatchPlayers } from "../matches/api";
 import { findMatches } from "../players/api";
 import { importPlayers, listFrequentForMatch, ImportRow } from "./api";
+import { recalcDivided } from "../matches/api";
 import { useAuth } from "../auth/AuthProvider";
 import type { FrequentPlayer } from "@/lib/supabase/types";
 import { levelLabelLong } from "@/lib/levels";
@@ -139,7 +140,11 @@ export function ImportPage() {
         seen.add(key);
         toImport.push({ name, isGoalkeeper: r.isGoalkeeper, frequentPlayerId: r.frequentPlayerId });
       }
-      await importPlayers(match.id, toImport, match.cost_per_player, session.user.id, gid);
+      // Monto inicial según el modo de cobro. En "dividido" da igual el valor
+      // que pongamos: recalcDivided lo ajusta con el conteo final.
+      const amount = match.cost_mode === "gratis" ? 0 : match.cost_per_player;
+      await importPlayers(match.id, toImport, amount, session.user.id, gid);
+      if (match.cost_mode === "dividido") await recalcDivided(match.id);
       nav(`/g/${gid}/partido/${match.id}`);
     } catch (err: any) {
       dialog.alert({ title: "No se pudo importar", message: err.message ?? "Error" });

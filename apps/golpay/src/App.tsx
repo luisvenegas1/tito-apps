@@ -17,6 +17,7 @@ import { PlayerProfilePage } from "./features/players/PlayerProfilePage";
 import { ChampionsPage } from "./features/matches/ChampionsPage";
 import { GroupStatsPage } from "./features/stats/GroupStatsPage";
 import { TournamentPage } from "./features/tournaments/TournamentPage";
+import { LineupPage } from "./features/lineup/LineupPage";
 import { PublicMatchPage } from "./features/public/PublicMatchPage";
 import { Footer } from "@titoapps/ui";
 import { DialogProvider } from "./components/ui/Dialog";
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/g/:gid/partido/:id/importar" element={<Protected><ImportPage /></Protected>} />
           <Route path="/g/:gid/partido/:id/equipos" element={<Protected><TeamsPage /></Protected>} />
           <Route path="/g/:gid/partido/:id/torneo" element={<Protected><TournamentPage /></Protected>} />
+          <Route path="/g/:gid/partido/:id/alineacion" element={<Protected><LineupPage /></Protected>} />
           <Route path="/g/:gid/jugadores" element={<Protected><FrequentPlayersPage /></Protected>} />
           <Route path="/g/:gid/jugador/:id" element={<Protected><PlayerProfilePage /></Protected>} />
           <Route path="/g/:gid/campeones" element={<Protected><ChampionsPage /></Protected>} />

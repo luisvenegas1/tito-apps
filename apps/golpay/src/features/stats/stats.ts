@@ -27,8 +27,12 @@ export interface PlayerStats {
   lastPlayed: string | null;
 }
 
-const PARTICIPATED = new Set(["confirmado", "asistio"]);
+// Estar en la lista de un partido cuenta como participación: el organizador
+// arma la lista con quienes van. Solo se descuenta si lo marca ausente en el
+// check-in. Por eso "pendiente" (el estado por defecto) también participa —
+// antes lo confirmaba el RSVP del jugador, que ya no existe.
 const ABSENT = new Set(["no_asistio", "declinado"]);
+const participated = (status: string) => !ABSENT.has(status);
 const PENDING_PAY = new Set(["pendiente", "reportado", "parcial"]);
 
 export function playerStats(rows: PlayerMatchRow[]): PlayerStats {
@@ -37,7 +41,7 @@ export function playerStats(rows: PlayerMatchRow[]): PlayerStats {
   let lastPlayed: string | null = null;
 
   for (const r of sorted) {
-    if (PARTICIPATED.has(r.attendance_status)) {
+    if (participated(r.attendance_status)) {
       played++;
       lastPlayed = r.date;
     }
@@ -54,13 +58,13 @@ export function playerStats(rows: PlayerMatchRow[]): PlayerStats {
   const payBase = paidOnTime + pending;
   const paymentPct = payBase === 0 ? 100 : Math.round((paidOnTime / payBase) * 100);
 
-  // Racha: asistencias consecutivas desde la fecha más reciente hacia atrás.
+  // Racha: partidos consecutivos jugados desde la fecha más reciente. Solo la
+  // corta una ausencia marcada.
   let currentStreak = 0;
   for (let i = sorted.length - 1; i >= 0; i--) {
     const s = sorted[i].attendance_status;
-    if (PARTICIPATED.has(s)) currentStreak++;
-    else if (ABSENT.has(s)) break;
-    // estados neutros (pendiente/tal_vez) no cortan ni suman
+    if (ABSENT.has(s)) break;
+    currentStreak++;
   }
 
   return { invited, played, absences, attendancePct, paidOnTime, pending, paymentPct, championships, mvps, currentStreak, lastPlayed };

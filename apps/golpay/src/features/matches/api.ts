@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabase/client";
 import { teamLabel } from "@/lib/teamColors";
 import type {
-  Match, MatchPlayer, PaymentStatus, AttendanceStatus, MatchTemplate, MatchResult,
+  Match, MatchPlayer, PaymentStatus, AttendanceStatus, MatchTemplate, MatchResult, CostMode,
 } from "@/lib/supabase/types";
+import { perHeadDivided } from "@/lib/money";
 import { paymentPatch } from "../payments/transitions";
 
 export async function listMatches(groupId: string): Promise<Match[]> {
@@ -27,8 +28,11 @@ export interface MatchInput {
   date: string;
   time: string | null;
   location: string | null;
+  cost_mode: CostMode;
+  /** Modo fijo: monto por jugador. */
   cost_per_player: number;
-  max_players: number | null;
+  /** Modo dividido: monto total a repartir. */
+  total_amount: number | null;
   notes: string | null;
 }
 
@@ -51,6 +55,39 @@ export async function updateMatch(id: string, input: Partial<MatchInput>): Promi
 export async function deleteMatch(id: string): Promise<void> {
   const { error } = await supabase.from("matches").delete().eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * Modo "dividido": reparte el total entre los jugadores activos y pone ese
+ * monto a cada uno. Como el reparto cambia al agregar o quitar gente, se llama
+ * después de importar y cuando el organizador lo pide.
+ * No toca a quien ya pagó/confirmó, para no bajarle un monto ya saldado.
+ */
+export async function recalcDivided(matchId: string): Promise<number> {
+  const { data: m } = await supabase
+    .from("matches")
+    .select("cost_mode, total_amount")
+    .eq("id", matchId)
+    .single();
+  const match = m as { cost_mode: CostMode; total_amount: number | null } | null;
+  if (!match || match.cost_mode !== "dividido") return 0;
+
+  const { data: players } = await supabase
+    .from("match_players")
+    .select("id, attendance_status")
+    .eq("match_id", matchId);
+  const active = (players ?? []).filter(
+    (p: { attendance_status: string }) => p.attendance_status !== "no_asistio" && p.attendance_status !== "declinado",
+  );
+  const head = perHeadDivided(match.total_amount ?? 0, active.length);
+
+  if (active.length > 0) {
+    await supabase
+      .from("match_players")
+      .update({ amount_due: head })
+      .in("id", active.map((p: { id: string }) => p.id));
+  }
+  return head;
 }
 
 // -------- Jugadores del partido --------

@@ -68,6 +68,11 @@ export function LoginPage() {
       </div>
 
       <form onSubmit={submit} className="card space-y-4">
+        {/* Título de la pantalla para diferenciar cada modo de un vistazo. */}
+        <h2 className="text-lg font-bold">
+          {mode === "login" ? "Ingresar a la aplicación" : mode === "signup" ? "Crear cuenta" : "Recuperar contraseña"}
+        </h2>
+
         {mode === "login" && (
           <>
             <div>

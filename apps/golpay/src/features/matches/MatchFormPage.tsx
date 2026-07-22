@@ -17,8 +17,9 @@ const empty: MatchInput = {
   date: new Date().toISOString().slice(0, 10),
   time: "20:00",
   location: "",
+  cost_mode: "fijo",
   cost_per_player: 2200,
-  max_players: null,
+  total_amount: null,
   notes: "",
 };
 
@@ -38,7 +39,7 @@ export function MatchFormPage() {
   function applyTemplate(t: MatchTemplate) {
     setForm((f) => ({
       ...f, title: t.name, type: t.type, time: t.time, location: t.location,
-      cost_per_player: t.cost_per_player, max_players: t.max_players, notes: t.notes,
+      cost_per_player: t.cost_per_player, notes: t.notes,
     }));
   }
 
@@ -47,8 +48,8 @@ export function MatchFormPage() {
       getMatch(id).then((m) =>
         setForm({
           title: m.title, type: m.type, date: m.date, time: m.time,
-          location: m.location, cost_per_player: m.cost_per_player,
-          max_players: m.max_players, notes: m.notes,
+          location: m.location, cost_mode: m.cost_mode ?? "fijo",
+          cost_per_player: m.cost_per_player, total_amount: m.total_amount, notes: m.notes,
         }),
       );
     }
@@ -72,7 +73,7 @@ export function MatchFormPage() {
         if (saveAsTemplate) {
           await createTemplate({
             name: form.title, type: form.type, time: form.time, location: form.location,
-            cost_per_player: form.cost_per_player, max_players: form.max_players, notes: form.notes,
+            cost_per_player: form.cost_per_player, max_players: null, notes: form.notes,
           }, session.user.id);
         }
         await qc.invalidateQueries({ queryKey: ["matches", gid] });
@@ -139,15 +140,46 @@ export function MatchFormPage() {
           <input className="input" value={form.location ?? ""} onChange={(e) => set("location", e.target.value)} placeholder="Cancha de siempre" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Costo por jugador (₡)</label>
-            <input className="input" type="number" min={0} value={form.cost_per_player} onChange={(e) => set("cost_per_player", Number(e.target.value))} />
+        <div>
+          <label className="label">Cobro</label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              ["fijo", "Por jugador"],
+              ["dividido", "Total ÷ jugadores"],
+              ["gratis", "Sin cobro"],
+            ] as const).map(([mode, txt]) => (
+              <button
+                type="button"
+                key={mode}
+                onClick={() => set("cost_mode", mode)}
+                className={`btn px-1 py-2 text-xs leading-tight ${form.cost_mode === mode ? "bg-pitch-500 text-white" : "bg-gray-100 text-gray-600"}`}
+              >
+                {txt}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="label">Máx. jugadores</label>
-            <input className="input" type="number" min={0} value={form.max_players ?? ""} onChange={(e) => set("max_players", e.target.value ? Number(e.target.value) : null)} placeholder="opcional" />
-          </div>
+
+          {form.cost_mode === "fijo" && (
+            <div className="mt-2">
+              <label className="label">Monto por jugador (₡)</label>
+              <input className="input" type="number" min={0} value={form.cost_per_player}
+                onChange={(e) => set("cost_per_player", Number(e.target.value))} />
+            </div>
+          )}
+          {form.cost_mode === "dividido" && (
+            <div className="mt-2">
+              <label className="label">Monto total (₡)</label>
+              <input className="input" type="number" min={0} value={form.total_amount ?? ""}
+                placeholder="ej. 55000"
+                onChange={(e) => set("total_amount", e.target.value ? Number(e.target.value) : null)} />
+              <p className="mt-1 text-xs text-gray-400">
+                Se reparte entre los que jueguen, redondeado hacia arriba a los ₡500.
+              </p>
+            </div>
+          )}
+          {form.cost_mode === "gratis" && (
+            <p className="mt-2 text-xs text-gray-400">No se cobra cancha. Se esconde todo lo de pagos.</p>
+          )}
         </div>
 
         <div>

@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { copyToClipboard } from "@/components/ui/toast";
 import {
   getMatch, listMatchPlayers, setPaymentStatus, updatePlayer, removePlayer, deleteMatch,
-  setAttendance, setListClosed, getResult, saveResult, getProofUrl,
+  setAttendance, setListClosed, getResult, saveResult, getProofUrl, recalcDivided,
 } from "./api";
 import { listPublishedTeams } from "../teams/api";
 import { listGames } from "../tournaments/api";
@@ -15,6 +15,7 @@ import { UnratedPlayersCard } from "../players/UnratedPlayersCard";
 import { useDialog } from "@/components/ui/Dialog";
 import { useAuth } from "../auth/AuthProvider";
 import { crc, formatDate, formatTime } from "@/lib/utils/format";
+import { perHead } from "@/lib/money";
 import { computeTotals, pendingMessage, summaryMessage, inviteMessage } from "../payments/messages";
 import { attendanceCounts, spotsLeft } from "../attendance/attendance";
 import { matchSummary, shareToWhatsapp } from "../share/share";
@@ -42,6 +43,15 @@ export function MatchDetailPage() {
   if (!match || !players) return <p className="p-8 text-gray-400">Cargando…</p>;
 
   const totals = computeTotals(players);
+  const activePlayers = players.filter(
+    (p) => p.attendance_status !== "declinado" && p.attendance_status !== "no_asistio",
+  );
+  const perHeadNow = perHead(match.cost_mode, {
+    costPerPlayer: match.cost_per_player,
+    totalAmount: match.total_amount ?? 0,
+    playerCount: activePlayers.length,
+  });
+  const isFree = match.cost_mode === "gratis";
   const sorted = [...players].sort(
     (a, b) => ORDER[a.payment_status] - ORDER[b.payment_status] || a.display_name.localeCompare(b.display_name),
   );
@@ -117,20 +127,42 @@ export function MatchDetailPage() {
             {match.location && ` · ${match.location}`}
           </div>
           <div className="mt-1 text-sm">
-            {match.type === "mejenga" ? "Mejenga" : "Torneo"} · {crc(match.cost_per_player)} por jugador
+            {match.type === "mejenga" ? "Mejenga" : "Torneo"}
+            {match.cost_mode === "gratis" && " · Sin cobro"}
+            {match.cost_mode === "fijo" && ` · ${crc(match.cost_per_player)} por jugador`}
+            {match.cost_mode === "dividido" && (
+              <> · {crc(match.total_amount ?? 0)} ÷ {activePlayers.length} = <b>{crc(perHeadNow)}</b> c/u</>
+            )}
           </div>
         </div>
 
-        {/* Totales */}
-        <div className="grid grid-cols-2 gap-2">
-          <Stat label="Confirmado" value={crc(totals.collected)} tone="green" />
-          <Stat label="Pendiente" value={crc(totals.remaining)} tone="red" />
-          <Stat label="Esperado" value={crc(totals.expected)} />
-          <Stat label="Jugadores" value={`${totals.confirmed}/${totals.total} ✔`} />
-        </div>
+        {/* Totales de pago (no aplica si es gratis) */}
+        {!isFree && (
+          <div className="grid grid-cols-2 gap-2">
+            <Stat label="Confirmado" value={crc(totals.collected)} tone="green" />
+            <Stat label="Pendiente" value={crc(totals.remaining)} tone="red" />
+            <Stat label="Esperado" value={crc(totals.expected)} />
+            <Stat label="Jugadores" value={`${totals.confirmed}/${totals.total} ✔`} />
+          </div>
+        )}
+
+        {/* Reparto del total (modo dividido) */}
+        {match.cost_mode === "dividido" && (
+          <div className="card flex items-center justify-between text-sm">
+            <span>
+              {crc(match.total_amount ?? 0)} entre {activePlayers.length} → <b>{crc(perHeadNow)}</b> c/u
+            </span>
+            <button
+              className="text-pitch-600 underline"
+              onClick={async () => { await recalcDivided(match.id); refresh(); flash("Reparto actualizado"); }}
+            >
+              Recalcular
+            </button>
+          </div>
+        )}
 
         {/* Bandeja de aprobación de pagos reportados */}
-        {(() => {
+        {!isFree && (() => {
           const reported = players.filter((p) => p.payment_status === "reportado");
           if (reported.length === 0) return null;
           return (
@@ -173,8 +205,8 @@ export function MatchDetailPage() {
           );
         })()}
 
-        {/* Jugadores recién importados sin nivel */}
-        <UnratedPlayersCard players={players} />
+        {/* Nivel solo importa para mejenga (equipos parejos). En torneo no. */}
+        {match.type === "mejenga" && <UnratedPlayersCard players={players} />}
 
         {/* Asistencia + resultado */}
         <AttendanceAndResult match={match} players={players} onChange={refresh} gid={gid} />
@@ -183,16 +215,29 @@ export function MatchDetailPage() {
         <div className="grid grid-cols-2 gap-2">
           <Button onClick={share}>Compartir enlace</Button>
           <Link to={`/g/${gid}/partido/${match.id}/importar`} className="btn-ghost">+ Importar</Link>
-          <button className="btn-ghost" onClick={() => copy(pendingMessage(match, players), "Pendientes")}>Copiar pendientes</button>
-          <button className="btn-ghost" onClick={() => copy(summaryMessage(players), "Resumen")}>Copiar resumen</button>
-          <Link to={`/g/${gid}/partido/${match.id}/equipos`} className="btn-ghost col-span-2 text-center">⚖️ Armar equipos</Link>
+          {!isFree && (
+            <>
+              <button className="btn-ghost" onClick={() => copy(pendingMessage(match, players), "Pendientes")}>Copiar pendientes</button>
+              <button className="btn-ghost" onClick={() => copy(summaryMessage(players), "Resumen")}>Copiar resumen</button>
+            </>
+          )}
+          {match.type === "torneo" ? (
+            <Link to={`/g/${gid}/partido/${match.id}/alineacion`} className="btn-ghost col-span-2 text-center">📋 Alineación</Link>
+          ) : (
+            <Link to={`/g/${gid}/partido/${match.id}/equipos`} className="btn-ghost col-span-2 text-center">⚖️ Armar equipos</Link>
+          )}
         </div>
 
         {/* Lista de jugadores */}
         <div className="space-y-2">
           {sorted.map((p) => (
             <PlayerRow key={p.id} player={p} amountLabel={crc(p.amount_due)} onChange={change}
-              onRemove={async () => { await removePlayer(p.id); refresh(); }}
+              onRemove={async () => {
+                await removePlayer(p.id);
+                // En "dividido", al irse alguien sube el reparto de los demás.
+                if (match.cost_mode === "dividido") await recalcDivided(match.id);
+                refresh();
+              }}
               onAmount={async (v) => { await updatePlayer(p.id, { amount_due: v }); refresh(); }}
             />
           ))}
@@ -315,7 +360,11 @@ function AttendanceAndResult({ match, players, onChange, gid }: {
     return championId(table);
   }, [teams, games]);
 
-  const champTeam = champTeamId ? teams?.find((t) => t.id === champTeamId) ?? null : null;
+  // El campeón a mostrar: el de la tabla si hay resultados cargados, si no el
+  // que quedó guardado (p. ej. de un partido anterior a Resultados). Así el
+  // 🏆 no desaparece del resumen por no haber cargado la cuadrangular.
+  const effectiveChampId = champTeamId ?? result?.winner_team_id ?? null;
+  const champTeam = effectiveChampId ? teams?.find((t) => t.id === effectiveChampId) ?? null : null;
 
   // Cuando la tabla cambia, sincronizamos winner_team_id en la BD (lo usan
   // Campeones y la página pública). El ref evita reescrituras en bucle.
