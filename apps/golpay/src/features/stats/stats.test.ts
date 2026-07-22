@@ -28,6 +28,19 @@ describe("playerStats", () => {
     expect(s.lastPlayed).toBe("2026-01-08");
   });
 
+  it("estar en la lista (pendiente) cuenta como jugado", () => {
+    // Sin RSVP, todos entran como 'pendiente'. Deben contar como participación.
+    const s = playerStats([
+      row({ date: "2026-01-01", attendance_status: "pendiente" }),
+      row({ date: "2026-01-08", attendance_status: "pendiente" }),
+      row({ date: "2026-01-15", attendance_status: "no_asistio" }),
+    ]);
+    expect(s.played).toBe(2);
+    expect(s.absences).toBe(1);
+    expect(s.attendancePct).toBe(67);
+    expect(s.currentStreak).toBe(0); // la última fue ausencia
+  });
+
   it("racha de asistencias consecutivas desde la más reciente", () => {
     const s = playerStats([
       row({ date: "2026-01-01", attendance_status: "no_asistio" }),

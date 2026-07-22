@@ -36,6 +36,8 @@ export interface PublicMatch {
   time: string | null;
   location: string | null;
   cost_per_player: number;
+  cost_mode: "fijo" | "dividido" | "gratis";
+  total_amount: number | null;
   status: string;
   list_closed: boolean;
   max_players: number | null;

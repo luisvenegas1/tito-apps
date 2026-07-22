@@ -19,6 +19,8 @@ export function PublicMatchPage() {
   if (isLoading) return <p className="p-8 text-center text-gray-400">Cargando…</p>;
   if (!match) return <p className="p-8 text-center text-gray-500">Partido no encontrado.</p>;
 
+  const isFree = match.cost_mode === "gratis";
+
     return (
     <div className="pb-10">
       <div className="bg-pitch-500 px-5 py-6 text-white">
@@ -28,7 +30,14 @@ export function PublicMatchPage() {
           {formatDate(match.date)} {match.time && `· ${formatTime(match.time)}`}
           {match.location && ` · ${match.location}`}
         </p>
-        <p className="mt-1 font-semibold">{crc(match.cost_per_player)} por jugador</p>
+        {match.cost_mode === "fijo" && (
+          <p className="mt-1 font-semibold">{crc(match.cost_per_player)} por jugador</p>
+        )}
+        {match.cost_mode === "dividido" && match.players.length > 0 && (
+          <p className="mt-1 font-semibold">
+            {crc(match.total_amount ?? 0)} ÷ {match.players.length} = {crc(match.players[0].amount_due)} c/u
+          </p>
+        )}
       </div>
 
       {/* Campeón — celebración sutil, no bloquea el pago */}
@@ -81,14 +90,20 @@ export function PublicMatchPage() {
           </div>
         )}
 
-        <h2 className="mb-2 text-sm font-semibold text-gray-500">Tocá tu nombre para reportar tu pago</h2>
+        <h2 className="mb-2 text-sm font-semibold text-gray-500">
+          {isFree ? "Jugadores" : "Tocá tu nombre para reportar tu pago"}
+        </h2>
         <div className="space-y-2">
-          {match.players.map((p) => (
-            <button key={p.id} onClick={() => setSelected(p)} className="card flex w-full items-center justify-between gap-2">
-              <span className="font-medium">{p.display_name}{p.is_goalkeeper && " 🧤"}</span>
-              <StatusBadge status={p.payment_status} />
-            </button>
-          ))}
+          {match.players.map((p) =>
+            isFree ? (
+              <div key={p.id} className="card font-medium">{p.display_name}{p.is_goalkeeper && " 🧤"}</div>
+            ) : (
+              <button key={p.id} onClick={() => setSelected(p)} className="card flex w-full items-center justify-between gap-2">
+                <span className="font-medium">{p.display_name}{p.is_goalkeeper && " 🧤"}</span>
+                <StatusBadge status={p.payment_status} />
+              </button>
+            ),
+          )}
         </div>
 
       </div>
@@ -99,7 +114,7 @@ export function PublicMatchPage() {
           player={selected}
           others={match.players.filter((p) => p.id !== selected.id)}
           sinpe={match.sinpe}
-          amount={match.cost_per_player}
+          amount={selected.amount_due}
           onClose={() => setSelected(null)}
           onDone={() => { setSelected(null); refetch(); }}
         />
