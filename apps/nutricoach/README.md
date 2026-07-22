@@ -32,7 +32,7 @@ supabase db push
 Las funciones (`analyze-food`, `analyze-scale`, `analyze-label`, `coach`, `meal-plan`) aíslan las llamadas a modelos; la clave vive **solo** en el servidor. Sin clave, responden con stubs deterministas (demo sin costo).
 
 ```bash
-supabase secrets set AI_PROVIDER=anthropic AI_API_KEY=sk-...   # o AI_PROVIDER=openai
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...   # misma clave que SplitPay
 bash apps/nutricoach/scripts/deploy-functions.sh
 ```
 

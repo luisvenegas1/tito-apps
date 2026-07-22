@@ -21,21 +21,28 @@ selecciona el adapter por variables de entorno:
 
 | Secreto | Valores | Default |
 |---------|---------|---------|
-| `AI_PROVIDER` | `anthropic` \| `openai` | `anthropic` |
-| `AI_API_KEY` | clave del proveedor | — (sin clave → **stub** determinista) |
-| `AI_MODEL` | override de modelo | `claude-sonnet-5` / `gpt-4o` |
+| `ANTHROPIC_API_KEY` | clave de Anthropic (**igual que SplitPay**) | — |
+| `OPENAI_API_KEY` | clave de OpenAI (alternativa) | — |
+| `AI_API_KEY` | clave genérica (equivale a las de arriba) | — |
+| `AI_PROVIDER` | `anthropic` \| `openai` (opcional; se infiere por la clave) | `anthropic` |
+| `AI_MODEL` | override de modelo | `claude-haiku-4-5-20251001` / `gpt-4o` |
 
-Sin `AI_API_KEY` las funciones responden con datos simulados válidos (útil para
-desarrollo/demo sin costo). Con la clave, usan visión real.
+Basta con setear **`ANTHROPIC_API_KEY`** (tal cual lo hiciste en SplitPay) — el
+proveedor se infiere solo. Sin ninguna clave, las funciones responden con datos
+simulados válidos (demo sin costo). Con la clave, usan visión real.
 
 ## Desplegar
 
 ```bash
-supabase secrets set AI_PROVIDER=anthropic AI_API_KEY=sk-...   # o openai
+# 1) La clave de Anthropic (misma que SplitPay) — vive SOLO en el servidor:
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+
+# 2) Desplegar las funciones (o usar scripts/deploy-functions.sh):
 supabase functions deploy analyze-food
 supabase functions deploy analyze-scale
 supabase functions deploy analyze-label
 supabase functions deploy coach
+supabase functions deploy meal-plan
 ```
 
 ## Prompts

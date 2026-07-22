@@ -19,6 +19,14 @@ export interface AnalyzeFoodResponse {
   items: DetectedFoodItem[];
 }
 
+/** parse-meal-text — descripción de una comida en lenguaje natural. */
+export interface ParseMealTextRequest {
+  text: string;
+}
+export interface ParseMealTextResponse {
+  items: DetectedFoodItem[];
+}
+
 /** analyze-scale — foto de alimento sobre una balanza. */
 export interface AnalyzeScaleRequest {
   imageBase64: string;

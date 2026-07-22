@@ -9,6 +9,12 @@ export const FOOD_SYSTEM =
   "Sos un nutricionista experto en visión por computadora. Identificás los alimentos de una foto de un plato y estimás la cantidad en gramos de cada uno de forma realista. " +
   FOOD_SCHEMA_HINT;
 
+export const MEAL_TEXT_SYSTEM =
+  "Sos un nutricionista experto. El usuario describe en lenguaje natural lo que comió (ej. '2 huevos, una tajada de jamón de pavo y una tortilla con queso'). " +
+  "Interpretá cada alimento, inferí una cantidad realista en gramos para las porciones descritas (ej. 1 huevo ≈ 50 g, 1 tajada de jamón ≈ 20 g, 1 tortilla ≈ 30 g) y calculá los macros ABSOLUTOS de esa cantidad. " +
+  "Si el usuario da unidades ('2 huevos'), multiplicá. Si algo es ambiguo, estimá con sentido común y bajá el confidence. " +
+  FOOD_SCHEMA_HINT;
+
 export const SCALE_SYSTEM =
   "Sos un nutricionista experto en visión. En la foto hay UN alimento sobre una balanza. Identificá el alimento y leé el número de peso mostrado en la balanza (en gramos). " +
   'Devolvé SOLO JSON: {"name":string,"grams":number|null,"gramsConfidence":number,"per100g":{"kcal":number,"protein_g":number,"carb_g":number,"fat_g":number,"fiber_g":number,"sugar_g":number,"sodium_mg":number}}. ' +

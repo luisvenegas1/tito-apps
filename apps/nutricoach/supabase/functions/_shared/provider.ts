@@ -30,6 +30,7 @@ export interface Per100g {
 
 export interface AIProvider {
   analyzeFoodPhoto(imageBase64: string, hint?: string): Promise<VisionItem[]>;
+  parseMealText(text: string): Promise<VisionItem[]>;
   analyzeScalePhoto(imageBase64: string): Promise<{
     name: string;
     grams: number | null;
@@ -70,6 +71,12 @@ export const stubProvider: AIProvider = {
     return [
       { name: "Pechuga de pollo", grams: 150, kcal: 248, protein_g: 46.5, carb_g: 0, fat_g: 5.4, confidence: 0.82 },
       { name: "Arroz blanco", grams: 180, kcal: 234, protein_g: 4.9, carb_g: 50.4, fat_g: 0.5, confidence: 0.71 },
+    ];
+  },
+  async parseMealText() {
+    return [
+      { name: "Huevo", grams: 100, kcal: 155, protein_g: 13, carb_g: 1.1, fat_g: 11, confidence: 0.7 },
+      { name: "Tortilla de maíz", grams: 50, kcal: 109, protein_g: 2.9, carb_g: 22, fat_g: 1.4, confidence: 0.6 },
     ];
   },
   async analyzeScalePhoto() {
@@ -128,9 +135,17 @@ export const stubProvider: AIProvider = {
  * Si no hay clave, cae al stub determinista (útil en local/demo).
  */
 export async function getProvider(): Promise<AIProvider> {
-  const key = Deno.env.get("AI_API_KEY");
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  // AI_API_KEY es el nombre genérico; ANTHROPIC_API_KEY / OPENAI_API_KEY también
+  // se aceptan directo (igual que SplitPay: basta setear ANTHROPIC_API_KEY).
+  const key = Deno.env.get("AI_API_KEY") ?? anthropicKey ?? openaiKey;
   if (!key) return stubProvider;
-  const name = (Deno.env.get("AI_PROVIDER") ?? "anthropic").toLowerCase();
+
+  // Proveedor: AI_PROVIDER si está; si no, se infiere por la clave presente.
+  let name = (Deno.env.get("AI_PROVIDER") ?? "").toLowerCase();
+  if (!name) name = openaiKey && !anthropicKey ? "openai" : "anthropic";
+
   const model = Deno.env.get("AI_MODEL") ?? undefined;
   if (name === "openai") {
     const { OpenAIProvider } = await import("./openai.ts");

@@ -3,6 +3,7 @@ import type { AIProvider, PlanDay, Per100g, VisionItem } from "./provider.ts";
 import { extractJson, num } from "./parse.ts";
 import {
   FOOD_SYSTEM,
+  MEAL_TEXT_SYSTEM,
   SCALE_SYSTEM,
   LABEL_SYSTEM,
   COACH_SYSTEM,
@@ -53,6 +54,23 @@ export class OpenAIProvider implements AIProvider {
 
   async analyzeFoodPhoto(imageBase64: string, hint?: string): Promise<VisionItem[]> {
     const txt = await this.chat(FOOD_SYSTEM, hint ? `Pista del usuario: ${hint}` : "Analizá el plato.", imageBase64);
+    const parsed = extractJson<{ items?: Record<string, unknown>[] }>(txt);
+    return (parsed.items ?? []).map((it) => ({
+      name: String(it.name ?? "Alimento"),
+      grams: num(it.grams),
+      kcal: num(it.kcal),
+      protein_g: num(it.protein_g),
+      carb_g: num(it.carb_g),
+      fat_g: num(it.fat_g),
+      fiber_g: num(it.fiber_g),
+      sugar_g: num(it.sugar_g),
+      sodium_mg: num(it.sodium_mg),
+      confidence: Math.min(1, num(it.confidence)),
+    }));
+  }
+
+  async parseMealText(text: string): Promise<VisionItem[]> {
+    const txt = await this.chat(MEAL_TEXT_SYSTEM, `Comida descrita: ${text}`);
     const parsed = extractJson<{ items?: Record<string, unknown>[] }>(txt);
     return (parsed.items ?? []).map((it) => ({
       name: String(it.name ?? "Alimento"),

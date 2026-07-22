@@ -13,6 +13,7 @@ import { SearchFood } from "@/features/log/SearchFood";
 import { CustomFood } from "@/features/log/CustomFood";
 import { BarcodeScan } from "@/features/log/BarcodeScan";
 import { LabelScan } from "@/features/log/LabelScan";
+import { TextMeal } from "@/features/log/TextMeal";
 import { CoachPage } from "@/features/coach/CoachPage";
 import { WorkoutsPage } from "@/features/workouts/WorkoutsPage";
 import { ConnectDevicePage } from "@/features/workouts/ConnectDevicePage";
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/log" element={<LogHub />} />
         <Route path="/log/photo" element={<PhotoCapture />} />
+        <Route path="/log/text" element={<TextMeal />} />
         <Route path="/log/scale" element={<ScaleMode />} />
         <Route path="/log/barcode" element={<BarcodeScan />} />
         <Route path="/log/label" element={<LabelScan />} />

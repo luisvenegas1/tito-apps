@@ -30,7 +30,17 @@ Debe existir **más de una forma** de agregar alimentos. Orden por fricción (me
 4. **Código de barras** ✅ — escaneo con `BarcodeDetector` (o código a mano) → Open Food Facts → cache en `foods`.
 5. **Etiqueta nutricional** ✅ — foto de la tabla → OCR IA → valores por 100 g → macros por gramos consumidos.
 5. **Buscar alimento** ✅ — búsqueda en el catálogo del usuario + resultados cacheados.
-6. **Crear alimento personalizado** ✅ — formulario mínimo (por 100 g).
+6. **Crear alimento personalizado** ✅ — formulario mínimo (por 100 g). Ideal cuando sabés todos los valores.
+
+### Registro semiautomático por texto ✅
+
+Forma rápida de registrar una comida **describiéndola en lenguaje natural**, sin foto y sin saber los macros. El usuario escribe algo como:
+
+> "2 huevos, una tajada de jamón de pavo y una tortilla con queso"
+
+y la IA interpreta cada ítem, estima las cantidades y calcula calorías/carbos/proteína/grasa, mostrando una tarjeta editable (mismo patrón de corrección que la foto: editar nombre/cantidad, quitar, agregar) antes de confirmar. Complementa —no reemplaza— al formulario manual full-control.
+
+Implementación: Edge Function `parse-meal-text` (solo texto, sin visión) sobre la abstracción `AIProvider` (método `parseMealText`), pantalla `/log/text` ("Escribir" en el hub) y escalado de macros con `@titoapps/nutrition`. Con clave de IA usa el modelo real; sin clave, stub de demo.
 
 Todo registro produce `log_items` con macros snapshot y `source` correspondiente. Ver [database.md](./database.md#log_items).
 

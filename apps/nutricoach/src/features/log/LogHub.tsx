@@ -6,6 +6,7 @@ import type { FrequentEntry } from "./frequents";
 
 const METHODS = [
   { to: "/log/photo", icon: "📷", title: "Foto", desc: "La IA detecta y calcula" },
+  { to: "/log/text", icon: "✍️", title: "Escribir", desc: "Describilo y la IA calcula" },
   { to: "/log/scale", icon: "⚖️", title: "Balanza", desc: "Foto sobre la balanza" },
   { to: "/log/barcode", icon: "📶", title: "Código de barras", desc: "Escaneá el producto" },
   { to: "/log/label", icon: "🏷️", title: "Etiqueta", desc: "Foto de la tabla" },

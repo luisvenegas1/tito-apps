@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase/client";
 import type {
   AnalyzeFoodRequest,
   AnalyzeFoodResponse,
+  ParseMealTextRequest,
+  ParseMealTextResponse,
   AnalyzeScaleRequest,
   AnalyzeScaleResponse,
   AnalyzeLabelRequest,
@@ -29,6 +31,8 @@ async function invoke<TReq, TRes>(name: string, body: TReq): Promise<TRes> {
 export const ai = {
   analyzeFood: (req: AnalyzeFoodRequest) =>
     invoke<AnalyzeFoodRequest, AnalyzeFoodResponse>("analyze-food", req),
+  parseMealText: (req: ParseMealTextRequest) =>
+    invoke<ParseMealTextRequest, ParseMealTextResponse>("parse-meal-text", req),
   analyzeScale: (req: AnalyzeScaleRequest) =>
     invoke<AnalyzeScaleRequest, AnalyzeScaleResponse>("analyze-scale", req),
   analyzeLabel: (req: AnalyzeLabelRequest) =>
