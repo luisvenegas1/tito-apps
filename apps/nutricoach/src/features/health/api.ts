@@ -49,6 +49,11 @@ export async function getLatestWeight(userId: string): Promise<number | null> {
   return data ? (data.weight_kg as number) : null;
 }
 
+export async function deleteWeight(id: string): Promise<void> {
+  const { error } = await supabase.from("weight_logs").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function listWeights(userId: string): Promise<WeightLog[]> {
   const { data, error } = await supabase
     .from("weight_logs")

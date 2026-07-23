@@ -9,6 +9,7 @@ import {
   addWorkout,
   listWeights,
   getLatestWeight,
+  deleteWeight,
   listWorkouts,
   deleteWorkout,
   importExternalWorkouts,
@@ -49,6 +50,20 @@ export function useAddWorkout(date = todayISO()) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.dashboard(date) });
       qc.invalidateQueries({ queryKey: ["workouts"] });
+    },
+  });
+}
+
+export function useDeleteWeight() {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteWeight(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.weights });
+      qc.invalidateQueries({ queryKey: ["weights", "latest"] });
+      if (userId) qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

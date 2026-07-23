@@ -5,7 +5,7 @@ import { Button, PageHeader, Input } from "@titoapps/ui";
 import { qk } from "@/lib/query";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
-import { useAddWeight, useWeights } from "@/features/health/useHealth";
+import { useAddWeight, useWeights, useDeleteWeight } from "@/features/health/useHealth";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { validateUsername } from "@/lib/username";
 import { errorMessage } from "@/lib/errors";
@@ -29,6 +29,7 @@ export function ProfilePage() {
   const { data: profile } = useProfile();
   const { data: weights = [] } = useWeights();
   const addWeight = useAddWeight();
+  const deleteWeight = useDeleteWeight();
   const updateUnits = useUpdateProfile();
   const qc = useQueryClient();
 
@@ -177,9 +178,19 @@ export function ProfilePage() {
           {weights.length > 0 && (
             <ul className="space-y-1 text-sm text-slate-600">
               {weights.slice(0, 6).map((wl) => (
-                <li key={wl.id} className="flex justify-between">
+                <li key={wl.id} className="flex items-center justify-between">
                   <span>{new Date(wl.logged_at).toLocaleDateString()}</span>
-                  <span className="font-semibold">{wl.weight_kg} kg</span>
+                  <span className="flex items-center gap-3">
+                    <span className="font-semibold">{wl.weight_kg} kg</span>
+                    <button
+                      onClick={() => deleteWeight.mutate(wl.id)}
+                      disabled={deleteWeight.isPending}
+                      className="text-slate-300 hover:text-red-500"
+                      aria-label="Eliminar este registro de peso"
+                    >
+                      ✕
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -212,6 +223,11 @@ export function ProfilePage() {
         <Link to="/goals" className="card block active:scale-[.98]">
           <div className="font-medium text-slate-800">Editar objetivo y metas</div>
           <div className="text-xs text-slate-400">Recalcular calorías y macros</div>
+        </Link>
+
+        <Link to="/activity" className="card block active:scale-[.98]">
+          <div className="font-medium text-slate-800">Actualizar mi actividad</div>
+          <div className="text-xs text-slate-400">Recalcular tu nivel con la IA (reinicia el chequeo mensual)</div>
         </Link>
 
         <Link to="/workouts" className="card block active:scale-[.98]">
