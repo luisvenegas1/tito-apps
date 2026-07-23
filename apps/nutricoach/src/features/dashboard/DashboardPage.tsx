@@ -107,7 +107,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-2 gap-3">
         <MacroCard label="Agua" value={waterMl} target={targets.water_ml} unit="ml" accent="#0ea5e9" />
         <Link to="/workouts" className="block active:scale-[.98]">
-          <MacroCard label="Quemadas · entrenar" value={kcalBurned} target={null} unit="kcal" accent="#8b5cf6" />
+          <MacroCard label="Actividad 🔥" value={kcalBurned} target={null} unit="kcal" accent="#8b5cf6" />
         </Link>
       </div>
 
