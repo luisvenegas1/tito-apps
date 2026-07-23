@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button, PageHeader, Input, FormField, EmptyState, Spinner } from "@titoapps/ui";
 import { NumberInput } from "@/components/ui/NumberInput";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { listMyFoods, createFood, deleteFood, type NewFood } from "./foodsApi";
+import { RowProductPicker } from "./RowProductPicker";
 
 const EMPTY = { name: "", kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0, serving_g: 0 };
 
@@ -18,6 +18,7 @@ export function MyProductsPage() {
   const qc = useQueryClient();
   const [form, setForm] = useState(EMPTY);
   const [showForm, setShowForm] = useState(false);
+  const [picker, setPicker] = useState(false);
 
   const foods = useQuery({
     queryKey: ["myFoods"],
@@ -64,9 +65,14 @@ export function MyProductsPage() {
       </p>
 
       {!showForm ? (
-        <Button variant="secondary" className="mt-4 w-full" onClick={() => setShowForm(true)}>
-          + Agregar un producto
-        </Button>
+        <div className="mt-4 space-y-2">
+          <Button variant="secondary" className="w-full" onClick={() => setShowForm(true)}>
+            + Agregar a mano
+          </Button>
+          <Button variant="secondary" className="w-full" onClick={() => setPicker(true)}>
+            📷 Escanear código de barras
+          </Button>
+        </div>
       ) : (
         <div className="mt-4 card space-y-3">
           <FormField label="Nombre (como lo vas a escribir)">
@@ -104,11 +110,6 @@ export function MyProductsPage() {
         </div>
       )}
 
-      <div className="mt-3 flex gap-2 text-xs">
-        <Link to="/log/barcode" className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">📷 Código de barras</Link>
-        <Link to="/log/label" className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">🏷️ Etiqueta</Link>
-      </div>
-
       <div className="mt-4">
         {foods.isLoading ? (
           <div className="flex justify-center py-8"><Spinner /></div>
@@ -137,6 +138,25 @@ export function MyProductsPage() {
           </ul>
         )}
       </div>
+
+      {picker && (
+        <RowProductPicker
+          onClose={() => setPicker(false)}
+          onApply={(p) => {
+            // Solo PRELLENA el formulario para revisar y guardar — no registra consumo.
+            setForm({
+              name: p.name,
+              kcal: p.kcal,
+              protein_g: p.protein_g,
+              carb_g: p.carb_g,
+              fat_g: p.fat_g,
+              serving_g: 0,
+            });
+            setShowForm(true);
+            setPicker(false);
+          }}
+        />
+      )}
     </div>
   );
 }
