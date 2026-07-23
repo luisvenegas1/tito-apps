@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, PageHeader, Spinner, Input, FormField } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros, type Per100g } from "@titoapps/nutrition";
 import { ai } from "@/lib/ai/client";
 import { compressImage } from "@/lib/image";
@@ -87,7 +88,7 @@ export function LabelScan() {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Galletas de avena" />
           </FormField>
           <FormField label="Cantidad consumida (g)">
-            <Input type="number" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
+            <NumberInput value={grams} onValueChange={setGrams} />
           </FormField>
           {macros && (
             <div className="card text-sm text-slate-600">

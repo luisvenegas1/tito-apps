@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Button, PageHeader, Input, FormField, Spinner } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { fetchProductByBarcode } from "@/lib/openfoodfacts";
@@ -153,7 +154,7 @@ export function BarcodeScan() {
             <div className="mt-1 text-xs text-slate-400">{food.kcal} kcal/100g</div>
           </div>
           <FormField label="Cantidad consumida (g)">
-            <Input type="number" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
+            <NumberInput value={grams} onValueChange={setGrams} />
           </FormField>
           <div className="card text-sm text-slate-600">
             {scaleMacros(food, grams).kcal} kcal · P{scaleMacros(food, grams).protein_g} · C

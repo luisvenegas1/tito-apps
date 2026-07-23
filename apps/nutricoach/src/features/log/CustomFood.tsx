@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, PageHeader, Input, FormField } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { createFood } from "./foodsApi";
@@ -18,6 +19,8 @@ export function CustomFood() {
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF((prev) => ({ ...prev, [k]: k === "name" ? e.target.value : Number(e.target.value) }));
+  const setNum = (k: "kcal" | "protein_g" | "carb_g" | "fat_g") => (n: number) =>
+    setF((prev) => ({ ...prev, [k]: n }));
 
   const submit = async () => {
     if (!f.name.trim()) return;
@@ -55,20 +58,20 @@ export function CustomFood() {
         </FormField>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Calorías (kcal)">
-            <Input type="number" value={f.kcal} onChange={set("kcal")} />
+            <NumberInput value={f.kcal} onValueChange={setNum("kcal")} />
           </FormField>
           <FormField label="Proteína (g)">
-            <Input type="number" value={f.protein_g} onChange={set("protein_g")} />
+            <NumberInput value={f.protein_g} onValueChange={setNum("protein_g")} />
           </FormField>
           <FormField label="Carbohidratos (g)">
-            <Input type="number" value={f.carb_g} onChange={set("carb_g")} />
+            <NumberInput value={f.carb_g} onValueChange={setNum("carb_g")} />
           </FormField>
           <FormField label="Grasa (g)">
-            <Input type="number" value={f.fat_g} onChange={set("fat_g")} />
+            <NumberInput value={f.fat_g} onValueChange={setNum("fat_g")} />
           </FormField>
         </div>
         <FormField label="Cantidad consumida (g)">
-          <Input type="number" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
+          <NumberInput value={grams} onValueChange={setGrams} />
         </FormField>
         <Button className="w-full" onClick={submit} disabled={saving || add.isPending}>
           Guardar y registrar

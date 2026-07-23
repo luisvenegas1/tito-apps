@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, PageHeader, Input, FormField, Select } from "@titoapps/ui";
+import { Button, PageHeader, FormField, Select } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { computeDailyTargets, type GoalType, type ActivityLevel, type Sex } from "@titoapps/nutrition";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useActiveGoal, useSaveGoal } from "./useGoal";
@@ -104,18 +105,17 @@ export function GoalsPage() {
             </Select>
           </FormField>
           <FormField label="Edad">
-            <Input type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} />
+            <NumberInput value={age} onValueChange={setAge} />
           </FormField>
           <FormField label="Altura (cm)">
-            <Input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} />
+            <NumberInput value={height} onValueChange={setHeight} />
           </FormField>
           <FormField label="Peso actual (kg)">
-            <Input
-              type="number"
+            <NumberInput
               value={weight}
-              onChange={(e) => {
+              onValueChange={(n) => {
                 weightTouched.current = true;
-                setWeight(Number(e.target.value));
+                setWeight(n);
               }}
             />
           </FormField>
@@ -128,7 +128,7 @@ export function GoalsPage() {
         />
 
         <FormField label="Peso objetivo (kg)">
-          <Input type="number" value={targetWeight} onChange={(e) => setTargetWeight(Number(e.target.value))} />
+          <NumberInput value={targetWeight} onValueChange={setTargetWeight} />
         </FormField>
 
         <div className="card bg-green-50/60">

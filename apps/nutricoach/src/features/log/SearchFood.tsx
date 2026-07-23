@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button, PageHeader, Input, EmptyState } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { qk } from "@/lib/query";
@@ -76,7 +77,7 @@ export function SearchFood() {
           <div className="card">
             <div className="font-medium text-slate-800">{selected.name}</div>
             <div className="mt-2 flex items-center gap-2">
-              <Input type="number" className="w-24" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
+              <NumberInput className="w-24" value={grams} onValueChange={setGrams} />
               <span className="text-sm text-slate-400">g → {scaleMacros(selected, grams).kcal} kcal</span>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, FormField, Input, Select, Spinner } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import type { ActivityLevel } from "@titoapps/nutrition";
 import { ai } from "@/lib/ai/client";
 import { errorMessage } from "@/lib/errors";
@@ -82,23 +83,15 @@ export function ActivityQuestionnaire({ initialAnswers, initialActivity, onChang
 
       <div className="grid grid-cols-2 gap-3">
         <FormField label="Días de entreno / semana">
-          <Input
-            type="number"
-            inputMode="numeric"
+          <NumberInput
             min={0}
             max={7}
             value={answers.trainingDays}
-            onChange={(e) => setAns("trainingDays", Number(e.target.value))}
+            onValueChange={(n) => setAns("trainingDays", n)}
           />
         </FormField>
         <FormField label="Minutos por sesión">
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={answers.trainingMinutes}
-            onChange={(e) => setAns("trainingMinutes", Number(e.target.value))}
-          />
+          <NumberInput min={0} value={answers.trainingMinutes} onValueChange={(n) => setAns("trainingMinutes", n)} />
         </FormField>
       </div>
 

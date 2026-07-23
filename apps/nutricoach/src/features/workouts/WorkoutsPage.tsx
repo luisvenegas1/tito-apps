@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, PageHeader, Input, FormField, Select, EmptyState } from "@titoapps/ui";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { estimateCalories, WORKOUT_LABELS, type WorkoutType } from "@titoapps/health";
 import { useAddWorkout, useWorkouts, useDeleteWorkout, useLatestWeight } from "@/features/health/useHealth";
 
@@ -60,17 +61,16 @@ export function WorkoutsPage() {
         </FormField>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Duración (min)">
-            <Input
-              type="number"
+            <NumberInput
               value={minutes}
-              onChange={(e) => {
-                setMinutes(Number(e.target.value));
+              onValueChange={(n) => {
+                setMinutes(n);
                 setKcal(null);
               }}
             />
           </FormField>
           <FormField label="Calorías quemadas">
-            <Input type="number" value={kcalValue} onChange={(e) => setKcal(Number(e.target.value))} />
+            <NumberInput value={kcalValue} onValueChange={setKcal} />
           </FormField>
         </div>
         <FormField label="Nombre (opcional)">
