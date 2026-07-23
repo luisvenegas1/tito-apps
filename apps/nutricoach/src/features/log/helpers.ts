@@ -19,6 +19,19 @@ export function mealByHour(d = new Date()): Meal {
   return "snack";
 }
 
+/**
+ * Próximo momento de comida según la hora local, para los textos del dashboard
+ * y del coach (así no te habla de "cerrar el día / cena" a las 9 de la mañana).
+ */
+export function nextMealMoment(d = new Date()): { ideasTitle: string; focus: string } {
+  const h = d.getHours();
+  if (h < 10) return { ideasTitle: "Ideas para tu media mañana", focus: "una merienda de media mañana" };
+  if (h < 14) return { ideasTitle: "Ideas para tu almuerzo", focus: "el almuerzo" };
+  if (h < 17) return { ideasTitle: "Ideas para tu merienda", focus: "una merienda de la tarde" };
+  if (h < 21) return { ideasTitle: "Ideas para tu cena", focus: "la cena" };
+  return { ideasTitle: "Ideas para cerrar tu día", focus: "cerrar bien tu día" };
+}
+
 export const MEALS: { value: Meal; label: string }[] = [
   { value: "breakfast", label: "Desayuno" },
   { value: "lunch", label: "Almuerzo" },

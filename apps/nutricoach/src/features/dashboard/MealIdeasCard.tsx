@@ -1,7 +1,7 @@
 import { rankMealIdeas, type Remaining } from "@titoapps/nutrition";
 import { FOOD_LIBRARY } from "@/features/log/foodLibrary";
 import { useAddFood } from "@/features/log/useLog";
-import { mealByHour } from "@/features/log/helpers";
+import { mealByHour, nextMealMoment } from "@/features/log/helpers";
 
 /**
  * Ideas de comida según los macros faltantes del día.
@@ -16,9 +16,11 @@ export function MealIdeasCard({ remaining }: { remaining: Remaining }) {
   const ideas = rankMealIdeas(remaining, FOOD_LIBRARY, 3);
   if (ideas.length === 0) return null;
 
+  const { ideasTitle } = nextMealMoment();
+
   return (
     <div className="card">
-      <div className="metric-label mb-1">Ideas para cerrar tu día</div>
+      <div className="metric-label mb-1">{ideasTitle}</div>
       <p className="mb-3 text-xs text-slate-400">
         Te faltan {Math.round(remaining.protein_g)} g de proteína y {Math.round(remaining.kcal)} kcal.
       </p>

@@ -19,6 +19,7 @@ export function buildDayContext(d: DashboardData | undefined): CoachDayContext {
     weightKg: d?.weightKg ?? undefined,
     targetWeightKg: d?.targetWeightKg ?? undefined,
     kcalBurned: d?.kcalBurned ?? undefined,
+    hour: new Date().getHours(),
   };
 }
 

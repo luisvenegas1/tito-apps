@@ -1,6 +1,6 @@
 // Prompts versionados de NutriCoach. Ver docs/ai.md. Cambios importantes → Bible.
 
-export const PROMPT_VERSION = "2026-07-b3";
+export const PROMPT_VERSION = "2026-07-b4";
 
 export const FOOD_SCHEMA_HINT =
   'Devolvé SOLO JSON válido, sin texto adicional. Formato: {"items":[{"name":string,"grams":number,"kcal":number,"protein_g":number,"carb_g":number,"fat_g":number,"fiber_g":number,"sugar_g":number,"sodium_mg":number,"confidence":number}]}. Los macros son ABSOLUTOS para la porción estimada (no por 100 g). confidence es 0..1.';
@@ -50,7 +50,24 @@ export function planUserBlock(input: {
 
 export function coachUserBlock(dayContext: Record<string, unknown>, proactive?: boolean): string {
   const ctx = JSON.stringify(dayContext);
-  return proactive
-    ? `Contexto del día: ${ctx}. Generá UNA recomendación proactiva breve para ayudar al usuario a cerrar bien su día. reply <= 220 caracteres.`
-    : `Contexto del día: ${ctx}.`;
+  if (!proactive) return `Contexto del día: ${ctx}.`;
+
+  const hour = typeof dayContext.hour === "number" ? (dayContext.hour as number) : new Date().getHours();
+  const momento =
+    hour < 11
+      ? "es de mañana: sugerí el desayuno o una merienda de media mañana según lo que ya haya comido"
+      : hour < 15
+        ? "es mediodía: enfocate en el almuerzo"
+        : hour < 18
+          ? "es media tarde: sugerí una merienda ligera"
+          : hour < 22
+            ? "es de noche: enfocate en la cena"
+            : "es tarde en la noche: ayudá a cerrar bien el día";
+
+  return (
+    `Contexto del día: ${ctx}. Hora local del usuario: ${hour}:00 — ${momento}. ` +
+    "Generá UNA recomendación proactiva breve y OPORTUNA para la próxima comida según esa hora. " +
+    'IMPORTANTE: NO digas "cerrar tu día" ni sugieras la cena a menos que ya sea de noche; ajustá la sugerencia al momento del día. ' +
+    "reply <= 220 caracteres."
+  );
 }

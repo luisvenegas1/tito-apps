@@ -57,6 +57,8 @@ export interface CoachDayContext {
   weightKg?: number;
   targetWeightKg?: number;
   kcalBurned?: number;
+  /** Hora local del usuario (0-23) para que la sugerencia sea oportuna. */
+  hour?: number;
 }
 export interface CoachRequest {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
