@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Button, Input, Spinner } from "@titoapps/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { fetchProductByBarcode } from "@/lib/openfoodfacts";
@@ -33,6 +34,9 @@ export function RowProductPicker({ onClose, onApply }: Props) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
 
   const foods = useQuery({
     queryKey: ["myFoods"],
@@ -40,10 +44,36 @@ export function RowProductPicker({ onClose, onApply }: Props) {
     enabled: !!userId,
   });
 
+  // Escaneo en vivo con la cámara (ZXing): al leer el código, lo busca solo.
+  useEffect(() => {
+    if (!scanning || !videoRef.current) return;
+    let cancelled = false;
+    const reader = new BrowserMultiFormatReader();
+    reader
+      .decodeFromConstraints({ video: { facingMode: "environment" } }, videoRef.current, (result) => {
+        if (result && !cancelled) {
+          cancelled = true;
+          controlsRef.current?.stop();
+          setScanning(false);
+          lookupCode(result.getText());
+        }
+      })
+      .then((controls) => {
+        controlsRef.current = controls;
+        if (cancelled) controls.stop();
+      })
+      .catch(() => setError("No pudimos abrir la cámara. Permití el acceso o ingresá el código a mano."));
+    return () => {
+      cancelled = true;
+      controlsRef.current?.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanning]);
+
   const list = (foods.data ?? []).filter((f) => f.name.toLowerCase().includes(q.trim().toLowerCase()));
 
-  const lookupCode = async () => {
-    const bc = code.trim();
+  const lookupCode = async (barcode?: string) => {
+    const bc = (barcode ?? code).trim();
     if (!bc) return;
     setError(null);
     setLoading(true);
@@ -95,13 +125,33 @@ export function RowProductPicker({ onClose, onApply }: Props) {
         </div>
 
         <div className="mt-3 border-t border-slate-100 pt-3">
-          <p className="mb-1 text-xs text-slate-500">…o buscá por código de barras</p>
-          <div className="flex gap-2">
-            <Input inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} placeholder="7501…" className="flex-1" />
-            <Button onClick={lookupCode} disabled={!code.trim() || loading}>
-              {loading ? "…" : "Buscar"}
-            </Button>
-          </div>
+          <p className="mb-1 text-xs text-slate-500">…o por código de barras</p>
+
+          {scanning ? (
+            <div className="space-y-2">
+              <div className="relative overflow-hidden rounded-xl bg-black">
+                <video ref={videoRef} className="h-44 w-full object-cover" muted playsInline autoPlay />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="h-16 w-44 rounded-lg border-2 border-white/80" />
+                </div>
+              </div>
+              <button onClick={() => setScanning(false)} className="w-full text-center text-sm text-slate-400">
+                Cancelar escaneo
+              </button>
+            </div>
+          ) : (
+            <>
+              <Button variant="secondary" className="w-full" onClick={() => { setError(null); setScanning(true); }}>
+                📷 Escanear con la cámara
+              </Button>
+              <div className="mt-2 flex gap-2">
+                <Input inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} placeholder="…o escribí el código 7501…" className="flex-1" />
+                <Button onClick={() => lookupCode()} disabled={!code.trim() || loading}>
+                  {loading ? "…" : "Buscar"}
+                </Button>
+              </div>
+            </>
+          )}
           {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
         </div>
       </div>

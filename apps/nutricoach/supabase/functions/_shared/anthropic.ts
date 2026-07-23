@@ -41,6 +41,17 @@ export class AnthropicProvider implements AIProvider {
     }
     content.push({ type: "text", text: userText });
 
+    // Los modelos con "adaptive thinking" (Sonnet 5, Opus 4.5+, Fable) deprecaron
+    // `temperature` y pueden usar tokens para razonar; Haiku sí acepta temperature.
+    const isHaiku = this.model.includes("haiku");
+    const body: Record<string, unknown> = {
+      model: this.model,
+      max_tokens: isHaiku ? 900 : 2000,
+      system,
+      messages: [{ role: "user", content }],
+    };
+    if (isHaiku) body.temperature = 0.2;
+
     const res = await fetch(API, {
       method: "POST",
       headers: {
@@ -48,13 +59,7 @@ export class AnthropicProvider implements AIProvider {
         "x-api-key": this.apiKey,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model: this.model,
-        max_tokens: 900,
-        temperature: 0.2,
-        system,
-        messages: [{ role: "user", content }],
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
     const data = await res.json();
