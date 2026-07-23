@@ -12,6 +12,7 @@ import {
   coachUserBlock,
   planUserBlock,
   activityUserBlock,
+  mealTextUserBlock,
 } from "./prompts.ts";
 
 const API = "https://api.openai.com/v1/chat/completions";
@@ -71,8 +72,8 @@ export class OpenAIProvider implements AIProvider {
     }));
   }
 
-  async parseMealText(text: string): Promise<VisionItem[]> {
-    const txt = await this.chat(MEAL_TEXT_SYSTEM, `Comida descrita: ${text}`);
+  async parseMealText(text: string, knownProducts?: string[]): Promise<VisionItem[]> {
+    const txt = await this.chat(MEAL_TEXT_SYSTEM, mealTextUserBlock(text, knownProducts));
     const parsed = extractJson<{ items?: Record<string, unknown>[] }>(txt);
     return (parsed.items ?? []).map((it) => ({
       name: String(it.name ?? "Alimento"),

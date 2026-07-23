@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Button, Input, Spinner } from "@titoapps/ui";
+import { scaleMacros } from "@titoapps/nutrition";
 import type { DetectedFoodItem } from "@/lib/ai/contracts";
 import { estimateMacros } from "./estimate";
 import { useDashboard } from "@/features/dashboard/useDashboard";
+import { RowProductPicker, type PickedProduct } from "./RowProductPicker";
 
 /** Macros por gramo — línea base estable para escalar sin volver a llamar a la IA. */
 type Per = { kcal: number; protein_g: number; carb_g: number; fat_g: number; fiber_g?: number; sugar_g?: number; sodium_mg?: number };
@@ -62,7 +64,35 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
   const [finalizing, setFinalizing] = useState(false);
   // Texto en curso del campo de gramos (permite dejarlo vacío sin forzar un 0).
   const [gramsText, setGramsText] = useState<Record<number, string>>({});
+  // Fila para la que está abierto el selector de "valores exactos".
+  const [pickerRow, setPickerRow] = useState<number | null>(null);
   const { data: dashboard } = useDashboard();
+
+  // Reemplaza los macros de una fila con los valores exactos de un producto (por 100 g).
+  const applyProduct = (i: number, p: PickedProduct) => {
+    setList((prev) =>
+      prev.map((it, idx) => {
+        if (idx !== i) return it;
+        const g = it.grams > 0 ? it.grams : 100;
+        const m = scaleMacros(p, g);
+        return withPer({
+          ...it,
+          name: p.name,
+          grams: g,
+          kcal: m.kcal,
+          protein_g: m.protein_g,
+          carb_g: m.carb_g,
+          fat_g: m.fat_g,
+          fiber_g: m.fiber_g ?? null,
+          sugar_g: m.sugar_g ?? null,
+          sodium_mg: m.sodium_mg ?? null,
+          confidence: 1,
+          _dirty: false,
+        });
+      }),
+    );
+    setPickerRow(null);
+  };
 
   const needsCalc = (it: EditItem) => !!it.name.trim() && (it.kcal === 0 || !!it._dirty);
 
@@ -216,6 +246,13 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
               className="w-24"
             />
             <span className="text-sm text-slate-400">g · {it.kcal} kcal</span>
+            <button
+              onClick={() => setPickerRow(i)}
+              className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600 active:scale-95"
+              aria-label="Usar valores exactos de un producto guardado o código de barras"
+            >
+              🔎 exacto
+            </button>
             {calc.has(i) ? (
               <span className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400">
                 <Spinner /> calculando…
@@ -274,6 +311,10 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
         <button className="w-full text-center text-sm text-slate-400" onClick={onBack}>
           {backLabel ?? "Volver"}
         </button>
+      )}
+
+      {pickerRow != null && (
+        <RowProductPicker onClose={() => setPickerRow(null)} onApply={(p) => applyProduct(pickerRow, p)} />
       )}
     </div>
   );

@@ -39,6 +39,24 @@ export async function listRecentItems(userId: string, sinceDays = 21): Promise<L
   return (data ?? []) as LogItem[];
 }
 
+/** Todos los productos guardados del usuario ("Mis productos"), por nombre. */
+export async function listMyFoods(userId: string): Promise<Food[]> {
+  const { data, error } = await supabase
+    .from("foods")
+    .select("*")
+    .eq("user_id", userId)
+    .order("name")
+    .limit(300);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Food[];
+}
+
+/** Elimina un producto guardado. */
+export async function deleteFood(id: string): Promise<void> {
+  const { error } = await supabase.from("foods").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 /** Busca un alimento ya cacheado por código de barras (para no reconsultar OFF). */
 export async function findFoodByBarcode(userId: string, barcode: string): Promise<Food | null> {
   const { data, error } = await supabase

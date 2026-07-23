@@ -23,6 +23,7 @@ import { StravaCallback } from "@/features/workouts/StravaCallback";
 import { DeviceCallback } from "@/features/workouts/DeviceCallback";
 import { GoalsPage } from "@/features/goals/GoalsPage";
 import { ActivityPage } from "@/features/goals/ActivityPage";
+import { MyProductsPage } from "@/features/log/MyProductsPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { ProfilePage } from "@/features/profile/ProfilePage";
 import { PlanPage } from "@/features/plan/PlanPage";
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/log/label" element={<LabelScan />} />
         <Route path="/log/search" element={<SearchFood />} />
         <Route path="/log/custom" element={<CustomFood />} />
+        <Route path="/foods" element={<MyProductsPage />} />
         <Route path="/coach" element={<CoachPage />} />
         <Route path="/workouts" element={<WorkoutsPage />} />
         <Route path="/workouts/connect" element={<ConnectDevicePage />} />

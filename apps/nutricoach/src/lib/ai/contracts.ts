@@ -22,6 +22,8 @@ export interface AnalyzeFoodResponse {
 /** parse-meal-text — descripción de una comida en lenguaje natural. */
 export interface ParseMealTextRequest {
   text: string;
+  /** Nombres de los productos guardados del usuario, para que la IA los reconozca. */
+  knownProducts?: string[];
 }
 export interface ParseMealTextResponse {
   items: DetectedFoodItem[];

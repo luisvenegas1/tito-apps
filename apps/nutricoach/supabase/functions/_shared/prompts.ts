@@ -1,6 +1,6 @@
 // Prompts versionados de NutriCoach. Ver docs/ai.md. Cambios importantes → Bible.
 
-export const PROMPT_VERSION = "2026-07-b4";
+export const PROMPT_VERSION = "2026-07-b6";
 
 export const FOOD_SCHEMA_HINT =
   'Devolvé SOLO JSON válido, sin texto adicional. Formato: {"items":[{"name":string,"grams":number,"kcal":number,"protein_g":number,"carb_g":number,"fat_g":number,"fiber_g":number,"sugar_g":number,"sodium_mg":number,"confidence":number}]}. Los macros son ABSOLUTOS para la porción estimada (no por 100 g). confidence es 0..1.';
@@ -10,12 +10,26 @@ export const FOOD_SYSTEM =
   FOOD_SCHEMA_HINT;
 
 export const MEAL_TEXT_SYSTEM =
-  "Sos un nutricionista experto. El usuario describe en lenguaje natural lo que comió (ej. '2 huevos, una tajada de jamón de pavo y una tortilla con queso'). " +
+  "Sos un nutricionista experto en la dieta de Costa Rica y Latinoamérica. El usuario describe en lenguaje natural lo que comió (ej. '2 huevos, una tajada de jamón de pavo y una tortilla con queso'). " +
   "Interpretá cada alimento, inferí una cantidad realista en gramos para las porciones descritas (ej. 1 huevo ≈ 50 g, 1 tajada de jamón ≈ 20 g, 1 tortilla ≈ 30 g, 1 banano mediano ≈ 118 g, 1 banano grande ≈ 135 g, 1 taza de leche ≈ 240 g) y calculá los macros ABSOLUTOS de esa cantidad. " +
   "Si el usuario da unidades ('2 huevos', '4 bananos grandes'), MULTIPLICÁ la porción por la cantidad. " +
+  // Platos preparados = UN solo ítem.
+  "MUY IMPORTANTE — platos preparados: si el usuario describe UN plato donde los ingredientes van cocinados o servidos juntos (ej. 'lentejas con pollo', 'arroz con pollo', 'gallo pinto', 'casado', 'pinto con huevo', 'espagueti con carne'), devolvelo como UN SOLO ítem con el nombre del plato y los macros combinados; NO lo separes en ingredientes. Devolvé varios ítems SOLO cuando el usuario enumera alimentos claramente distintos, típicamente separados por comas o 'y' (ej. '2 huevos, una tortilla y un café'). " +
+  // Productos de marca = UN producto con su perfil real.
+  "Productos de marca/comerciales: reconocé marcas comunes de Costa Rica (Dos Pinos, Sardimar, Pozuelo, Gallito, Lizano, etc.). Si el usuario nombra un producto específico, tratalo como UN producto con el perfil de ESE producto, no lo descompongas. En particular, 'Leche + Proteína' de Dos Pinos es UNA leche enriquecida en proteína (un solo producto, más proteína que la leche normal y usualmente descremada), NO leche por un lado y proteína por otro. 'Yogurt griego', 'leche semidescremada', etc. también son un solo ítem. " +
   "Usá valores nutricionales estándar reales; NUNCA hagas que las kcal sean iguales al número de gramos por defecto (ej. un banano tiene ~0,89 kcal por gramo, no 1). Verificá que kcal ≈ protein_g*4 + carb_g*4 + fat_g*9. " +
+  // Productos guardados del usuario: normalizá el nombre para que la app aplique sus valores exactos.
+  "Si te paso una lista de 'productos guardados del usuario' y un alimento descrito coincide con uno de ellos, poné en 'name' EXACTAMENTE ese nombre guardado (respetando mayúsculas/acentos); la app le aplicará los valores exactos del usuario. Igual estimá sus macros como respaldo. " +
   "Si algo es ambiguo, estimá con sentido común y bajá el confidence. " +
   FOOD_SCHEMA_HINT;
+
+/** Bloque de usuario para parse-meal-text, con la lista opcional de productos guardados. */
+export function mealTextUserBlock(text: string, knownProducts?: string[]): string {
+  const base = `Comida descrita: ${text}`;
+  const list = (knownProducts ?? []).filter((s) => s && s.trim()).slice(0, 100);
+  if (list.length === 0) return base;
+  return `${base}\nProductos guardados del usuario (si un alimento coincide, usá EXACTAMENTE ese nombre): ${list.join("; ")}`;
+}
 
 export const SCALE_SYSTEM =
   "Sos un nutricionista experto en visión. En la foto hay UN alimento sobre una balanza. Identificá el alimento y leé el número de peso mostrado en la balanza (en gramos). " +

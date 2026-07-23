@@ -30,7 +30,7 @@ export interface Per100g {
 
 export interface AIProvider {
   analyzeFoodPhoto(imageBase64: string, hint?: string): Promise<VisionItem[]>;
-  parseMealText(text: string): Promise<VisionItem[]>;
+  parseMealText(text: string, knownProducts?: string[]): Promise<VisionItem[]>;
   analyzeScalePhoto(imageBase64: string): Promise<{
     name: string;
     grams: number | null;
@@ -148,7 +148,7 @@ export const stubProvider: AIProvider = {
  *   AI_MODEL    = modelo opcional (override)
  * Si no hay clave, cae al stub determinista (útil en local/demo).
  */
-export async function getProvider(): Promise<AIProvider> {
+export async function getProvider(overrideModel?: string): Promise<AIProvider> {
   const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
   // AI_API_KEY es el nombre genérico; ANTHROPIC_API_KEY / OPENAI_API_KEY también
@@ -160,11 +160,14 @@ export async function getProvider(): Promise<AIProvider> {
   let name = (Deno.env.get("AI_PROVIDER") ?? "").toLowerCase();
   if (!name) name = openaiKey && !anthropicKey ? "openai" : "anthropic";
 
-  const model = Deno.env.get("AI_MODEL") ?? undefined;
+  const envModel = Deno.env.get("AI_MODEL") ?? undefined;
   if (name === "openai") {
+    // overrideModel apunta a un modelo Claude; no aplica a OpenAI.
     const { OpenAIProvider } = await import("./openai.ts");
-    return model ? new OpenAIProvider(key, model) : new OpenAIProvider(key);
+    return envModel ? new OpenAIProvider(key, envModel) : new OpenAIProvider(key);
   }
+  // Anthropic: permitimos un modelo por-función (ej. Sonnet solo para comidas).
+  const model = overrideModel ?? envModel;
   const { AnthropicProvider } = await import("./anthropic.ts");
   return model ? new AnthropicProvider(key, model) : new AnthropicProvider(key);
 }

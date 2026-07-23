@@ -230,6 +230,11 @@ export function ProfilePage() {
           <div className="text-xs text-slate-400">Recalcular tu nivel con la IA (reinicia el chequeo mensual)</div>
         </Link>
 
+        <Link to="/foods" className="card block active:scale-[.98]">
+          <div className="font-medium text-slate-800">Mis productos</div>
+          <div className="text-xs text-slate-400">Tus alimentos con valores exactos para la IA</div>
+        </Link>
+
         <Link to="/workouts" className="card block active:scale-[.98]">
           <div className="font-medium text-slate-800">Entrenamientos</div>
           <div className="text-xs text-slate-400">Registrar actividad y conectar dispositivos</div>
