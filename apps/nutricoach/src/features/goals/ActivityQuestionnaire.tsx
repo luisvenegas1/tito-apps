@@ -81,8 +81,8 @@ export function ActivityQuestionnaire({ initialAnswers, initialActivity, onChang
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="Días de entreno / semana">
+      <div className="grid grid-cols-2 items-end gap-3">
+        <FormField label="Días/semana">
           <NumberInput
             min={0}
             max={7}
@@ -90,7 +90,7 @@ export function ActivityQuestionnaire({ initialAnswers, initialActivity, onChang
             onValueChange={(n) => setAns("trainingDays", n)}
           />
         </FormField>
-        <FormField label="Minutos por sesión">
+        <FormField label="Minutos/sesión">
           <NumberInput min={0} value={answers.trainingMinutes} onValueChange={(n) => setAns("trainingMinutes", n)} />
         </FormField>
       </div>
