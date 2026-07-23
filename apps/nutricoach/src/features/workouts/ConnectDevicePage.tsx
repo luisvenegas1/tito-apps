@@ -86,9 +86,9 @@ export function ConnectDevicePage() {
         {!connected ? (
           <>
             {hasClientId ? (
-              <a href={stravaAuthUrl()} className="mt-3 block">
-                <Button className="w-full">Conectar con Strava</Button>
-              </a>
+              <Button className="mt-3 w-full" onClick={() => window.location.replace(stravaAuthUrl())}>
+                Conectar con Strava
+              </Button>
             ) : (
               <p className="mt-3 text-xs text-amber-600">
                 Falta configurar la app de Strava (VITE_STRAVA_CLIENT_ID). Avisá al administrador.

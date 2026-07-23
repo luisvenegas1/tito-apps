@@ -67,9 +67,9 @@ export function DeviceCards() {
 
         {!connected ? (
           p.clientId ? (
-            <a href={deviceAuthUrl(p)} className="mt-3 block">
-              <Button className="w-full">Conectar con {p.label}</Button>
-            </a>
+            <Button className="mt-3 w-full" onClick={() => window.location.replace(deviceAuthUrl(p))}>
+              Conectar con {p.label}
+            </Button>
           ) : (
             <p className="mt-3 text-xs text-slate-400">Próximamente (falta configurar {p.label}).</p>
           )
