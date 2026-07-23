@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { PageHeader, EmptyState } from "@titoapps/ui";
-import { useDailyLog, useDeleteFood, useAddFood } from "./useLog";
+import { useDailyLog, useRemovableLog, useAddFood } from "./useLog";
 import { useFrequents } from "./useFrequents";
 import type { FrequentEntry } from "./frequents";
 
@@ -17,7 +17,7 @@ const METHODS = [
 export function LogHub() {
   const { data: items = [] } = useDailyLog();
   const { data: frequents = [] } = useFrequents();
-  const del = useDeleteFood();
+  const { removed, remove, undo, dismiss } = useRemovableLog();
   const add = useAddFood();
 
   /** Re-registra un frecuente en un toque, reusando su último snapshot. */
@@ -79,6 +79,21 @@ export function LogHub() {
       )}
 
       <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-500">Hoy</h3>
+
+      {removed && (
+        <div className="mb-2 flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span>Eliminaste "{removed.name}".</span>
+          <div className="flex items-center gap-3">
+            <button onClick={undo} className="font-semibold underline">
+              Deshacer
+            </button>
+            <button onClick={dismiss} aria-label="Cerrar" className="text-amber-500">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <EmptyState title="Nada registrado todavía" description="Empezá con una foto de tu comida." />
       ) : (
@@ -92,7 +107,7 @@ export function LogHub() {
                 </div>
               </div>
               <button
-                onClick={() => del.mutate(it.id)}
+                onClick={() => remove(it)}
                 className="text-sm text-red-500"
                 aria-label={`Eliminar ${it.name}`}
               >

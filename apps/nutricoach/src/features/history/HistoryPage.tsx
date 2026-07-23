@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader, EmptyState, Skeleton } from "@titoapps/ui";
 import { sumMacros, average } from "@titoapps/nutrition";
-import { useDailyLog } from "@/features/log/useLog";
+import { useDailyLog, useRemovableLog } from "@/features/log/useLog";
 import { useHistory } from "./useHistory";
 import { MEALS } from "@/features/log/helpers";
 import { BarTrend } from "@/components/charts/BarTrend";
@@ -36,10 +36,26 @@ export function HistoryPage() {
 
 function DayView() {
   const { data: items = [] } = useDailyLog();
+  const { removed, remove, undo, dismiss } = useRemovableLog();
   const total = sumMacros(items);
   return (
     <div className="mt-4">
       <TotalsCard kcal={total.kcal} p={total.protein_g} c={total.carb_g} g={total.fat_g} />
+
+      {removed && (
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span>Eliminaste "{removed.name}".</span>
+          <div className="flex items-center gap-3">
+            <button onClick={undo} className="font-semibold underline">
+              Deshacer
+            </button>
+            <button onClick={dismiss} aria-label="Cerrar" className="text-amber-500">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div className="mt-4">
           <EmptyState title="Sin registros hoy" description="Lo que registres aparecerá agrupado por comida." />
@@ -54,11 +70,20 @@ function DayView() {
                 <h3 className="mb-1 text-sm font-semibold text-slate-500">{label}</h3>
                 <ul className="space-y-2">
                   {group.map((it) => (
-                    <li key={it.id} className="card flex items-center justify-between">
-                      <span className="text-slate-800">{it.name}</span>
-                      <span className="text-xs text-slate-400">
-                        {it.grams} g · {it.kcal} kcal
-                      </span>
+                    <li key={it.id} className="card flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-slate-800">{it.name}</div>
+                        <div className="text-xs text-slate-400">
+                          {it.grams} g · {it.kcal} kcal
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => remove(it)}
+                        className="flex-none text-sm text-red-500"
+                        aria-label={`Eliminar ${it.name}`}
+                      >
+                        ✕
+                      </button>
                     </li>
                   ))}
                 </ul>
