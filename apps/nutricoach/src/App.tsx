@@ -4,6 +4,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { AuthPage } from "@/features/auth/AuthPage";
 import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import { UsernameGate } from "@/features/auth/UsernameGate";
+import { PrivacyPage, TermsPage } from "@/features/legal/LegalPages";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { LogHub } from "@/features/log/LogHub";
@@ -19,6 +20,7 @@ import { WorkoutsPage } from "@/features/workouts/WorkoutsPage";
 import { ConnectDevicePage } from "@/features/workouts/ConnectDevicePage";
 import { ConnectGuidePage } from "@/features/workouts/ConnectGuidePage";
 import { StravaCallback } from "@/features/workouts/StravaCallback";
+import { DeviceCallback } from "@/features/workouts/DeviceCallback";
 import { GoalsPage } from "@/features/goals/GoalsPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { ProfilePage } from "@/features/profile/ProfilePage";
@@ -29,9 +31,12 @@ import { HelpPage } from "@/features/help/HelpPage";
 export default function App() {
   const { session, profile, loading } = useAuth();
 
-  // El enlace de recuperación abre /reset (crea sesión de recovery); tiene prioridad.
-  if (typeof window !== "undefined" && window.location.pathname === "/reset") {
-    return <ResetPasswordPage />;
+  // Páginas públicas (accesibles sin sesión).
+  if (typeof window !== "undefined") {
+    const path = window.location.pathname;
+    if (path === "/reset") return <ResetPasswordPage />;
+    if (path === "/privacy") return <PrivacyPage />;
+    if (path === "/terms") return <TermsPage />;
   }
 
   if (loading) {
@@ -64,6 +69,7 @@ export default function App() {
         <Route path="/workouts/connect" element={<ConnectDevicePage />} />
         <Route path="/workouts/connect/guide" element={<ConnectGuidePage />} />
         <Route path="/strava/callback" element={<StravaCallback />} />
+        <Route path="/connect/callback" element={<DeviceCallback />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/plan" element={<PlanPage />} />
         <Route path="/history" element={<HistoryPage />} />

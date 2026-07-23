@@ -186,25 +186,35 @@ const SECTIONS: Section[] = [
     icon: "⌚",
     title: "Conectar un reloj o pulsera (wearable)",
     intro:
-      "Si tenés un reloj o pulsera inteligente (Amazfit, Apple Watch, Fitbit, Garmin…), podés conectarlo para que tus entrenamientos y las calorías que quemás se anoten SOLOS, sin escribir nada.",
+      "Si tenés un reloj o pulsera (Amazfit, Apple Watch, Garmin…), podés conectarlo a través de Strava para que tus entrenamientos y las calorías que quemás se anoten SOLOS.",
     items: [
       {
         q: "¿Para qué sirve?",
         desc:
-          "Cada vez que hacés ejercicio con tu reloj, esas calorías quemadas entran a NutriCoach automáticamente y se suman a tu día. Así tu meta se ajusta a lo que realmente gastaste.",
+          "Cada vez que hacés ejercicio con tu reloj, esas calorías quemadas entran a NutriCoach automáticamente y se suman a tu día. (Trae los entrenamientos que registrás; el gasto pasivo del día ya está incluido en tu meta según tu nivel de actividad.)",
       },
       {
-        q: "Amazfit o Apple Watch",
+        q: "Amazfit y Apple Watch (vía Strava)",
         steps: [
-          "Estos relojes se conectan a través de una app gratis llamada Strava.",
           "En la app de tu reloj (Zepp para Amazfit, o la app Salud del iPhone para Apple Watch), conectá con Strava.",
           "En NutriCoach: Perfil → “Entrenamientos” → “Conectar dispositivo”.",
-          "Elegí Strava y autorizá. Adentro hay una guía con dibujos paso a paso.",
+          "Tocá “Conectar con Strava” y autorizá. Hay una guía con dibujos paso a paso.",
+          "Después se sincroniza solo al abrir la app; o tocá “Sincronizar ahora”.",
         ],
       },
       {
-        q: "Fitbit",
-        desc: "Fitbit se conecta directo desde la misma pantalla “Conectar dispositivo”.",
+        q: "Oura Ring (conexión directa)",
+        steps: [
+          "Perfil → “Entrenamientos” → “Conectar dispositivo”.",
+          "Bajá a “Otros dispositivos” y tocá “Conectar con Oura Ring”.",
+          "Autorizá con tu cuenta de Oura. ¡Listo!",
+          "Se sincroniza solo al abrir la app; o tocá “Sincronizar ahora”.",
+        ],
+      },
+      {
+        q: "¿Y Fitbit?",
+        desc:
+          "Fitbit migró su acceso a la Google Health API; lo agregaremos más adelante. Mientras tanto, si tu reloj puede sincronizar a Strava, usá esa opción.",
       },
       {
         q: "Anotar un entrenamiento a mano",

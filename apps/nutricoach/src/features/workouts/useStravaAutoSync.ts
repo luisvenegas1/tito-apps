@@ -2,14 +2,15 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getStravaConnection, syncStrava } from "./stravaApi";
+import { getDeviceConnections, syncDevice } from "./deviceApi";
 
-const KEY = "nutricoach.stravaLastSync";
+const KEY = "nutricoach.deviceLastSync";
 const MIN_INTERVAL = 60 * 60 * 1000; // 1 hora
 
 /**
- * Sincroniza Strava automáticamente al abrir la app (si está conectado),
- * como máximo una vez por hora. Silencioso: si falla o no está conectado,
- * no muestra nada. La sincronización manual sigue disponible en la pantalla.
+ * Sincroniza los dispositivos conectados (Strava, Fitbit, Oura) automáticamente
+ * al abrir la app, como máximo una vez por hora. Silencioso: si falla o no hay
+ * conexión, no muestra nada. La sincronización manual sigue disponible.
  */
 export function useStravaAutoSync() {
   const { session } = useAuth();
@@ -27,10 +28,32 @@ export function useStravaAutoSync() {
     if (Date.now() - last < MIN_INTERVAL) return;
 
     (async () => {
+      let didSomething = false;
+      // Strava
       try {
-        const conn = await getStravaConnection(userId);
-        if (!conn) return; // no conectado
-        await syncStrava();
+        if (await getStravaConnection(userId)) {
+          await syncStrava();
+          didSomething = true;
+        }
+      } catch {
+        /* silencioso */
+      }
+      // Fitbit / Oura
+      try {
+        const devices = await getDeviceConnections(userId);
+        for (const d of devices) {
+          try {
+            await syncDevice(d.provider);
+            didSomething = true;
+          } catch {
+            /* silencioso */
+          }
+        }
+      } catch {
+        /* silencioso */
+      }
+
+      if (didSomething) {
         try {
           localStorage.setItem(KEY, String(Date.now()));
         } catch {
@@ -39,8 +62,7 @@ export function useStravaAutoSync() {
         qc.invalidateQueries({ queryKey: ["workouts"] });
         qc.invalidateQueries({ queryKey: ["dashboard"] });
         qc.invalidateQueries({ queryKey: ["strava"] });
-      } catch {
-        /* silencioso */
+        qc.invalidateQueries({ queryKey: ["devices"] });
       }
     })();
   }, [userId, qc]);

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader, Button, Spinner } from "@titoapps/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getStravaConnection, stravaAuthUrl, syncStrava, disconnectStrava } from "./stravaApi";
+import { DeviceCards } from "./DeviceCards";
 
 /**
  * Conectar dispositivos. La vía real es Strava: Amazfit (vía Zepp) y Apple Watch
@@ -119,6 +120,11 @@ export function ConnectDevicePage() {
       <p className="mt-3 text-xs text-slate-400">
         Consejo: hacé un entrenamiento con tu reloj, esperá a que aparezca en Strava y tocá “Sincronizar ahora”.
       </p>
+
+      {/* Otros dispositivos con conexión propia (Fitbit, Oura). */}
+      <h3 className="mb-1 mt-6 text-sm font-semibold text-slate-500">Otros dispositivos</h3>
+      <p className="text-xs text-slate-400">Fitbit y Oura Ring se conectan directo (no necesitan Strava).</p>
+      <DeviceCards />
 
       <div className="mt-6 card text-center">
         <p className="text-sm text-slate-600">También podés anotar un entrenamiento a mano.</p>
