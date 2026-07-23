@@ -4,6 +4,7 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { validateUsername } from "@/lib/username";
 import { errorMessage } from "@/lib/errors";
 import { signInWithIdentifier, signUpWithUsername, requestPasswordReset } from "./authApi";
+import { AppFooter } from "@/components/layout/AppFooter";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -62,7 +63,8 @@ export function AuthPage() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col justify-center px-6">
+    <div className="app-shell flex min-h-screen flex-col px-6">
+      <div className="flex flex-1 flex-col justify-center py-8">
       <div className="mb-6 text-center">
         {/* Logo oficial (tu ilustración). Respaldo al vector si faltara el PNG. */}
         <img
@@ -185,6 +187,8 @@ export function AuthPage() {
           </button>
         )}
       </div>
+      </div>
+      <AppFooter mode="flow" />
     </div>
   );
 }
