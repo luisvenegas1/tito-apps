@@ -29,4 +29,9 @@ export const apps: readonly TitoApp[] = [
     category: "health", status: "available", icon: "https://nutricoach.tito-apps.com/icon-192.png",
     url: "https://nutricoach.tito-apps.com/", featured: true,
   },
+  {
+    id: "bingo", name: "Bingo", shortDescription: "Organiza partidas de bingo con múltiples patrones y narración de números.",
+    category: "utilities", status: "available", icon: "https://bingo.tito-apps.com/favicon.svg",
+    url: "https://bingo.tito-apps.com/", isNew: true,
+  },
 ];
