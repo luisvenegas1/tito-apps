@@ -9,4 +9,9 @@ describe("filterApps", () => {
     expect(filterApps(apps, "salud", "all").map((app) => app.id)).toEqual(["nutricoach"]);
   });
   it("filtra por categoría", () => expect(filterApps(apps, "", "finance").map((app) => app.id)).toEqual(["splitpay", "moneytrack"]));
+  it("coloca las aplicaciones próximas al final", () => expect(filterApps(apps, "", "all").map((app) => app.id)).toEqual(["golpay", "splitpay", "nutricoach", "bingo", "moneytrack"]));
+  it("filtra por estado", () => {
+    expect(filterApps(apps, "", "all", "available").map((app) => app.id)).toEqual(["golpay", "splitpay", "nutricoach", "bingo"]);
+    expect(filterApps(apps, "", "all", "coming-soon").map((app) => app.id)).toEqual(["moneytrack"]);
+  });
 });
