@@ -26,6 +26,7 @@ export const apps: readonly TitoApp[] = [
   },
   {
     id: "nutricoach", name: "NutriCoach", shortDescription: "Controla tu alimentación y recibe recomendaciones personalizadas.",
-    category: "health", status: "coming-soon", icon: "/apps/nutricoach.svg", featured: true,
+    category: "health", status: "available", icon: "/apps/nutricoach.svg",
+    url: "https://nutricoach.tito-apps.com/", featured: true,
   },
 ];
