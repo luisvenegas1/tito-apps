@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Skeleton, EmptyState } from "@titoapps/ui";
 import { CalorieGauge } from "@/components/gauge/CalorieGauge";
@@ -6,26 +7,54 @@ import { useDashboard } from "./useDashboard";
 import { CoachTip } from "@/features/coach/CoachTip";
 import { QuickWater } from "@/features/health/QuickWater";
 import { MealIdeasCard } from "./MealIdeasCard";
+import { WelcomeTour, tourSeen } from "@/features/help/WelcomeTour";
+
+/** Barra superior del inicio con el ícono de ayuda que abre el mini-tour. */
+function HomeTopBar({ onHelp }: { onHelp: () => void }) {
+  return (
+    <div className="flex items-center justify-between px-1">
+      <span className="text-sm font-semibold text-slate-400">Inicio</span>
+      <button
+        onClick={onHelp}
+        aria-label="Ayuda"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg ring-1 ring-slate-200 active:scale-95"
+      >
+        ❓
+      </button>
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
+  const [tourOpen, setTourOpen] = useState(false);
+
+  // Mini-tour la primera vez (saltable). Después se abre desde el ícono ❓.
+  useEffect(() => {
+    if (!tourSeen()) setTourOpen(true);
+  }, []);
+
+  const tour = <WelcomeTour open={tourOpen} onClose={() => setTourOpen(false)} />;
 
   if (isLoading || !data) {
     return (
       <div className="space-y-4 p-4">
+        <HomeTopBar onHelp={() => setTourOpen(true)} />
         <Skeleton className="h-48 w-full" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
+        {tour}
       </div>
     );
   }
 
   if (!data.targets) {
     return (
-      <div className="p-4">
+      <div className="space-y-4 p-4">
+        <HomeTopBar onHelp={() => setTourOpen(true)} />
         <EmptyState
           title="Definí tu objetivo"
           description="Para calcular tus metas diarias, contanos qué querés lograr."
@@ -35,6 +64,7 @@ export function DashboardPage() {
             </Link>
           }
         />
+        {tour}
       </div>
     );
   }
@@ -43,6 +73,8 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 p-4">
+      <HomeTopBar onHelp={() => setTourOpen(true)} />
+      {tour}
       <section className="card flex flex-col items-center pt-6">
         <CalorieGauge consumed={consumed.kcal} target={targets.calorie_target} />
         <Link to="/log" className="mt-4 w-full">
