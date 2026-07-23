@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Input, Spinner } from "@titoapps/ui";
 import type { DetectedFoodItem } from "@/lib/ai/contracts";
 import { estimateMacros } from "./estimate";
+import { useDashboard } from "@/features/dashboard/useDashboard";
 
 type EditItem = DetectedFoodItem & { _dirty?: boolean };
 
@@ -37,6 +38,7 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
   const [removed, setRemoved] = useState<{ index: number; item: EditItem } | null>(null);
   const [calc, setCalc] = useState<Set<number>>(new Set());
   const [finalizing, setFinalizing] = useState(false);
+  const { data: dashboard } = useDashboard();
 
   const needsCalc = (it: EditItem) => !!it.name.trim() && (it.kcal === 0 || !!it._dirty);
 
@@ -121,6 +123,11 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
 
   const busy = isSaving || finalizing;
 
+  // Total de esta comida y cuánto te quedaría del día si la registrás.
+  const mealTotalKcal = Math.round(list.reduce((s, it) => s + (it.kcal || 0), 0));
+  const remainingKcal = dashboard?.remaining?.kcal ?? null;
+  const afterKcal = remainingKcal != null ? Math.round(remainingKcal - mealTotalKcal) : null;
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500">Revisá, corregí o quitá lo que haga falta:</p>
@@ -183,6 +190,31 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
       >
         + Agregar alimento
       </button>
+
+      {/* Total de la comida y cómo queda tu día */}
+      <div className="card space-y-1 bg-slate-50">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-600">Total de esta comida</span>
+          <span className="font-bold text-slate-900">{mealTotalKcal} kcal</span>
+        </div>
+        {remainingKcal != null && afterKcal != null && (
+          <>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Te quedan hoy</span>
+              <span className="text-slate-700">{Math.round(remainingKcal)} kcal</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Si la registrás, te quedarían</span>
+              <span className={afterKcal >= 0 ? "font-semibold text-green-700" : "font-semibold text-red-600"}>
+                {afterKcal} kcal
+              </span>
+            </div>
+            {afterKcal < 0 && (
+              <p className="text-xs text-amber-600">Te pasarías {Math.abs(afterKcal)} kcal de tu meta de hoy.</p>
+            )}
+          </>
+        )}
+      </div>
 
       <Button className="w-full" onClick={confirm} disabled={busy}>
         {finalizing ? "Calculando…" : isSaving ? "Guardando…" : "Confirmar y registrar"}

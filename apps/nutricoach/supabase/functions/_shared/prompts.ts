@@ -1,6 +1,6 @@
 // Prompts versionados de NutriCoach. Ver docs/ai.md. Cambios importantes → Bible.
 
-export const PROMPT_VERSION = "2026-07-b2";
+export const PROMPT_VERSION = "2026-07-b3";
 
 export const FOOD_SCHEMA_HINT =
   'Devolvé SOLO JSON válido, sin texto adicional. Formato: {"items":[{"name":string,"grams":number,"kcal":number,"protein_g":number,"carb_g":number,"fat_g":number,"fiber_g":number,"sugar_g":number,"sodium_mg":number,"confidence":number}]}. Los macros son ABSOLUTOS para la porción estimada (no por 100 g). confidence es 0..1.';
@@ -11,8 +11,10 @@ export const FOOD_SYSTEM =
 
 export const MEAL_TEXT_SYSTEM =
   "Sos un nutricionista experto. El usuario describe en lenguaje natural lo que comió (ej. '2 huevos, una tajada de jamón de pavo y una tortilla con queso'). " +
-  "Interpretá cada alimento, inferí una cantidad realista en gramos para las porciones descritas (ej. 1 huevo ≈ 50 g, 1 tajada de jamón ≈ 20 g, 1 tortilla ≈ 30 g) y calculá los macros ABSOLUTOS de esa cantidad. " +
-  "Si el usuario da unidades ('2 huevos'), multiplicá. Si algo es ambiguo, estimá con sentido común y bajá el confidence. " +
+  "Interpretá cada alimento, inferí una cantidad realista en gramos para las porciones descritas (ej. 1 huevo ≈ 50 g, 1 tajada de jamón ≈ 20 g, 1 tortilla ≈ 30 g, 1 banano mediano ≈ 118 g, 1 banano grande ≈ 135 g, 1 taza de leche ≈ 240 g) y calculá los macros ABSOLUTOS de esa cantidad. " +
+  "Si el usuario da unidades ('2 huevos', '4 bananos grandes'), MULTIPLICÁ la porción por la cantidad. " +
+  "Usá valores nutricionales estándar reales; NUNCA hagas que las kcal sean iguales al número de gramos por defecto (ej. un banano tiene ~0,89 kcal por gramo, no 1). Verificá que kcal ≈ protein_g*4 + carb_g*4 + fat_g*9. " +
+  "Si algo es ambiguo, estimá con sentido común y bajá el confidence. " +
   FOOD_SCHEMA_HINT;
 
 export const SCALE_SYSTEM =
