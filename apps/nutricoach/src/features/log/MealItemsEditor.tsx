@@ -4,7 +4,9 @@ import type { DetectedFoodItem } from "@/lib/ai/contracts";
 import { estimateMacros } from "./estimate";
 import { useDashboard } from "@/features/dashboard/useDashboard";
 
-type EditItem = DetectedFoodItem & { _dirty?: boolean };
+/** Macros por gramo — línea base estable para escalar sin volver a llamar a la IA. */
+type Per = { kcal: number; protein_g: number; carb_g: number; fat_g: number; fiber_g?: number; sugar_g?: number; sodium_mg?: number };
+type EditItem = DetectedFoodItem & { _dirty?: boolean; _per?: Per };
 
 const EMPTY: EditItem = {
   name: "",
@@ -16,6 +18,26 @@ const EMPTY: EditItem = {
   confidence: 1,
   _dirty: true,
 };
+
+/** Deriva los macros por gramo de un ítem ya estimado (grams>0 y kcal>0). */
+function perGram(it: EditItem): Per | undefined {
+  if (!(it.grams > 0) || !(it.kcal > 0)) return undefined;
+  const g = it.grams;
+  return {
+    kcal: it.kcal / g,
+    protein_g: it.protein_g / g,
+    carb_g: it.carb_g / g,
+    fat_g: it.fat_g / g,
+    fiber_g: it.fiber_g != null ? it.fiber_g / g : undefined,
+    sugar_g: it.sugar_g != null ? it.sugar_g / g : undefined,
+    sodium_mg: it.sodium_mg != null ? it.sodium_mg / g : undefined,
+  };
+}
+
+/** Guarda/actualiza la línea base por gramo del ítem. */
+function withPer(it: EditItem): EditItem {
+  return { ...it, _per: perGram(it) ?? it._per };
+}
 
 interface Props {
   initialItems: DetectedFoodItem[];
@@ -33,38 +55,62 @@ interface Props {
  */
 export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, backLabel }: Props) {
   const [list, setList] = useState<EditItem[]>(
-    initialItems.length ? initialItems.map((it) => ({ ...it })) : [{ ...EMPTY }],
+    initialItems.length ? initialItems.map((it) => withPer({ ...it })) : [{ ...EMPTY }],
   );
   const [removed, setRemoved] = useState<{ index: number; item: EditItem } | null>(null);
   const [calc, setCalc] = useState<Set<number>>(new Set());
   const [finalizing, setFinalizing] = useState(false);
+  // Texto en curso del campo de gramos (permite dejarlo vacío sin forzar un 0).
+  const [gramsText, setGramsText] = useState<Record<number, string>>({});
   const { data: dashboard } = useDashboard();
 
   const needsCalc = (it: EditItem) => !!it.name.trim() && (it.kcal === 0 || !!it._dirty);
 
+  // Cambiar el NOMBRE invalida la línea base (es otro alimento) → recalcular con IA.
   const setName = (i: number, name: string) =>
-    setList((prev) => prev.map((it, idx) => (idx === i ? { ...it, name, _dirty: true } : it)));
+    setList((prev) => prev.map((it, idx) => (idx === i ? { ...it, name, _per: undefined, _dirty: true } : it)));
 
+  // Cambiar los GRAMOS escala proporcionalmente desde la línea base — sin llamar a la IA.
   const setGrams = (i: number, grams: number) =>
     setList((prev) =>
       prev.map((it, idx) => {
         if (idx !== i) return it;
-        if (it.kcal > 0) {
-          const f = grams / (it.grams || 1);
+        const per = it._per;
+        if (per && grams > 0) {
           return {
             ...it,
             grams,
-            kcal: Math.round(it.kcal * f),
-            protein_g: +(it.protein_g * f).toFixed(1),
-            carb_g: +(it.carb_g * f).toFixed(1),
-            fat_g: +(it.fat_g * f).toFixed(1),
+            kcal: Math.round(per.kcal * grams),
+            protein_g: +(per.protein_g * grams).toFixed(1),
+            carb_g: +(per.carb_g * grams).toFixed(1),
+            fat_g: +(per.fat_g * grams).toFixed(1),
+            fiber_g: per.fiber_g != null ? +(per.fiber_g * grams).toFixed(1) : it.fiber_g,
+            sugar_g: per.sugar_g != null ? +(per.sugar_g * grams).toFixed(1) : it.sugar_g,
+            sodium_mg: per.sodium_mg != null ? Math.round(per.sodium_mg * grams) : it.sodium_mg,
+            _dirty: false,
           };
         }
+        // Sin línea base todavía (alimento nuevo o sin estimar): marcá para IA.
         return { ...it, grams, _dirty: true };
       }),
     );
 
+  // Escribir en el campo de gramos: dejamos el texto tal cual; solo recalculamos
+  // cuando hay un número válido > 0 (así borrar no fuerza un 0 ni borra las kcal).
+  const onGramsChange = (i: number, raw: string) => {
+    setGramsText((prev) => ({ ...prev, [i]: raw }));
+    const n = Number(raw);
+    if (raw.trim() !== "" && Number.isFinite(n) && n > 0) setGrams(i, n);
+  };
+  const onGramsBlur = (i: number) =>
+    setGramsText((prev) => {
+      const c = { ...prev };
+      delete c[i]; // vuelve a mostrar el valor real del ítem
+      return c;
+    });
+
   const remove = (i: number) => {
+    setGramsText({});
     setList((prev) => {
       setRemoved({ index: i, item: prev[i] });
       return prev.filter((_, idx) => idx !== i);
@@ -73,6 +119,7 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
 
   const undo = () => {
     if (!removed) return;
+    setGramsText({});
     setList((prev) => {
       const copy = [...prev];
       copy.splice(Math.min(removed.index, copy.length), 0, removed.item);
@@ -83,6 +130,7 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
 
   const addItem = () => {
     setRemoved(null);
+    setGramsText({});
     setList((prev) => [...prev, { ...EMPTY }]);
   };
 
@@ -92,7 +140,7 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
     setCalc((prev) => new Set(prev).add(i));
     try {
       const m = await estimateMacros(it.name, it.grams);
-      setList((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...m, _dirty: false } : x)));
+      setList((prev) => prev.map((x, idx) => (idx === i ? withPer({ ...x, ...m, _dirty: false }) : x)));
     } finally {
       setCalc((prev) => {
         const n = new Set(prev);
@@ -112,7 +160,7 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
         if (!it.name.trim() || it.grams <= 0) continue;
         if (it.kcal === 0 || it._dirty) {
           const m = await estimateMacros(it.name, it.grams);
-          next[i] = { ...it, ...m, _dirty: false };
+          next[i] = withPer({ ...it, ...m, _dirty: false });
         }
       }
       onConfirm(next.filter((it) => it.name.trim() && it.grams > 0));
@@ -161,8 +209,10 @@ export function MealItemsEditor({ initialItems, isSaving, onConfirm, onBack, bac
           <div className="mt-2 flex items-center gap-2">
             <Input
               type="number"
-              value={it.grams}
-              onChange={(e) => setGrams(i, Number(e.target.value))}
+              inputMode="numeric"
+              value={gramsText[i] ?? String(it.grams)}
+              onChange={(e) => onGramsChange(i, e.target.value)}
+              onBlur={() => onGramsBlur(i)}
               className="w-24"
             />
             <span className="text-sm text-slate-400">g · {it.kcal} kcal</span>
