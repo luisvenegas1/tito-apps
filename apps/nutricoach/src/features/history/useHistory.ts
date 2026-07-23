@@ -10,6 +10,7 @@ import {
 import { fetchDayTotals, type DayTotal } from "./api";
 import { listWeights } from "@/features/health/api";
 import { getActiveGoal } from "@/features/goals/api";
+import { todayISO } from "@/lib/date";
 
 export interface HistoryData {
   days: DayTotal[]; // 30 días, del más antiguo al más reciente
@@ -37,7 +38,7 @@ export function useHistory() {
       ]);
 
       const weights = [...weightLogs]
-        .map((w) => ({ date: w.logged_at.slice(0, 10), kg: w.weight_kg }))
+        .map((w) => ({ date: todayISO(new Date(w.logged_at)), kg: w.weight_kg }))
         .reverse(); // cronológico
 
       const targets: DailyTargets | null = goal

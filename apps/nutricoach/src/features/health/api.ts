@@ -2,6 +2,17 @@ import { supabase } from "@/lib/supabase/client";
 import type { WeightLog, Workout, WorkoutSource } from "@/lib/supabase/types";
 import type { NormalizedWorkout } from "@titoapps/health";
 
+/**
+ * Rango [inicio, fin) del día LOCAL en UTC (ISO), para filtrar columnas
+ * timestamptz correctamente sin importar la zona horaria del usuario.
+ * `new Date("YYYY-MM-DDT00:00:00")` (sin Z) se interpreta en hora local.
+ */
+function localDayRangeUTC(dateISO: string): { start: string; end: string } {
+  const start = new Date(`${dateISO}T00:00:00`);
+  const end = new Date(start.getTime() + 86_400_000);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 // ---- Agua ----
 export async function addWater(userId: string, ml: number): Promise<void> {
   const { error } = await supabase.from("water_logs").insert({ user_id: userId, ml });
@@ -9,12 +20,13 @@ export async function addWater(userId: string, ml: number): Promise<void> {
 }
 
 export async function getWaterTotal(userId: string, dateISO: string): Promise<number> {
+  const { start, end } = localDayRangeUTC(dateISO);
   const { data, error } = await supabase
     .from("water_logs")
     .select("ml, logged_at")
     .eq("user_id", userId)
-    .gte("logged_at", `${dateISO}T00:00:00`)
-    .lte("logged_at", `${dateISO}T23:59:59`);
+    .gte("logged_at", start)
+    .lt("logged_at", end);
   if (error) throw new Error(error.message);
   return (data ?? []).reduce((s, r) => s + (r.ml as number), 0);
 }
@@ -72,12 +84,13 @@ export async function addWorkout(userId: string, w: NewWorkout): Promise<void> {
 }
 
 export async function getBurnedTotal(userId: string, dateISO: string): Promise<number> {
+  const { start, end } = localDayRangeUTC(dateISO);
   const { data, error } = await supabase
     .from("workouts")
     .select("kcal_burned, performed_at")
     .eq("user_id", userId)
-    .gte("performed_at", `${dateISO}T00:00:00`)
-    .lte("performed_at", `${dateISO}T23:59:59`);
+    .gte("performed_at", start)
+    .lt("performed_at", end);
   if (error) throw new Error(error.message);
   return (data ?? []).reduce((s, r) => s + (r.kcal_burned as number), 0);
 }

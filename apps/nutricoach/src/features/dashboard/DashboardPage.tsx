@@ -111,9 +111,16 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      {remaining && <MealIdeasCard remaining={remaining} />}
-
       <QuickWater />
+
+      {remaining && (
+        <p className="px-1 text-center text-sm text-slate-500">
+          Te faltan <b className="text-slate-700">{Math.max(0, Math.round(remaining.kcal))} kcal</b> y{" "}
+          <b className="text-slate-700">{Math.max(0, Math.round(remaining.protein_g))} g</b> de proteína hoy.
+        </p>
+      )}
+
+      {remaining && <MealIdeasCard remaining={remaining} />}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="card">
@@ -125,13 +132,6 @@ export function DashboardPage() {
           <div className="metric-value mt-1">{targetWeightKg != null ? `${targetWeightKg} kg` : "—"}</div>
         </div>
       </div>
-
-      {remaining && (
-        <p className="px-1 text-center text-sm text-slate-500">
-          Te faltan <b className="text-slate-700">{Math.max(0, Math.round(remaining.kcal))} kcal</b> y{" "}
-          <b className="text-slate-700">{Math.max(0, Math.round(remaining.protein_g))} g</b> de proteína hoy.
-        </p>
-      )}
     </div>
   );
 }
