@@ -12,6 +12,8 @@ import type {
   CoachResponse,
   MealPlanRequest,
   MealPlanResponse,
+  ClassifyActivityRequest,
+  ClassifyActivityResponse,
 } from "./contracts";
 
 /**
@@ -39,4 +41,6 @@ export const ai = {
     invoke<AnalyzeLabelRequest, AnalyzeLabelResponse>("analyze-label", req),
   coach: (req: CoachRequest) => invoke<CoachRequest, CoachResponse>("coach", req),
   mealPlan: (req: MealPlanRequest) => invoke<MealPlanRequest, MealPlanResponse>("meal-plan", req),
+  classifyActivity: (req: ClassifyActivityRequest) =>
+    invoke<ClassifyActivityRequest, ClassifyActivityResponse>("classify-activity", req),
 };

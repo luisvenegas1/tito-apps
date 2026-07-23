@@ -8,8 +8,10 @@ import {
   LABEL_SYSTEM,
   COACH_SYSTEM,
   PLAN_SYSTEM,
+  ACTIVITY_SYSTEM,
   coachUserBlock,
   planUserBlock,
+  activityUserBlock,
 } from "./prompts.ts";
 
 const API = "https://api.openai.com/v1/chat/completions";
@@ -123,5 +125,15 @@ export class OpenAIProvider implements AIProvider {
     const txt = await this.chat(PLAN_SYSTEM, planUserBlock(input));
     const p = extractJson<{ plan?: PlanDay[] }>(txt);
     return { plan: p.plan ?? [] };
+  }
+
+  async classifyActivity(answers: Record<string, unknown>) {
+    const txt = await this.chat(ACTIVITY_SYSTEM, activityUserBlock(answers));
+    const p = extractJson<{ activity?: string; reason?: string; confidence?: number }>(txt);
+    return {
+      activity: String(p.activity ?? "moderate"),
+      reason: String(p.reason ?? ""),
+      confidence: Math.min(1, num(p.confidence)),
+    };
   }
 }

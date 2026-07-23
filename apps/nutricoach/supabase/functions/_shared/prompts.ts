@@ -37,6 +37,25 @@ export const PLAN_SYSTEM =
   'Devolvé SOLO JSON: {"plan":[{"label":string,"meals":[{"meal":"breakfast"|"lunch"|"dinner"|"snack","title":string,"kcal":number,"protein_g":number}]}]}. ' +
   "La suma de kcal de cada día debe acercarse a la meta calórica. Sin dietas extremas ni lenguaje de culpa.";
 
+export const ACTIVITY_SYSTEM =
+  "Sos un fisiólogo del ejercicio. A partir de las respuestas del usuario sobre su semana " +
+  "(entrenamientos de fuerza/cardio, otros deportes como fútbol o correr, y cuánto tiempo pasa " +
+  "sentado en el día) determinás su NIVEL DE ACTIVIDAD para el cálculo de calorías, usando los " +
+  "factores estándar sobre el metabolismo basal: " +
+  "sedentary=1.2 (poco o nada de ejercicio, mayormente sentado), " +
+  "light=1.375 (ejercicio ligero 1-3 días/semana), " +
+  "moderate=1.55 (ejercicio moderado 3-5 días/semana), " +
+  "active=1.725 (ejercicio intenso 6-7 días/semana), " +
+  "very_active=1.9 (muy intenso, dos sesiones al día o trabajo físico + entrenamiento). " +
+  "Contá TODAS las horas de actividad de la semana (gimnasio + deportes). Si entrena fuerza varios " +
+  "días Y además juega o corre, subí de nivel. Sé realista y no exageres. " +
+  'Devolvé SOLO JSON: {"activity":"sedentary"|"light"|"moderate"|"active"|"very_active","reason":string,"confidence":number}. ' +
+  "reason en español, 1-2 frases, explicando por qué ese nivel (mencionando sus horas/semana). confidence es 0..1.";
+
+export function activityUserBlock(answers: Record<string, unknown>): string {
+  return `Respuestas del usuario: ${JSON.stringify(answers)}. Clasificá su nivel de actividad.`;
+}
+
 export function planUserBlock(input: {
   goalType: string;
   targets: { calorie_target: number; protein_g: number; carb_g: number; fat_g: number };

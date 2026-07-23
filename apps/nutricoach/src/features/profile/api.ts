@@ -21,7 +21,17 @@ export async function getOrCreateProfile(userId: string): Promise<Profile> {
 }
 
 export type ProfilePatch = Partial<
-  Pick<Profile, "display_name" | "sex" | "birth_date" | "height_cm" | "activity_level" | "units">
+  Pick<
+    Profile,
+    | "display_name"
+    | "sex"
+    | "birth_date"
+    | "height_cm"
+    | "activity_level"
+    | "activity_answers"
+    | "activity_reviewed_at"
+    | "units"
+  >
 >;
 
 export async function updateProfile(userId: string, patch: ProfilePatch): Promise<Profile> {

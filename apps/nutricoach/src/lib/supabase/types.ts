@@ -40,6 +40,8 @@ export interface Profile {
   birth_date: string | null; // ISO date
   height_cm: number | null;
   activity_level: ActivityLevel | null;
+  activity_answers: Record<string, unknown> | null;
+  activity_reviewed_at: string | null; // ISO timestamp
   units: Units;
   created_at: string;
   updated_at: string;

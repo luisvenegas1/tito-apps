@@ -8,6 +8,7 @@ import { CoachTip } from "@/features/coach/CoachTip";
 import { QuickWater } from "@/features/health/QuickWater";
 import { MealIdeasCard } from "./MealIdeasCard";
 import { WelcomeTour, tourSeen } from "@/features/help/WelcomeTour";
+import { ActivityReviewModal } from "@/features/goals/ActivityReviewModal";
 
 /** Barra superior del inicio con el ícono de ayuda que lleva a la sección de Ayuda. */
 function HomeTopBar() {
@@ -75,6 +76,7 @@ export function DashboardPage() {
     <div className="space-y-5 p-4">
       <HomeTopBar />
       {tour}
+      <ActivityReviewModal />
       <section className="card flex flex-col items-center pt-6">
         <CalorieGauge consumed={consumed.kcal} target={targets.calorie_target} />
         <Link to="/log" className="mt-4 w-full">

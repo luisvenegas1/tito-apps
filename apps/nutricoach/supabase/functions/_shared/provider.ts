@@ -49,6 +49,7 @@ export interface AIProvider {
     days?: number;
     preferences?: string;
   }): Promise<{ plan: PlanDay[] }>;
+  classifyActivity(answers: Record<string, unknown>): Promise<{ activity: string; reason: string; confidence: number }>;
 }
 
 export interface PlanMeal {
@@ -124,6 +125,19 @@ export const stubProvider: AIProvider = {
     const names = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     const plan = days === 1 ? [mkDay("Hoy")] : names.slice(0, days).map((n) => mkDay(n));
     return { plan };
+  },
+  async classifyActivity(answers) {
+    // Heurística determinista de respaldo (sin clave de IA).
+    const days = Number(answers.trainingDays ?? 0);
+    const move = String(answers.dailyMovement ?? "mixed");
+    const order = ["sedentary", "light", "moderate", "active", "very_active"];
+    let idx = days >= 6 ? 3 : days >= 3 ? 2 : days >= 1 ? 1 : 0;
+    if (move === "onfeet") idx = Math.min(idx + 1, order.length - 1);
+    return {
+      activity: order[idx],
+      reason: `Estimación local: ${days} día(s) de entrenamiento por semana${move === "onfeet" ? " y trabajo mayormente de pie" : ""}.`,
+      confidence: 0.6,
+    };
   },
 };
 

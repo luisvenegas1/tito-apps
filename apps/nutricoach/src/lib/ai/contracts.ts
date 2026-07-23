@@ -95,3 +95,20 @@ export interface MealPlanRequest {
 export interface MealPlanResponse {
   plan: PlanDay[];
 }
+
+/** classify-activity — determina el nivel de actividad a partir de un cuestionario. */
+export interface ActivityAnswers {
+  trainingDays: number; // días/semana de entrenamiento (gym/fuerza/cardio)
+  trainingType: "strength" | "cardio" | "both" | "none";
+  trainingMinutes: number; // minutos por sesión
+  otherSports: string; // texto libre: "fútbol 2 veces, correr 1 vez"
+  dailyMovement: "sitting" | "mixed" | "onfeet"; // el día normal
+}
+export interface ClassifyActivityRequest {
+  answers: ActivityAnswers;
+}
+export interface ClassifyActivityResponse {
+  activity: "sedentary" | "light" | "moderate" | "active" | "very_active";
+  reason: string;
+  confidence: number;
+}
