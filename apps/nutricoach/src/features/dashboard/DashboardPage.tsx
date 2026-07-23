@@ -9,18 +9,18 @@ import { QuickWater } from "@/features/health/QuickWater";
 import { MealIdeasCard } from "./MealIdeasCard";
 import { WelcomeTour, tourSeen } from "@/features/help/WelcomeTour";
 
-/** Barra superior del inicio con el ícono de ayuda que abre el mini-tour. */
-function HomeTopBar({ onHelp }: { onHelp: () => void }) {
+/** Barra superior del inicio con el ícono de ayuda que lleva a la sección de Ayuda. */
+function HomeTopBar() {
   return (
     <div className="flex items-center justify-between px-1">
       <span className="text-sm font-semibold text-slate-400">Inicio</span>
-      <button
-        onClick={onHelp}
+      <Link
+        to="/help"
         aria-label="Ayuda"
         className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg ring-1 ring-slate-200 active:scale-95"
       >
         ❓
-      </button>
+      </Link>
     </div>
   );
 }
@@ -39,7 +39,7 @@ export function DashboardPage() {
   if (isLoading || !data) {
     return (
       <div className="space-y-4 p-4">
-        <HomeTopBar onHelp={() => setTourOpen(true)} />
+        <HomeTopBar />
         <Skeleton className="h-48 w-full" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -54,7 +54,7 @@ export function DashboardPage() {
   if (!data.targets) {
     return (
       <div className="space-y-4 p-4">
-        <HomeTopBar onHelp={() => setTourOpen(true)} />
+        <HomeTopBar />
         <EmptyState
           title="Definí tu objetivo"
           description="Para calcular tus metas diarias, contanos qué querés lograr."
@@ -73,7 +73,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 p-4">
-      <HomeTopBar onHelp={() => setTourOpen(true)} />
+      <HomeTopBar />
       {tour}
       <section className="card flex flex-col items-center pt-6">
         <CalorieGauge consumed={consumed.kcal} target={targets.calorie_target} />

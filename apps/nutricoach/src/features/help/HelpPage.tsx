@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PageHeader } from "@titoapps/ui";
+import { PageHeader, Button } from "@titoapps/ui";
+import { WelcomeTour } from "./WelcomeTour";
 
 interface Item {
   q: string;
@@ -17,202 +18,237 @@ interface Section {
 const SECTIONS: Section[] = [
   {
     icon: "📊",
-    title: "Tu tablero (Inicio)",
-    intro: "Es lo primero que ves. De un vistazo sabés cómo vas hoy.",
+    title: "La pantalla de inicio",
+    intro: "Es lo primero que ves al abrir la app. Con un vistazo sabés cómo vas hoy.",
     items: [
       {
-        q: "El velocímetro de calorías",
+        q: "El círculo grande (velocímetro)",
         desc:
-          "Arranca en verde y la aguja avanza a amarillo, naranja y rojo según cuánto consumiste respecto a tu meta. En el centro ves las calorías consumidas, tu meta y las que te quedan.",
+          "Es el resumen de tu día. Empieza en verde y se va llenando conforme comés; si se pone naranja o rojo es que ya casi llegaste (o pasaste) tu meta. En el centro ves: las calorías que llevás, tu meta del día y cuántas te quedan.",
       },
       {
-        q: "Tarjetas de macros",
+        q: "Las tarjetas de abajo",
         desc:
-          "Debajo ves proteína, carbohidratos, grasa, fibra, azúcar, sodio, agua, calorías quemadas, tu peso y tu objetivo. Cada barra muestra cuánto llevás de la meta.",
+          "Muestran proteína, carbohidratos, grasa, agua, etc., y cuánto llevás de cada una. No hace falta entenderlas todas: mirá sobre todo las calorías y la proteína.",
+      },
+      {
+        q: "El botón verde grande (+)",
+        desc: "Está siempre abajo, en el centro. Es para anotar lo que comés.",
+      },
+      {
+        q: "El signo de pregunta (?)",
+        desc: "Arriba a la derecha. Te trae a esta pantalla de Ayuda cuando la necesites.",
       },
     ],
   },
   {
     icon: "🍽️",
-    title: "Registrar comida (7 formas)",
-    intro: "Tocá el botón verde + del centro (o “Registrar comida”) y elegí el método más rápido para vos.",
+    title: "Anotar lo que comés (7 maneras)",
+    intro: "Tocá el botón verde + de abajo. Se abren varias opciones; elegí la que te resulte más fácil.",
     items: [
       {
-        q: "📷 Foto (con IA)",
+        q: "📷 Con una foto",
         steps: [
           "Tocá “Foto”.",
-          "Tomá o subí una foto del plato.",
-          "La IA detecta los alimentos y estima las cantidades.",
-          "Revisá, corregí lo que haga falta y confirmá.",
+          "Tomá una foto del plato (o elegí una de tu galería).",
+          "Esperá unos segundos: la app reconoce los alimentos y calcula las calorías.",
+          "Si algo no está bien, tocalo y corregilo.",
+          "Tocá “Confirmar y registrar”.",
         ],
       },
       {
-        q: "✍️ Escribir (con IA)",
+        q: "✍️ Escribiéndolo",
         steps: [
           "Tocá “Escribir”.",
-          "Describí lo que comiste, ej: “2 huevos, una tajada de jamón de pavo y una tortilla con queso”.",
-          "La IA calcula calorías y macros de cada cosa.",
-          "Ajustá si querés y confirmá.",
+          "Escribí con tus palabras lo que comiste, por ejemplo: “2 huevos y una tortilla con queso”.",
+          "Tocá “Calcular calorías”.",
+          "Revisá que esté bien y tocá “Confirmar y registrar”.",
         ],
       },
       {
-        q: "⚖️ Balanza",
+        q: "⚖️ Con una balanza (peso exacto)",
         steps: [
-          "Tocá “Balanza”.",
-          "Tomá una foto del alimento sobre la balanza.",
-          "La IA identifica el alimento y lee el peso.",
-          "Si el peso no salió bien, corregilo, y registrá.",
+          "Poné el alimento sobre la balanza.",
+          "Tocá “Balanza” y tomá la foto.",
+          "La app reconoce el alimento y lee el peso.",
+          "Si el peso no salió bien, escribilo a mano.",
+          "Tocá “Confirmar y registrar”.",
         ],
       },
       {
-        q: "📶 Código de barras",
+        q: "📶 Escaneando el código de barras",
         steps: [
           "Tocá “Código de barras”. Se abre la cámara.",
-          "Apuntá al código: se lee solo y busca el producto.",
-          "Poné los gramos que comiste y registrá.",
-          "¿No prende la cámara? Escribí el número del código a mano.",
+          "Apuntá al código de barras del producto (las rayitas).",
+          "Cuando lo lee, aparece el producto solo.",
+          "Escribí cuántos gramos comiste y tocá “Registrar”.",
+          "Si la cámara no funciona, escribí los números del código a mano.",
         ],
       },
       {
-        q: "🏷️ Etiqueta nutricional",
+        q: "🏷️ Con la etiqueta del producto",
         steps: [
           "Tocá “Etiqueta”.",
-          "Tomá una foto de la tabla nutricional del empaque.",
-          "La IA lee los valores por 100 g.",
-          "Indicá los gramos consumidos y registrá.",
+          "Tomá una foto de la tabla de información nutricional (los números del paquete).",
+          "Escribí cuántos gramos comiste.",
+          "Tocá “Confirmar y registrar”.",
         ],
       },
       {
-        q: "🔍 Buscar / ✏️ Personalizado",
+        q: "🔍 Buscar / ✏️ Crear a mano",
         desc:
-          "“Buscar” encuentra alimentos que ya usaste. “Personalizado” te deja crear uno poniendo sus valores por 100 g (ideal si ya los sabés).",
+          "“Buscar” encuentra algo que ya anotaste antes. “Personalizado” te deja crear un alimento nuevo escribiendo sus valores (ideal si ya los sabés).",
       },
       {
-        q: "⭐ Frecuentes (un toque)",
+        q: "⭐ Tus comidas frecuentes",
         desc:
-          "Lo que registrás seguido aparece como botón arriba del hub para agregarlo en un solo toque, sin volver a cargarlo.",
+          "Lo que anotás seguido aparece arriba como un botón. Tocalo una vez y queda anotado, sin repetir todo de nuevo.",
       },
       {
-        q: "Corregir la lista antes de guardar",
+        q: "¿Me equivoqué al anotar?",
         desc:
-          "Podés editar el nombre y la cantidad, quitar un alimento (con botón de Deshacer por si fue sin querer) o agregar uno nuevo. Si cambiás un nombre o agregás algo, las calorías se recalculan solas.",
+          "Antes de guardar podés cambiar el nombre o la cantidad, borrar algo (sale un botón “Deshacer” por si fue sin querer) o agregar otro alimento. Si cambiás algo, las calorías se calculan de nuevo solas.",
+      },
+    ],
+  },
+  {
+    icon: "💧",
+    title: "Anotar el agua",
+    items: [
+      {
+        q: "Cómo anotar lo que tomaste",
+        desc:
+          "En la pantalla de inicio buscá “Agregar agua” y tocá +250, +500 o +750 ml según lo que tomaste. La tarjeta de agua sube al toque.",
       },
     ],
   },
   {
     icon: "💬",
-    title: "Coach con IA",
+    title: "Hablar con el Coach (la IA)",
     items: [
       {
-        q: "Hablar con el coach",
+        q: "Cómo preguntarle",
         steps: [
           "Tocá “Coach” en la barra de abajo.",
-          "Escribí lo que quieras: “¿Qué ceno?”, “¿Puedo comer pizza hoy?”, “¿Qué me falta consumir?”.",
-          "Responde teniendo en cuenta tu día (lo que llevás y lo que te falta).",
+          "Escribí tu pregunta, como “¿Qué puedo cenar?” o “¿Puedo comer un postre hoy?”.",
+          "Te responde teniendo en cuenta lo que ya comiste hoy.",
         ],
-        desc: "Es un asistente informativo con IA: puede equivocarse y no reemplaza a un profesional de la salud.",
       },
       {
-        q: "Consejo del día",
-        desc: "En el Inicio aparece una recomendación breve del coach según cómo venís ese día.",
+        q: "Importante",
+        desc:
+          "Es una ayuda informativa hecha con inteligencia artificial: puede equivocarse. Ante dudas de salud, consultá a tu médico o nutricionista.",
       },
     ],
   },
   {
     icon: "💡",
-    title: "Ideas de comida",
+    title: "Ideas para cerrar el día",
     items: [
       {
-        q: "Qué comer para cerrar el día",
+        q: "Qué son",
         desc:
-          "En el Inicio, si te falta para la meta (por ejemplo proteína o calorías), NutriCoach te sugiere opciones que encajan y las registrás en un toque.",
+          "En el inicio, si te falta comer algo para llegar a tu meta (por ejemplo proteína o calorías), la app te sugiere opciones que encajan y las anotás con un solo toque.",
       },
     ],
   },
   {
     icon: "🎯",
-    title: "Objetivos y metas",
+    title: "Tu objetivo y tus metas",
     items: [
       {
-        q: "Definir tu objetivo",
+        q: "Configurar tu objetivo",
         steps: [
-          "Andá a Perfil → “Editar objetivo y metas”.",
-          "Elegí qué querés: bajar grasa, ganar músculo, mantener, déficit, volumen o personalizado.",
-          "Completá sexo, edad, altura, peso y nivel de actividad.",
-          "La app calcula tus calorías y macros diarios automáticamente.",
+          "Andá a “Perfil” (abajo a la derecha).",
+          "Tocá “Editar objetivo y metas”.",
+          "Elegí qué querés lograr (bajar grasa, mantenerte, ganar músculo, etc.).",
+          "Completá tus datos: sexo, edad, altura, peso y qué tan activa sos.",
+          "La app calcula tus calorías y tu proteína del día. Podés cambiarlo cuando quieras.",
         ],
       },
     ],
   },
   {
     icon: "📈",
-    title: "Historial y progreso",
+    title: "Ver tu progreso",
     items: [
       {
-        q: "Ver tus tendencias",
+        q: "El historial",
         steps: [
           "Tocá “Historial” en la barra de abajo.",
-          "Cambiá entre Hoy / Semana / Mes.",
-          "Vas a ver calorías por día vs tu meta, la tendencia de tu peso, tu adherencia (% de días en meta) y tu racha.",
+          "Elegí “Hoy”, “Semana” o “Mes”.",
+          "Vas a ver tus calorías por día, cómo cambia tu peso y qué tan seguido cumpliste tu meta.",
         ],
-      },
-      {
-        q: "Mantenimiento adaptativo",
-        desc:
-          "Con el tiempo, la app estima tu gasto real (cuántas calorías “quemás” de verdad) cruzando lo que comés con cómo cambia tu peso. Necesita algunos días de registro y al menos dos pesos.",
       },
     ],
   },
   {
-    icon: "🏋️",
-    title: "Entrenamientos y dispositivos",
+    icon: "⌚",
+    title: "Conectar un reloj o pulsera (wearable)",
+    intro:
+      "Si tenés un reloj o pulsera inteligente (Amazfit, Apple Watch, Fitbit, Garmin…), podés conectarlo para que tus entrenamientos y las calorías que quemás se anoten SOLOS, sin escribir nada.",
     items: [
       {
-        q: "Registrar actividad",
+        q: "¿Para qué sirve?",
+        desc:
+          "Cada vez que hacés ejercicio con tu reloj, esas calorías quemadas entran a NutriCoach automáticamente y se suman a tu día. Así tu meta se ajusta a lo que realmente gastaste.",
+      },
+      {
+        q: "Amazfit o Apple Watch",
+        steps: [
+          "Estos relojes se conectan a través de una app gratis llamada Strava.",
+          "En la app de tu reloj (Zepp para Amazfit, o la app Salud del iPhone para Apple Watch), conectá con Strava.",
+          "En NutriCoach: Perfil → “Entrenamientos” → “Conectar dispositivo”.",
+          "Elegí Strava y autorizá. Adentro hay una guía con dibujos paso a paso.",
+        ],
+      },
+      {
+        q: "Fitbit",
+        desc: "Fitbit se conecta directo desde la misma pantalla “Conectar dispositivo”.",
+      },
+      {
+        q: "Anotar un entrenamiento a mano",
         steps: [
           "Perfil → “Entrenamientos”.",
-          "Elegí el tipo (correr, pesas, etc.) y la duración.",
-          "Estima las calorías quemadas por tu peso; podés ajustarlas.",
+          "Elegí la actividad (caminar, correr, pesas…) y cuántos minutos.",
+          "La app calcula las calorías quemadas por vos; podés ajustarlas.",
         ],
-      },
-      {
-        q: "Conectar reloj / pulsera",
-        desc:
-          "En “Conectar dispositivo”. Amazfit y Apple Watch se conectan a través de Strava; Fitbit directo. Hay una guía paso a paso con ilustraciones.",
       },
     ],
   },
   {
-    icon: "💧🔔",
-    title: "Agua y recordatorios",
+    icon: "🔔",
+    title: "Recordatorios (avisos)",
     items: [
       {
-        q: "Registrar agua",
-        desc: "En el Inicio, tocá +250, +500 o +750 ml. La tarjeta de agua se actualiza al toque.",
+        q: "Para qué sirven",
+        desc:
+          "Que la app te avise algo a la hora que elijas, por ejemplo: “te falta tomar agua para tu meta de hoy”.",
       },
       {
-        q: "Recordatorios",
+        q: "Cómo activarlos",
         steps: [
           "Perfil → “Recordatorios”.",
-          "Activalos y aceptá el permiso de notificaciones.",
-          "Elegí la hora y qué recordar (agua, proteína o calorías).",
-          "A esa hora te avisa lo que te falta. Con la app instalada, llegan aunque esté cerrada.",
+          "Tocá “Activar recordatorios” y aceptá el permiso que pide el teléfono.",
+          "Elegí la hora y qué querés que te recuerde (agua, proteína o calorías).",
+          "Para que te lleguen con la app cerrada, conviene instalar la app (ver abajo).",
         ],
       },
     ],
   },
   {
-    icon: "⬇️📲",
-    title: "Exportar e instalar",
+    icon: "📲",
+    title: "Instalar la app en el teléfono",
     items: [
       {
-        q: "Exportar tus datos",
-        desc: "Perfil → “Exportar mis datos”: descargás todo tu historial en CSV o JSON. Tus datos son tuyos.",
+        q: "Para qué",
+        desc:
+          "Queda como una app normal en tu pantalla de inicio, se abre más rápido y recibe los recordatorios aunque no la tengas abierta.",
       },
       {
-        q: "Instalar la app en el celular",
+        q: "Cómo instalarla",
         desc:
-          "En el pie de página tocá “📲 Instalar app” y seguí los pasos para iPhone o Android. Instalada funciona como app nativa y recibe recordatorios.",
+          "En el pie de la pantalla tocá “📲 Instalar app” y seguí los pasos. Te muestra las instrucciones para iPhone o para Android según tu teléfono.",
       },
     ],
   },
@@ -221,9 +257,18 @@ const SECTIONS: Section[] = [
     title: "Tu cuenta",
     items: [
       {
-        q: "Entrar y datos",
+        q: "Entrar",
         desc:
-          "Podés entrar con tu correo o tu usuario. En Perfil cambiás tu nombre, usuario y contraseña, y elegís unidades (kg o lb).",
+          "Podés entrar con tu correo o con tu nombre de usuario, y tu contraseña. Para ver la contraseña mientras la escribís, tocá el ojito 👁️.",
+      },
+      {
+        q: "Cambiar tus datos",
+        desc:
+          "En Perfil podés cambiar tu nombre, tu usuario y tu contraseña, y elegir si usás kilos o libras.",
+      },
+      {
+        q: "Descargar tus datos",
+        desc: "En Perfil → “Exportar mis datos” bajás todo tu historial en un archivo. Tus datos son tuyos.",
       },
     ],
   },
@@ -255,7 +300,7 @@ function Accordion({ section }: { section: Section }) {
                   ))}
                 </ol>
               )}
-              {it.desc && <p className="mt-1 text-sm text-slate-500">{it.desc}</p>}
+              {it.desc && <p className="mt-1 text-sm leading-relaxed text-slate-500">{it.desc}</p>}
             </div>
           ))}
         </div>
@@ -265,12 +310,18 @@ function Accordion({ section }: { section: Section }) {
 }
 
 export function HelpPage() {
+  const [tourOpen, setTourOpen] = useState(false);
+
   return (
     <div className="p-4">
       <PageHeader title="Ayuda" subtitle="Cómo usar NutriCoach" />
       <p className="mt-3 text-sm text-slate-500">
-        Tocá cada tema para ver los pasos. Si algo no te queda claro, preguntale al Coach.
+        Tocá cada tema para abrirlo y ver los pasos. Con calma, no hay que aprender todo de una.
       </p>
+
+      <Button variant="ghost" className="mt-3 w-full" onClick={() => setTourOpen(true)}>
+        ▶️ Ver el tour de bienvenida
+      </Button>
 
       <div className="mt-4 space-y-3">
         {SECTIONS.map((s, i) => (
@@ -280,7 +331,7 @@ export function HelpPage() {
 
       <div className="mt-6 flex flex-col items-center gap-2">
         <Link to="/coach" className="text-sm font-semibold text-green-700 underline">
-          Preguntarle al Coach
+          ¿Dudas? Preguntale al Coach
         </Link>
         <Link to="/" className="text-sm text-slate-400 underline">
           Volver al inicio
@@ -290,6 +341,8 @@ export function HelpPage() {
       <p className="mt-6 text-center text-xs text-slate-400">
         NutriCoach usa IA con fines informativos y no reemplaza a un profesional de la salud.
       </p>
+
+      <WelcomeTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
 }
