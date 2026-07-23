@@ -224,6 +224,11 @@ export function ProfilePage() {
           <div className="text-xs text-slate-400">Descargar todo en CSV o JSON</div>
         </Link>
 
+        <Link to="/help" className="card block active:scale-[.98]">
+          <div className="font-medium text-slate-800">❓ Ayuda · Cómo usar la app</div>
+          <div className="text-xs text-slate-400">Guía paso a paso de todo lo que podés hacer</div>
+        </Link>
+
         <button onClick={signOut} className="w-full text-center text-sm text-red-400 underline">
           Cerrar sesión
         </button>

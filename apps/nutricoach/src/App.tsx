@@ -23,6 +23,7 @@ import { HistoryPage } from "@/features/history/HistoryPage";
 import { ProfilePage } from "@/features/profile/ProfilePage";
 import { PlanPage } from "@/features/plan/PlanPage";
 import { ExportPage } from "@/features/settings/ExportPage";
+import { HelpPage } from "@/features/help/HelpPage";
 
 export default function App() {
   const { session, profile, loading } = useAuth();
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/export" element={<ExportPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -54,6 +54,10 @@ export function LogHub() {
         ))}
       </div>
 
+      <Link to="/help" className="mt-2 block text-center text-sm text-green-700 underline">
+        ¿Cómo funciona cada método?
+      </Link>
+
       {frequents.length > 0 && (
         <>
           <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-500">
