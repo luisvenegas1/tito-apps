@@ -41,14 +41,17 @@ export async function signUpWithUsername(
   if (!v.ok) throw new Error(v.error);
   if (!(await isUsernameAvailable(username))) throw new Error("Ese usuario ya está en uso.");
 
+  // Pasamos el username en los metadatos: el trigger handle_new_user() lo reserva
+  // en profiles al crear el usuario (incluso con confirmación de correo activada),
+  // así el gate de username ya no aparece después de confirmar.
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: { data: { full_name: fullName, username } },
   });
   if (error) throw error;
 
-  // Si hay sesión (confirmación desactivada), fijamos el username ya.
+  // Si hay sesión (confirmación desactivada), aseguramos el username por si acaso.
   if (data.session && data.user) {
     const { error: upErr } = await supabase
       .from("profiles")
@@ -57,7 +60,6 @@ export async function signUpWithUsername(
     if (upErr) throw new Error("Ese usuario ya está en uso.");
     return { needsConfirmation: false };
   }
-  // Con confirmación activada, el gate de username lo fija tras el primer login.
   return { needsConfirmation: true };
 }
 

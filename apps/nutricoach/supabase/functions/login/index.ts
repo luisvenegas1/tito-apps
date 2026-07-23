@@ -89,13 +89,9 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Resolver username -> user_id (case-insensitive), luego email vía admin (NO se devuelve).
-  const { data: rows } = await admin
-    .from("profiles")
-    .select("user_id")
-    .ilike("username", identifier.trim())
-    .limit(1);
-  const userId = rows?.[0]?.user_id as string | undefined;
+  // Resolver username -> user_id (EXACTO, case-insensitive), luego email vía admin (NO se devuelve).
+  const { data: uid } = await admin.rpc("username_to_user_id", { u: identifier.trim() });
+  const userId = (uid as string | null) ?? undefined;
   if (!userId) {
     console.log(`login fail (no-user) ip=${ip} id=${maskId(identifier)}`);
     return fail(startedAt);

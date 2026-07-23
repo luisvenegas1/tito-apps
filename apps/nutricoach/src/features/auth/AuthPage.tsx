@@ -24,6 +24,7 @@ export function AuthPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmSent, setConfirmSent] = useState(false); // popup post-registro
 
   const t = TITLES[mode];
 
@@ -31,6 +32,14 @@ export function AuthPage() {
     setMode(next);
     setMsg(null);
     setFailed(false);
+  }
+
+  // Tras registrarse: cerrar el popup y llevar a login con el correo prellenado.
+  function goToLogin() {
+    setConfirmSent(false);
+    setIdentifier(email);
+    setPassword("");
+    switchTo("login");
   }
 
   async function submit(e: React.FormEvent) {
@@ -45,11 +54,11 @@ export function AuthPage() {
         const v = validateUsername(username);
         if (!v.ok) throw new Error(v.error);
         const { needsConfirmation } = await signUpWithUsername(email, password, username, name);
-        setMsg(
-          needsConfirmation
-            ? "Revisá tu correo para confirmar la cuenta."
-            : "¡Cuenta creada! Ya podés entrar.",
-        );
+        if (needsConfirmation) {
+          setConfirmSent(true); // muestra el popup y de ahí a login
+        } else {
+          setMsg("¡Cuenta creada! Ya podés entrar.");
+        }
       } else {
         await requestPasswordReset(email);
         setMsg("Si el correo existe, te enviamos un enlace para recuperar tu contraseña.");
@@ -189,6 +198,26 @@ export function AuthPage() {
       </div>
       </div>
       <AppFooter mode="flow" />
+
+      {confirmSent && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="card w-full max-w-sm text-center">
+            <div className="text-4xl">📧</div>
+            <h2 className="mt-2 text-lg font-bold text-slate-800">Revisá tu correo</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Te enviamos un enlace a <b className="text-slate-700">{email}</b> para confirmar tu cuenta.
+              Confirmalo y luego iniciá sesión.
+            </p>
+            <Button fullWidth className="mt-4" onClick={goToLogin}>
+              Ir a iniciar sesión
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
