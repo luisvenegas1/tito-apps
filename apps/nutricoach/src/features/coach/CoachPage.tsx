@@ -19,8 +19,12 @@ export function CoachPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title="Coach" subtitle="Tu nutricionista con IA" />
+      <PageHeader title="Coach" subtitle="Asistente con IA" />
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-snug text-amber-800">
+          Consejos generados por IA con fines informativos. Pueden contener errores y no reemplazan a un
+          profesional de la salud. Ante dudas médicas, consultá a tu nutricionista o médico.
+        </p>
         {messages.length === 0 && (
           <div className="space-y-2">
             <p className="text-sm text-slate-500">Preguntame lo que quieras sobre tu día:</p>

@@ -15,9 +15,16 @@ export function AppFooter({ mode = "flow" }: { mode?: "flow" | "fixed" | "fixed-
         showInstall={false}
       />
       {/* Instalación con modal de instrucciones por plataforma (reemplaza el enlace chico). */}
-      <div className="pb-4 text-center">
+      <div className="pb-2 text-center">
         <InstallButton />
       </div>
+
+      {/* Aviso: la IA no reemplaza a un profesional de salud. */}
+      <p className="px-6 pb-4 text-center text-[11px] leading-snug text-slate-400">
+        NutriCoach usa inteligencia artificial y tiene fines informativos. Sus estimaciones y consejos
+        pueden tener errores y <strong className="font-semibold">no sustituyen</strong> la orientación de un
+        profesional de la salud (médico o nutricionista).
+      </p>
     </div>
   );
 }
