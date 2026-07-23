@@ -18,6 +18,7 @@ import { CoachPage } from "@/features/coach/CoachPage";
 import { WorkoutsPage } from "@/features/workouts/WorkoutsPage";
 import { ConnectDevicePage } from "@/features/workouts/ConnectDevicePage";
 import { ConnectGuidePage } from "@/features/workouts/ConnectGuidePage";
+import { StravaCallback } from "@/features/workouts/StravaCallback";
 import { GoalsPage } from "@/features/goals/GoalsPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { ProfilePage } from "@/features/profile/ProfilePage";
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/workouts" element={<WorkoutsPage />} />
         <Route path="/workouts/connect" element={<ConnectDevicePage />} />
         <Route path="/workouts/connect/guide" element={<ConnectGuidePage />} />
+        <Route path="/strava/callback" element={<StravaCallback />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/plan" element={<PlanPage />} />
         <Route path="/history" element={<HistoryPage />} />

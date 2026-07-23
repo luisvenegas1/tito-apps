@@ -19,7 +19,7 @@ PROJECT_REF="${1:-}"
 REF_ARG=()
 [ -n "$PROJECT_REF" ] && REF_ARG=(--project-ref "$PROJECT_REF")
 
-FUNCTIONS=(login analyze-food analyze-scale analyze-label coach meal-plan parse-meal-text send-reminders)
+FUNCTIONS=(login analyze-food analyze-scale analyze-label coach meal-plan parse-meal-text send-reminders strava-exchange strava-sync)
 
 for fn in "${FUNCTIONS[@]}"; do
   echo "→ Desplegando $fn"

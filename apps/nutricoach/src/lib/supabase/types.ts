@@ -26,7 +26,8 @@ export type WorkoutSource =
   | "google_health"
   | "garmin"
   | "fitbit"
-  | "amazfit";
+  | "amazfit"
+  | "strava";
 export type CoachRole = "user" | "assistant" | "system";
 
 export interface Profile {
@@ -154,6 +155,12 @@ export interface RecipeItem {
   protein_g: number;
   carb_g: number;
   fat_g: number;
+}
+
+export interface StravaConnection {
+  user_id: string;
+  athlete_id: number | null;
+  last_synced_at: string | null;
 }
 
 export interface CoachMessage {
