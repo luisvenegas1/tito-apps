@@ -13,12 +13,12 @@ export const apps: readonly TitoApp[] = [
   {
     id: "golpay", name: "GolPay", shortDescription: "Controla los pagos de tus mejengas de forma sencilla.",
     category: "sports", status: "available", icon: "https://golpay.tito-apps.com/icon-192.png",
-    url: "https://golpay-nu.vercel.app/", featured: true,
+    url: "https://golpay.tito-apps.com/", featured: true,
   },
   {
     id: "splitpay", name: "SplitPay", shortDescription: "Divide gastos fácilmente entre amigos, parejas o grupos.",
     category: "finance", status: "available", icon: "/apps/splitpay.svg",
-    url: "https://splitpay-blond.vercel.app/",
+    url: "https://splitpay.tito-apps.com/",
   },
   {
     id: "moneytrack", name: "MoneyTrack", shortDescription: "Organiza tus gastos, cuentas y finanzas personales.",
