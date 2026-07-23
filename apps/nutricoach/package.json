@@ -14,6 +14,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "@tanstack/react-query": "^5.51.0",
+    "@zxing/browser": "^0.1.5",
     "@titoapps/brand": "workspace:*",
     "@titoapps/health": "workspace:*",
     "@titoapps/nutrition": "workspace:*",

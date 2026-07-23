@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Button, PageHeader, Input, FormField, Spinner } from "@titoapps/ui";
 import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -8,20 +9,17 @@ import { findFoodByBarcode, createFood, type NewFood } from "./foodsApi";
 import { useAddFood } from "./useLog";
 import { mealByHour } from "./helpers";
 
-type BD = { detect: (s: CanvasImageSource) => Promise<{ rawValue: string }[]> };
-type BDWin = Window & { BarcodeDetector?: new (o?: unknown) => BD };
-
 /**
- * Escaneo de código de barras. Usa la API nativa BarcodeDetector cuando está
- * disponible; si no, entrada manual. Consulta Open Food Facts (gratis, sin claves),
- * cachea el resultado en `foods` y registra por gramos consumidos.
+ * Escaneo de código de barras EN VIVO con la cámara (ZXing): funciona en iOS,
+ * Android y desktop. Apenas lee el código consulta Open Food Facts, cachea en
+ * `foods` y registra por gramos. Entrada manual como respaldo.
  */
 export function BarcodeScan() {
   const nav = useNavigate();
   const { session } = useAuth();
   const add = useAddFood();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [supported] = useState(() => "BarcodeDetector" in window);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
   const [manual, setManual] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,43 +27,28 @@ export function BarcodeScan() {
   const [grams, setGrams] = useState(100);
 
   useEffect(() => {
-    if (!supported || food) return;
-    let stream: MediaStream | null = null;
-    let raf = 0;
-    const detector = new (window as BDWin).BarcodeDetector!({
-      formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
-    });
-    (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+    if (food || !videoRef.current) return;
+    let cancelled = false;
+    const reader = new BrowserMultiFormatReader();
+    reader
+      .decodeFromConstraints({ video: { facingMode: "environment" } }, videoRef.current, (result) => {
+        if (result && !cancelled) {
+          cancelled = true;
+          controlsRef.current?.stop();
+          lookup(result.getText());
         }
-        const tick = async () => {
-          if (!videoRef.current) return;
-          try {
-            const codes = await detector.detect(videoRef.current);
-            if (codes[0]?.rawValue) {
-              lookup(codes[0].rawValue);
-              return;
-            }
-          } catch {
-            /* frame sin código */
-          }
-          raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-      } catch {
-        setError("No se pudo abrir la cámara. Ingresá el código a mano.");
-      }
-    })();
+      })
+      .then((controls) => {
+        controlsRef.current = controls;
+        if (cancelled) controls.stop();
+      })
+      .catch(() => setError("No pudimos abrir la cámara. Permití el acceso o ingresá el código a mano."));
     return () => {
-      cancelAnimationFrame(raf);
-      stream?.getTracks().forEach((t) => t.stop());
+      cancelled = true;
+      controlsRef.current?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supported, food]);
+  }, [food]);
 
   const lookup = async (barcode: string) => {
     setError(null);
@@ -129,11 +112,16 @@ export function BarcodeScan() {
 
       {!food && (
         <div className="mt-4 space-y-3">
-          {supported && (
-            <div className="overflow-hidden rounded-2xl bg-black">
-              <video ref={videoRef} className="h-56 w-full object-cover" muted playsInline />
+          <div className="relative overflow-hidden rounded-2xl bg-black">
+            <video ref={videoRef} className="h-60 w-full object-cover" muted playsInline autoPlay />
+            {/* Guía visual de escaneo */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="h-24 w-56 rounded-lg border-2 border-white/80" />
             </div>
-          )}
+            <p className="absolute inset-x-0 bottom-2 text-center text-xs text-white/90">
+              Apuntá al código de barras
+            </p>
+          </div>
           <FormField label="…o ingresá el código a mano">
             <div className="flex gap-2">
               <Input

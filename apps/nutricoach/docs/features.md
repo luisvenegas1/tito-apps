@@ -27,7 +27,7 @@ Debe existir **más de una forma** de agregar alimentos. Orden por fricción (me
    - a) Si el peso no se detecta, se edita a mano.
    - b) El usuario solo escribe el peso (sin foto de balanza).
    - c) Foto de la **tabla nutricional** del empaque → NutriCoach calcula los valores para el peso consumido (pantalla Etiqueta).
-4. **Código de barras** ✅ — escaneo con `BarcodeDetector` (o código a mano) → Open Food Facts → cache en `foods`.
+4. **Código de barras** ✅ — escaneo **en vivo con la cámara** (ZXing, funciona en iOS/Android/desktop) o código a mano → Open Food Facts → cache en `foods`.
 5. **Etiqueta nutricional** ✅ — foto de la tabla → OCR IA → valores por 100 g → macros por gramos consumidos.
 5. **Buscar alimento** ✅ — búsqueda en el catálogo del usuario + resultados cacheados.
 6. **Crear alimento personalizado** ✅ — formulario mínimo (por 100 g). Ideal cuando sabés todos los valores.
