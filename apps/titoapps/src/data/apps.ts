@@ -12,7 +12,7 @@ export const statusLabels: Record<AppStatus, string> = {
 export const apps: readonly TitoApp[] = [
   {
     id: "golpay", name: "GolPay", shortDescription: "Controla los pagos de tus mejengas de forma sencilla.",
-    category: "sports", status: "available", icon: "/apps/golpay.svg",
+    category: "sports", status: "available", icon: "https://golpay.tito-apps.com/icon-192.png",
     url: "https://golpay-nu.vercel.app/", featured: true,
   },
   {
@@ -26,7 +26,7 @@ export const apps: readonly TitoApp[] = [
   },
   {
     id: "nutricoach", name: "NutriCoach", shortDescription: "Controla tu alimentación y recibe recomendaciones personalizadas.",
-    category: "health", status: "available", icon: "/apps/nutricoach.svg",
+    category: "health", status: "available", icon: "https://nutricoach.tito-apps.com/icon-192.png",
     url: "https://nutricoach.tito-apps.com/", featured: true,
   },
 ];
