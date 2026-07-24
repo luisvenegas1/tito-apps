@@ -16,6 +16,10 @@ const TRANSLATIONS: Array<[RegExp, string]> = [
     "Se alcanzó el límite de correos por hora. Esperá un rato y volvé a intentar."],
   [/unable to validate email address/i, "Ese correo no parece válido."],
   [/email not confirmed/i, "Falta confirmar el correo. Revisá tu bandeja de entrada."],
+  [
+    /auth session missing|session missing|session_not_found|otp_expired|invalid or has expired|token has expired|link is invalid/i,
+    "Tu enlace de recuperación ya venció o no es válido (quizás pediste uno más nuevo). Pedí un enlace nuevo e intentá otra vez.",
+  ],
 ];
 
 function raw(err: unknown): string {
