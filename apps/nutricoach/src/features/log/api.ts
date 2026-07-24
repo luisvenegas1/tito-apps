@@ -80,3 +80,13 @@ export async function deleteLogItem(id: string): Promise<void> {
   const { error } = await supabase.from("log_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+export type LogItemPatch = Partial<
+  Pick<LogItem, "grams" | "kcal" | "protein_g" | "carb_g" | "fat_g" | "fiber_g" | "sugar_g" | "sodium_mg">
+>;
+
+/** Actualiza una comida ya registrada (ej. cambiar la cantidad y reescalar macros). */
+export async function updateLogItem(id: string, patch: LogItemPatch): Promise<void> {
+  const { error } = await supabase.from("log_items").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+}

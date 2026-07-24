@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { todayISO } from "@/lib/date";
-import { listLogItems, addLogItems, deleteLogItem, type NewLogItem } from "./api";
+import { listLogItems, addLogItems, deleteLogItem, updateLogItem, type NewLogItem, type LogItemPatch } from "./api";
 import type { LogItem } from "@/lib/supabase/types";
 
 export function useDailyLog(date = todayISO()) {
@@ -33,6 +33,17 @@ export function useDeleteFood(date = todayISO()) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteLogItem(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.log(date) });
+      qc.invalidateQueries({ queryKey: qk.dashboard(date) });
+    },
+  });
+}
+
+export function useUpdateFood(date = todayISO()) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: LogItemPatch }) => updateLogItem(id, patch),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.log(date) });
       qc.invalidateQueries({ queryKey: qk.dashboard(date) });
