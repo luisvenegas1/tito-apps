@@ -4,7 +4,7 @@ import { Button, PageHeader, Spinner, Input, FormField } from "@titoapps/ui";
 import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros, type Per100g } from "@titoapps/nutrition";
 import { ai } from "@/lib/ai/client";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { mealByHour } from "./helpers";
 import { compressImage } from "@/lib/image";
 
@@ -15,7 +15,7 @@ import { compressImage } from "@/lib/image";
  */
 export function ScaleMode() {
   const nav = useNavigate();
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");

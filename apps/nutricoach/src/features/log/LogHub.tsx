@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader, EmptyState, Button } from "@titoapps/ui";
 import { NumberInput } from "@/components/ui/NumberInput";
-import { useDailyLog, useRemovableLog, useAddFood, useUpdateFood } from "./useLog";
+import { useDailyLog, useRemovableLog, useAddFood, useUpdateFood, useLogDate } from "./useLog";
 import { useFrequents } from "./useFrequents";
+import { todayISO, dayLabel } from "@/lib/date";
+import { QuickWater } from "@/features/health/QuickWater";
 import type { FrequentEntry } from "./frequents";
 import type { LogItem } from "@/lib/supabase/types";
 
@@ -18,11 +20,22 @@ const METHODS = [
 ];
 
 export function LogHub() {
-  const { data: items = [] } = useDailyLog();
+  // Día al que se registra (permite anotar cosas de días pasados).
+  const [date, setDate] = useState(useLogDate());
+  const isToday = date === todayISO();
+
+  const { data: items = [] } = useDailyLog(date);
   const { data: frequents = [] } = useFrequents();
-  const { removed, remove, undo, dismiss } = useRemovableLog();
-  const add = useAddFood();
-  const upd = useUpdateFood();
+  const { removed, remove, undo, dismiss } = useRemovableLog(date);
+  const add = useAddFood(date);
+  const upd = useUpdateFood(date);
+
+  const shiftDay = (days: number) => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() + days);
+    const iso = todayISO(d);
+    if (iso <= todayISO()) setDate(iso); // no se registra en el futuro
+  };
 
   // Edición inline de la cantidad de una comida ya registrada.
   const [editId, setEditId] = useState<string | null>(null);
@@ -79,9 +92,38 @@ export function LogHub() {
   return (
     <div className="p-4">
       <PageHeader title="Registrar comida" subtitle="Elegí el método más rápido" />
+
+      {/* Selector de día: registrá hoy o algo que pasó antes */}
+      <div className="mt-3 flex items-center justify-between rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+        <button onClick={() => shiftDay(-1)} className="px-2 text-lg text-slate-500 active:scale-90" aria-label="Día anterior">‹</button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-slate-700">{dayLabel(date)}</span>
+          <input
+            type="date"
+            value={date}
+            max={todayISO()}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500"
+          />
+        </div>
+        <button
+          onClick={() => shiftDay(1)}
+          disabled={isToday}
+          className="px-2 text-lg text-slate-500 active:scale-90 disabled:opacity-30"
+          aria-label="Día siguiente"
+        >
+          ›
+        </button>
+      </div>
+      {!isToday && (
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
+          Estás registrando para <b>{dayLabel(date)}</b>, no para hoy.
+        </p>
+      )}
+
       <div className="mt-4 grid grid-cols-2 gap-3">
         {METHODS.map((m) => (
-          <Link key={m.to} to={m.to} className="card flex flex-col items-start gap-1 active:scale-[.98]">
+          <Link key={m.to} to={`${m.to}?date=${date}`} className="card flex flex-col items-start gap-1 active:scale-[.98]">
             <span className="text-2xl">{m.icon}</span>
             <span className="font-semibold text-slate-800">{m.title}</span>
             <span className="text-xs text-slate-400">{m.desc}</span>
@@ -113,7 +155,11 @@ export function LogHub() {
         </>
       )}
 
-      <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-500">Hoy</h3>
+      <div className="mt-6">
+        <QuickWater date={date} />
+      </div>
+
+      <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-500">{dayLabel(date)}</h3>
 
       {removed && (
         <div className="mb-2 flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">

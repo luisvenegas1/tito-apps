@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader, Spinner } from "@titoapps/ui";
 import { ai } from "@/lib/ai/client";
 import type { DetectedFoodItem } from "@/lib/ai/contracts";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { mealByHour } from "./helpers";
 import { compressImage } from "@/lib/image";
 import { MealItemsEditor } from "./MealItemsEditor";
@@ -11,7 +11,7 @@ import { MealItemsEditor } from "./MealItemsEditor";
 /** Registro por foto: la IA detecta alimentos y estima cantidades (todo editable). */
 export function PhotoCapture() {
   const nav = useNavigate();
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
   const [analyzing, setAnalyzing] = useState(false);
   const [items, setItems] = useState<DetectedFoodItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);

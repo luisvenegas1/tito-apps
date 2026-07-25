@@ -7,7 +7,7 @@ import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { qk } from "@/lib/query";
 import { searchFoods } from "./foodsApi";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { mealByHour } from "./helpers";
 import type { Food } from "@/lib/supabase/types";
 
@@ -18,7 +18,7 @@ export function SearchFood() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Food | null>(null);
   const [grams, setGrams] = useState(100);
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
 
   const { data: results = [] } = useQuery({
     queryKey: qk.foods(q),

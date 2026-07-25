@@ -7,7 +7,7 @@ import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { fetchProductByBarcode } from "@/lib/openfoodfacts";
 import { findFoodByBarcode, createFood, type NewFood } from "./foodsApi";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { mealByHour } from "./helpers";
 
 /**
@@ -18,7 +18,7 @@ import { mealByHour } from "./helpers";
 export function BarcodeScan() {
   const nav = useNavigate();
   const { session } = useAuth();
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const [manual, setManual] = useState("");

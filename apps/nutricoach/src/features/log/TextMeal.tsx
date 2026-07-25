@@ -7,7 +7,7 @@ import { ai } from "@/lib/ai/client";
 import type { DetectedFoodItem } from "@/lib/ai/contracts";
 import { useAuth } from "@/features/auth/AuthProvider";
 import type { Food } from "@/lib/supabase/types";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { listMyFoods } from "./foodsApi";
 import { mealByHour } from "./helpers";
 import { MealItemsEditor } from "./MealItemsEditor";
@@ -50,7 +50,7 @@ export function TextMeal() {
   const nav = useNavigate();
   const { session } = useAuth();
   const userId = session?.user.id;
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [items, setItems] = useState<DetectedFoodItem[] | null>(null);

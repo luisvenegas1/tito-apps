@@ -1,8 +1,20 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { todayISO } from "@/lib/date";
+
+/**
+ * Fecha a la que se registra la comida: viene en la URL (?date=YYYY-MM-DD) para
+ * poder anotar cosas de días pasados; por defecto, hoy. Nunca en el futuro.
+ */
+export function useLogDate(): string {
+  const [params] = useSearchParams();
+  const d = params.get("date");
+  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= todayISO()) return d;
+  return todayISO();
+}
 import { listLogItems, addLogItems, deleteLogItem, updateLogItem, type NewLogItem, type LogItemPatch } from "./api";
 import type { LogItem } from "@/lib/supabase/types";
 

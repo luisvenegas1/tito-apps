@@ -5,14 +5,14 @@ import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros } from "@titoapps/nutrition";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { createFood } from "./foodsApi";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { mealByHour } from "./helpers";
 
 /** Crear alimento personalizado (por 100 g) y registrarlo. */
 export function CustomFood() {
   const nav = useNavigate();
   const { session } = useAuth();
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
   const [saving, setSaving] = useState(false);
   const [f, setF] = useState({ name: "", kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0 });
   const [grams, setGrams] = useState(100);

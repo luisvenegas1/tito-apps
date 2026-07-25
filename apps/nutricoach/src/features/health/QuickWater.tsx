@@ -2,9 +2,9 @@ import { useAddWater } from "./useHealth";
 
 const AMOUNTS = [250, 500, 750];
 
-/** Registro rápido de agua en un toque. */
-export function QuickWater() {
-  const addWater = useAddWater();
+/** Registro rápido de agua en un toque (para el día indicado; por defecto hoy). */
+export function QuickWater({ date }: { date?: string }) {
+  const addWater = useAddWater(date);
   return (
     <div className="card">
       <div className="metric-label mb-2">💧 Agregar agua</div>

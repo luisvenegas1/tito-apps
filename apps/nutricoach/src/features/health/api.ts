@@ -14,8 +14,10 @@ function localDayRangeUTC(dateISO: string): { start: string; end: string } {
 }
 
 // ---- Agua ----
-export async function addWater(userId: string, ml: number): Promise<void> {
-  const { error } = await supabase.from("water_logs").insert({ user_id: userId, ml });
+export async function addWater(userId: string, ml: number, atISO?: string): Promise<void> {
+  const row: { user_id: string; ml: number; logged_at?: string } = { user_id: userId, ml };
+  if (atISO) row.logged_at = atISO; // registrar en un día pasado
+  const { error } = await supabase.from("water_logs").insert(row);
   if (error) throw new Error(error.message);
 }
 

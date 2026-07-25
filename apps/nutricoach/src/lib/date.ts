@@ -6,6 +6,24 @@ export function todayISO(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Etiqueta amigable de un día (Hoy / Ayer / fecha local). */
+export function dayLabel(dateISO: string): string {
+  const today = todayISO();
+  const yesterday = todayISO(new Date(Date.now() - 86_400_000));
+  if (dateISO === today) return "Hoy";
+  if (dateISO === yesterday) return "Ayer";
+  return new Date(`${dateISO}T00:00:00`).toLocaleDateString();
+}
+
+/**
+ * Timestamp ISO para registrar en un día concreto: hoy → ahora (undefined),
+ * días pasados → mediodía local de esa fecha (cae siempre dentro del día).
+ */
+export function timestampForDay(dateISO: string): string | undefined {
+  if (dateISO === todayISO()) return undefined;
+  return new Date(`${dateISO}T12:00:00`).toISOString();
+}
+
 /** Edad en años a partir de una fecha ISO de nacimiento. */
 export function ageFromBirthDate(iso: string | null): number | null {
   if (!iso) return null;

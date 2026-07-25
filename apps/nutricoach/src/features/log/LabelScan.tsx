@@ -5,7 +5,7 @@ import { NumberInput } from "@/components/ui/NumberInput";
 import { scaleMacros, type Per100g } from "@titoapps/nutrition";
 import { ai } from "@/lib/ai/client";
 import { compressImage } from "@/lib/image";
-import { useAddFood } from "./useLog";
+import { useAddFood, useLogDate } from "./useLog";
 import { mealByHour } from "./helpers";
 
 /**
@@ -14,7 +14,7 @@ import { mealByHour } from "./helpers";
  */
 export function LabelScan() {
   const nav = useNavigate();
-  const add = useAddFood();
+  const add = useAddFood(useLogDate());
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");

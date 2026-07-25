@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { todayISO } from "@/lib/date";
+import { todayISO, timestampForDay } from "@/lib/date";
 import type { NormalizedWorkout } from "@titoapps/health";
 import {
   addWater,
@@ -28,7 +28,7 @@ export function useAddWater(date = todayISO()) {
   const { session } = useAuth();
   const invalidate = useInvalidateDay(date);
   return useMutation({
-    mutationFn: (ml: number) => addWater(session!.user.id, ml),
+    mutationFn: (ml: number) => addWater(session!.user.id, ml, timestampForDay(date)),
     onSuccess: invalidate,
   });
 }

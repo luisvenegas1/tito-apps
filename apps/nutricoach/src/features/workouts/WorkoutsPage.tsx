@@ -4,14 +4,26 @@ import { Button, PageHeader, Input, FormField, Select, EmptyState } from "@titoa
 import { NumberInput } from "@/components/ui/NumberInput";
 import { estimateCalories, WORKOUT_LABELS, type WorkoutType } from "@titoapps/health";
 import { useAddWorkout, useWorkouts, useDeleteWorkout, useLatestWeight } from "@/features/health/useHealth";
+import { todayISO, dayLabel, timestampForDay } from "@/lib/date";
 
 const TYPES = Object.keys(WORKOUT_LABELS) as WorkoutType[];
 
 export function WorkoutsPage() {
   const { data: weight } = useLatestWeight();
   const { data: workouts = [] } = useWorkouts();
-  const add = useAddWorkout();
+
+  // Día al que se registra (permite anotar entrenamientos de días pasados).
+  const [date, setDate] = useState(todayISO());
+  const isToday = date === todayISO();
+  const add = useAddWorkout(date);
   const del = useDeleteWorkout();
+
+  const shiftDay = (days: number) => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() + days);
+    const iso = todayISO(d);
+    if (iso <= todayISO()) setDate(iso);
+  };
 
   const [type, setType] = useState<WorkoutType>("running");
   const [minutes, setMinutes] = useState(30);
@@ -29,6 +41,7 @@ export function WorkoutsPage() {
         duration_min: minutes,
         kcal_burned: kcalValue,
         source: "manual",
+        performed_at: timestampForDay(date), // hoy → ahora; días pasados → mediodía de esa fecha
       },
       {
         onSuccess: () => {
@@ -42,6 +55,34 @@ export function WorkoutsPage() {
   return (
     <div className="p-4">
       <PageHeader title="Entrenamientos" subtitle="Registrá tu actividad" />
+
+      {/* Selector de día: registrá hoy o un entrenamiento de días pasados */}
+      <div className="mt-3 flex items-center justify-between rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+        <button onClick={() => shiftDay(-1)} className="px-2 text-lg text-slate-500 active:scale-90" aria-label="Día anterior">‹</button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-slate-700">{dayLabel(date)}</span>
+          <input
+            type="date"
+            value={date}
+            max={todayISO()}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500"
+          />
+        </div>
+        <button
+          onClick={() => shiftDay(1)}
+          disabled={isToday}
+          className="px-2 text-lg text-slate-500 active:scale-90 disabled:opacity-30"
+          aria-label="Día siguiente"
+        >
+          ›
+        </button>
+      </div>
+      {!isToday && (
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
+          Estás registrando para <b>{dayLabel(date)}</b>, no para hoy.
+        </p>
+      )}
 
       <div className="mt-4 space-y-3">
         <FormField label="Actividad">
