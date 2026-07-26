@@ -65,7 +65,9 @@ export async function fetchProductByBarcode(barcode: string): Promise<NewFood | 
     barcode,
   )}.json?fields=code,product_name,brands,serving_quantity,nutriments`;
   const res = await fetch(url, { headers: { "User-Agent": "NutriCoach/1.0 (Tito Apps)" } });
-  if (!res.ok) throw new Error(`Open Food Facts ${res.status}`);
+  // 404 = el producto no está en la base pública: no es un error, simplemente no existe.
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("No pudimos consultar el producto ahora mismo.");
   const data: OffResponse = await res.json();
   if (data.status !== 1 || !data.product) return null;
   return mapOffToFood(barcode, data.product);

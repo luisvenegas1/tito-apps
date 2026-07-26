@@ -63,7 +63,14 @@ export class AnthropicProvider implements AIProvider {
     });
     if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
     const data = await res.json();
-    return data.content?.[0]?.text ?? "";
+    // Los modelos con "adaptive thinking" (Sonnet 5, Opus 4.x) pueden devolver un
+    // bloque de razonamiento antes del texto: tomamos SOLO los bloques de tipo "text".
+    const blocks: Array<{ type?: string; text?: string }> = Array.isArray(data.content) ? data.content : [];
+    const text = blocks
+      .filter((b) => b?.type === "text" && typeof b.text === "string")
+      .map((b) => b.text)
+      .join("\n");
+    return text || blocks.map((b) => b?.text).filter(Boolean).join("\n");
   }
 
   async analyzeFoodPhoto(imageBase64: string, hint?: string): Promise<VisionItem[]> {

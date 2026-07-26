@@ -71,8 +71,9 @@ export function TextMeal() {
     try {
       const res = await ai.parseMealText({ text: text.trim(), knownProducts: myFoods.map((f) => f.name) });
       setItems(applyMyProducts(res.items, myFoods));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo interpretar la comida.");
+    } catch {
+      // Mensaje amigable: los detalles técnicos quedan en los logs del servidor.
+      setError("No pudimos calcular las calorías en este momento. Probá de nuevo en unos segundos.");
     } finally {
       setAnalyzing(false);
     }

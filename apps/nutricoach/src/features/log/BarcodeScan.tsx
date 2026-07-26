@@ -63,13 +63,13 @@ export function BarcodeScan() {
       }
       const off = await fetchProductByBarcode(barcode);
       if (!off) {
-        setError(`No encontramos el código ${barcode}. Probá con "Personalizado".`);
+        setError(`No encontramos ese producto (código ${barcode}). Podés cargarlo con "Personalizado".`);
         return;
       }
       setFood(off);
       setGrams(off.serving_g ?? 100);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al consultar el producto.");
+    } catch {
+      setError("No pudimos consultar el producto en este momento. Probá de nuevo o cargalo a mano.");
     } finally {
       setLoading(false);
     }

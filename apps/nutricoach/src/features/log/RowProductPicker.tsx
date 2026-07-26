@@ -81,12 +81,12 @@ export function RowProductPicker({ onClose, onApply }: Props) {
       const cached = await findFoodByBarcode(userId!, bc);
       const off = cached ?? (await fetchProductByBarcode(bc));
       if (!off) {
-        setError(`No encontramos el código ${bc}.`);
+        setError(`No encontramos ese producto (código ${bc}). Cargalo en "Mis productos".`);
         return;
       }
       onApply(off as PickedProduct);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al consultar el producto.");
+    } catch {
+      setError("No pudimos consultar el producto en este momento. Probá de nuevo.");
     } finally {
       setLoading(false);
     }
