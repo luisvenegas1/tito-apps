@@ -20,7 +20,9 @@ Deno.serve(async (req: Request) => {
 
     const { provider, code, redirect_uri } = await req.json();
     if (!provider || !code || !redirect_uri) return json({ error: "Faltan datos" }, 400);
-    if (provider !== "fitbit" && provider !== "oura") return json({ error: "Proveedor no soportado" }, 400);
+    if (provider !== "fitbit" && provider !== "oura" && provider !== "google") {
+      return json({ error: "Proveedor no soportado" }, 400);
+    }
 
     const t = await exchangeCode(provider as Provider, code, redirect_uri);
     const { error } = await admin.from("device_connections").upsert(

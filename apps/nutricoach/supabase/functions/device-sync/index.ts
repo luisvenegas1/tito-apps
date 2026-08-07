@@ -3,7 +3,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/cors.ts";
-import { fetchWorkouts, refreshToken, type Provider } from "../_shared/devices.ts";
+import { fetchWorkouts, refreshToken, sourceFor, type Provider } from "../_shared/devices.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -18,7 +18,10 @@ Deno.serve(async (req: Request) => {
     const userId = userData.user.id;
 
     const { provider } = await req.json();
-    if (provider !== "fitbit" && provider !== "oura") return json({ error: "Proveedor no soportado" }, 400);
+    if (provider !== "fitbit" && provider !== "oura" && provider !== "google") {
+      return json({ error: "Proveedor no soportado" }, 400);
+    }
+    const source = sourceFor(provider as Provider); // 'google' → 'google_health'
 
     const { data: conn } = await admin
       .from("device_connections")
@@ -54,11 +57,11 @@ Deno.serve(async (req: Request) => {
       .from("workouts")
       .select("external_id")
       .eq("user_id", userId)
-      .eq("source", provider);
+      .eq("source", source);
     const seen = new Set((existing ?? []).map((e: any) => e.external_id));
     const rows = incoming
       .filter((r) => !seen.has(r.external_id))
-      .map((r) => ({ ...r, user_id: userId, source: provider }));
+      .map((r) => ({ ...r, user_id: userId, source }));
 
     let imported = 0;
     if (rows.length > 0) {

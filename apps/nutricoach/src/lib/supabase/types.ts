@@ -165,7 +165,7 @@ export interface StravaConnection {
   last_synced_at: string | null;
 }
 
-export type DeviceProvider = "fitbit" | "oura";
+export type DeviceProvider = "fitbit" | "oura" | "google";
 
 export interface DeviceConnection {
   user_id: string;

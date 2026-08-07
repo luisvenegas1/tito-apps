@@ -8,17 +8,27 @@ export interface DeviceMeta {
   authorizeBase: string;
   scope: string;
   clientId: string;
+  /** Parámetros extra para el authorize (ej. Google necesita offline + consent). */
+  extra?: Record<string, string>;
 }
 
 /**
  * Proveedores de dispositivos con OAuth propio (además de Strava).
  *
- * NOTA sobre Fitbit: su API vieja (api.fitbit.com) se deprecó y migró a la
- * "Google Health API" (Google Cloud + Google OAuth), que se apaga la vieja en
- * sep-2026. Implementarlo hoy requiere la Google Health API completa (con
- * verificación de Google). Se deja fuera de la lista hasta implementarlo.
+ * Fitbit se conecta vía la "Google Health API" (Google OAuth), que reemplazó a
+ * la API vieja de Fitbit (api.fitbit.com se apaga el 30-sep-2026). Cubre Fitbit
+ * y Pixel Watch. Requiere VITE_GOOGLE_CLIENT_ID + secretos GOOGLE_* en Supabase.
  */
 export const DEVICE_PROVIDERS: DeviceMeta[] = [
+  {
+    id: "google",
+    label: "Fitbit (vía Google)",
+    emoji: "⌚",
+    authorizeBase: "https://accounts.google.com/o/oauth2/v2/auth",
+    scope: "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "",
+    extra: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
+  },
   {
     id: "oura",
     label: "Oura Ring",
@@ -41,6 +51,7 @@ export function deviceAuthUrl(p: DeviceMeta): string {
     redirect_uri: deviceRedirectUri(),
     scope: p.scope,
     state: p.id,
+    ...(p.extra ?? {}),
   });
   return `${p.authorizeBase}?${params.toString()}`;
 }
