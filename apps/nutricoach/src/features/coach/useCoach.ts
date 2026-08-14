@@ -6,6 +6,7 @@ import type { CoachDayContext } from "@/lib/ai/contracts";
 import type { Macros } from "@titoapps/nutrition";
 import { listCoachMessages, sendToCoach, getProactiveTip } from "./api";
 import type { DashboardData } from "@/features/dashboard/useDashboard";
+import { useProCoachContext } from "@/features/pro/proCoach";
 
 const ZERO: Macros = { kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0 };
 
@@ -39,20 +40,27 @@ export function useSendCoach() {
   const qc = useQueryClient();
   const { data: dashboard } = useDashboard();
   const { data: history = [] } = useCoachMessages();
+  const proContext = useProCoachContext();
 
   return useMutation({
     mutationFn: (message: string) =>
-      sendToCoach(userId!, history, message, buildDayContext(dashboard)),
+      sendToCoach(userId!, history, message, proContext ?? buildDayContext(dashboard)),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.coach }),
   });
 }
 
 export function useProactiveTip() {
   const { data: dashboard } = useDashboard();
+  const proContext = useProCoachContext();
+  const context = proContext ?? buildDayContext(dashboard);
+  const enabled = proContext ? (proContext.plan?.categories.length ?? 0) > 0 : !!dashboard?.targets;
+  const cacheKey = proContext
+    ? proContext.plan?.categories.reduce((s, c) => s + c.consumed, 0) ?? 0
+    : dashboard?.consumed.kcal ?? 0;
   return useQuery({
-    queryKey: ["coach", "tip", dashboard?.consumed.kcal ?? 0],
-    queryFn: () => getProactiveTip(buildDayContext(dashboard)),
-    enabled: !!dashboard?.targets,
+    queryKey: ["coach", "tip", proContext ? "pro" : "personal", cacheKey],
+    queryFn: () => getProactiveTip(context),
+    enabled,
     staleTime: 5 * 60_000,
   });
 }

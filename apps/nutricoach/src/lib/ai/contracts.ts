@@ -50,8 +50,22 @@ export interface AnalyzeLabelResponse {
   servingSize_g?: number;
 }
 
+/** Una categoría del plan profesional con el progreso del día. */
+export interface CoachPlanCategory {
+  name: string;
+  target: number;
+  consumed: number;
+  remaining: number;
+  met: boolean;
+  /** Equivalencia opcional (ej. "carb_g" y 15 g por intercambio). */
+  unit?: string;
+  gramsPerExchange?: number | null;
+}
+
 /** coach — conversacional y proactivo. */
 export interface CoachDayContext {
+  /** Modo de uso: en "professional" el coach razona en intercambios/porciones. */
+  mode?: "personal" | "professional";
   goalType: string;
   calorieTarget: number;
   consumed: Macros;
@@ -59,6 +73,8 @@ export interface CoachDayContext {
   weightKg?: number;
   targetWeightKg?: number;
   kcalBurned?: number;
+  /** Plan profesional (solo en modo professional). */
+  plan?: { categories: CoachPlanCategory[]; compliancePct?: number };
   /** Hora local del usuario (0-23) para que la sugerencia sea oportuna. */
   hour?: number;
 }

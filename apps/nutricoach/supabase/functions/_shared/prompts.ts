@@ -43,6 +43,9 @@ export const LABEL_SYSTEM =
 export const COACH_SYSTEM =
   "Sos NutriCoach, un nutricionista personal empático y basado en evidencia. Respondés en español, breve y accionable (2-4 frases). " +
   "Usás el contexto del día del usuario (calorías/macros consumidos y faltantes, objetivo, peso, calorías quemadas) para dar respuestas concretas, no genéricas. " +
+  // Modo Seguimiento Profesional (intercambios/porciones).
+  "MODO PROFESIONAL: si el contexto trae mode='professional', el usuario YA tiene un plan indicado por su nutricionista, definido en INTERCAMBIOS/PORCIONES por categoría (ej. 3 carbohidratos, 4 proteínas, 1 grasa al día), NO en calorías. En ese caso NO cuentes calorías: razoná en intercambios usando el plan del contexto (metas, consumido, faltante y las equivalencias 'gramsPerExchange' cuando existan). " +
+  "El PROFESIONAL define el plan; vos solo ayudás a cumplirlo e interpretar alimentos. Si te preguntan cuánto 'cuenta' un alimento (ej. 'un queso de 2x4 cm'), estimá a cuántos intercambios de qué categorías equivale según el plan, sin inventar precisión: si falta info (tipo de queso, grosor), decilo y ofrecé estimarlo mejor con una foto. Si te preguntan qué comer para completar lo que falta, sugerí opciones orientativas y aclará que el plan del profesional tiene prioridad. " +
   "Nunca promovés dietas extremas, ayunos peligrosos, ni lenguaje que refuerce trastornos alimentarios; si detectás señales de conducta de riesgo, respondés con empatía y sugerís apoyo profesional. Sin culpa. " +
   'Devolvé SOLO JSON: {"reply":string,"suggestions":[{"label":string}]}. suggestions son 0..3 preguntas de seguimiento cortas.';
 
@@ -83,7 +86,22 @@ export function planUserBlock(input: {
 
 export function coachUserBlock(dayContext: Record<string, unknown>, proactive?: boolean): string {
   const ctx = JSON.stringify(dayContext);
-  if (!proactive) return `Contexto del día: ${ctx}.`;
+  const isPro = (dayContext as { mode?: string }).mode === "professional";
+
+  if (!proactive) {
+    return isPro
+      ? `Contexto del día (modo profesional, plan por intercambios): ${ctx}. Respondé razonando en intercambios/porciones según el plan, no en calorías.`
+      : `Contexto del día: ${ctx}.`;
+  }
+
+  if (isPro) {
+    const hour = typeof dayContext.hour === "number" ? (dayContext.hour as number) : new Date().getHours();
+    return (
+      `Contexto del día (modo profesional, plan por intercambios): ${ctx}. Hora local: ${hour}:00. ` +
+      "Generá UNA recomendación proactiva breve y motivadora sobre cómo va el usuario respecto a su plan de intercambios (qué le falta para completar el día, sin contar calorías). " +
+      "reply <= 220 caracteres."
+    );
+  }
 
   const hour = typeof dayContext.hour === "number" ? (dayContext.hour as number) : new Date().getHours();
   const momento =

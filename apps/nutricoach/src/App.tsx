@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Spinner } from "@titoapps/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -29,6 +30,18 @@ import { ProfilePage } from "@/features/profile/ProfilePage";
 import { PlanPage } from "@/features/plan/PlanPage";
 import { ExportPage } from "@/features/settings/ExportPage";
 import { HelpPage } from "@/features/help/HelpPage";
+import { ModeGate } from "@/features/mode/ModeGate";
+import { ProDashboard } from "@/features/pro/ProDashboard";
+import { ProLogPage } from "@/features/pro/ProLogPage";
+import { ProHistoryPage } from "@/features/pro/ProHistoryPage";
+import { ProPlanConfigPage } from "@/features/pro/ProPlanConfigPage";
+import { ProCapturePage } from "@/features/pro/ProCapturePage";
+
+/** Elige la vista según el modo activo (profesional vs. personal). */
+function ModeRoute({ personal, professional }: { personal: ReactElement; professional: ReactElement }) {
+  const { profile } = useAuth();
+  return profile?.nutrition_mode === "professional" ? professional : personal;
+}
 
 export default function App() {
   const { session, profile, loading } = useAuth();
@@ -54,11 +67,16 @@ export default function App() {
   // Sesión sin username (cuenta con confirmación de correo): pedirlo antes de entrar.
   if (profile && !profile.username) return <UsernameGate />;
 
+  // Ya tiene username pero todavía no eligió modo: onboarding de modo.
+  if (profile && profile.username && !profile.nutrition_mode) return <ModeGate />;
+
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/log" element={<LogHub />} />
+        <Route path="/" element={<ModeRoute personal={<DashboardPage />} professional={<ProDashboard />} />} />
+        <Route path="/log" element={<ModeRoute personal={<LogHub />} professional={<ProLogPage />} />} />
+        <Route path="/plan-pro" element={<ProPlanConfigPage />} />
+        <Route path="/pro/capture" element={<ProCapturePage />} />
         <Route path="/log/photo" element={<PhotoCapture />} />
         <Route path="/log/text" element={<TextMeal />} />
         <Route path="/log/scale" element={<ScaleMode />} />
@@ -76,7 +94,7 @@ export default function App() {
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/activity" element={<ActivityPage />} />
         <Route path="/plan" element={<PlanPage />} />
-        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/history" element={<ModeRoute personal={<HistoryPage />} professional={<ProHistoryPage />} />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/export" element={<ExportPage />} />
         <Route path="/help" element={<HelpPage />} />

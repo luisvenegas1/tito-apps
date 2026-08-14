@@ -43,3 +43,25 @@ export type { IntakePoint, WeightPoint, AdherenceResult } from "./stats";
 
 export { suggestPortion, scoreIdea, rankMealIdeas } from "./ideas";
 export type { FoodCandidate, MealIdea } from "./ideas";
+
+// Seguimiento Profesional: intercambios / porciones.
+export {
+  categoryProgress,
+  dayCompliance,
+  macrosToExchanges,
+  currentStreak,
+  bestStreak,
+  complianceStats,
+} from "./exchanges";
+export type {
+  ExchangeUnit,
+  ExchangeCategoryDef,
+  CategoryProgress,
+  DayStatus,
+  DayCompliance,
+  DayStatusPoint,
+  ComplianceStats,
+} from "./exchanges";
+
+export { BADGES, evaluateBadges, badgeById } from "./badges";
+export type { BadgeDef, BadgeStats } from "./badges";

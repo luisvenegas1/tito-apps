@@ -2,10 +2,13 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 
+import type { NutritionMode } from "@/lib/supabase/types";
+
 export interface AuthProfile {
   user_id: string;
   username: string | null;
   full_name: string | null;
+  nutrition_mode: NutritionMode | null;
 }
 
 interface AuthState {
@@ -30,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, username, full_name")
+      .select("user_id, username, full_name, nutrition_mode")
       .eq("user_id", uid)
       .maybeSingle();
     setProfile((data as AuthProfile) ?? null);

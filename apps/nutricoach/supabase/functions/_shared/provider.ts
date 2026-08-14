@@ -87,6 +87,31 @@ export const stubProvider: AIProvider = {
     return { per100g: RICE, servingSize_g: 50 };
   },
   async coachReply(_messages, dayContext, proactive) {
+    // Modo profesional: razonar en intercambios/porciones, no en calorías.
+    if ((dayContext as { mode?: string }).mode === "professional") {
+      const plan = (dayContext.plan ?? {}) as {
+        categories?: Array<{ name: string; remaining: number; met: boolean }>;
+      };
+      const cats = plan.categories ?? [];
+      const faltan = cats.filter((c) => !c.met && c.remaining > 0);
+      const resumen = faltan.length
+        ? faltan.map((c) => `${c.remaining} ${c.name.toLowerCase()}`).join(", ")
+        : "";
+      if (proactive) {
+        return {
+          reply: faltan.length
+            ? `Vas bien con tu plan. Te falta completar: ${resumen}. ¡Vos podés cerrar el día! 💪`
+            : "¡Excelente! Ya completaste todos los intercambios de tu plan de hoy. 🎉",
+        };
+      }
+      return {
+        reply: faltan.length
+          ? `Según tu plan te falta: ${resumen}. Recordá que tu nutricionista definió estas metas; te ayudo a completarlas. (Respuesta de ejemplo — el proveedor real se conecta en el Bloque 2.)`
+          : "Ya cumpliste tu plan de hoy. Si querés, contame qué comiste y lo registro como intercambios.",
+        suggestions: [{ label: "¿Qué me falta hoy?" }, { label: "¿Qué puedo comer?" }],
+      };
+    }
+
     const remaining = (dayContext.remaining ?? {}) as Record<string, number>;
     const kcal = Math.round(remaining.kcal ?? 0);
     const protein = Math.round(remaining.protein_g ?? 0);

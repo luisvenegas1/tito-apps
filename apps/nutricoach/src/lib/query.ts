@@ -16,4 +16,9 @@ export const qk = {
   water: (date: string) => ["water", date] as const,
   workouts: (date: string) => ["workouts", date] as const,
   coach: ["coach"] as const,
+  // Seguimiento Profesional
+  planCategories: ["plan-categories"] as const,
+  proDay: (date: string) => ["pro-day", date] as const,
+  proRange: (days: number) => ["pro-range", days] as const,
+  badges: ["badges"] as const,
 } as const;

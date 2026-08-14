@@ -11,6 +11,8 @@ import { validateUsername } from "@/lib/username";
 import { errorMessage } from "@/lib/errors";
 import { changeUsername, updateFullName, changePassword } from "@/features/auth/authApi";
 import { RemindersCard } from "@/features/reminders/RemindersCard";
+import { ModeSelect } from "@/features/mode/ModeSelect";
+import { useMode } from "@/features/mode/useMode";
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -31,6 +33,7 @@ export function ProfilePage() {
   const addWeight = useAddWeight();
   const deleteWeight = useDeleteWeight();
   const updateUnits = useUpdateProfile();
+  const { mode, setMode, isSaving: modeSaving } = useMode();
   const qc = useQueryClient();
 
   const [fullName, setFullName] = useState(authProfile?.full_name ?? "");
@@ -84,6 +87,15 @@ export function ProfilePage() {
             {msg.text}
           </p>
         )}
+
+        <Section title="Modo de la app" hint="Podés cambiar cuando quieras. No se borran tus datos: cada modo guarda su propia configuración.">
+          <ModeSelect current={mode} disabled={modeSaving} onSelect={(m) => { if (m !== mode) void setMode(m); }} />
+          {mode === "professional" && (
+            <Link to="/plan-pro" className="block rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-200 active:scale-[.99]">
+              📋 Editar mi plan de intercambios
+            </Link>
+          )}
+        </Section>
 
         <Section title="Datos personales">
           <div>

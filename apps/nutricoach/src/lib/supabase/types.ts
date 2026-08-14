@@ -10,6 +10,7 @@ import type {
 } from "@titoapps/nutrition";
 
 export type Units = "metric" | "imperial";
+export type NutritionMode = "personal" | "professional";
 export type Meal = "breakfast" | "lunch" | "dinner" | "snack";
 export type FoodSource = "custom" | "barcode" | "ai" | "search";
 export type LogItemSource =
@@ -43,6 +44,7 @@ export interface Profile {
   activity_answers: Record<string, unknown> | null;
   activity_reviewed_at: string | null; // ISO timestamp
   units: Units;
+  nutrition_mode: NutritionMode | null; // null = aún no elegido (onboarding)
   created_at: string;
   updated_at: string;
 }
@@ -180,4 +182,53 @@ export interface CoachMessage {
   content: string;
   context: Record<string, unknown> | null;
   created_at: string;
+}
+
+// ---------- Seguimiento Profesional (intercambios) ----------
+export type ExchangeUnit = "carb_g" | "protein_g" | "fat_g" | "kcal" | "manual";
+export type ExchangeSource =
+  | "quick"
+  | "manual"
+  | "text"
+  | "photo"
+  | "scale"
+  | "label"
+  | "barcode"
+  | "ai";
+
+export interface PlanCategory {
+  id: string;
+  user_id: string;
+  name: string;
+  emoji: string | null;
+  daily_target: number;
+  unit: ExchangeUnit;
+  grams_per_exchange: number | null;
+  notes: string | null;
+  is_active: boolean;
+  sort_order: number;
+  source: "self" | "professional";
+  assigned_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExchangeEntry {
+  id: string;
+  user_id: string;
+  category_id: string;
+  log_date: string; // ISO date
+  amount: number;
+  name: string | null;
+  meal: Meal | null;
+  source: ExchangeSource;
+  note: string | null;
+  created_at: string;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  earned_at: string;
 }

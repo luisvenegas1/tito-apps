@@ -31,6 +31,7 @@ export type ProfilePatch = Partial<
     | "activity_answers"
     | "activity_reviewed_at"
     | "units"
+    | "nutrition_mode"
   >
 >;
 
