@@ -1,0 +1,24 @@
+<svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Money Track">
+  <defs>
+    <linearGradient id="lk-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#134E4A"/>
+    </linearGradient>
+    <linearGradient id="lk-bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#34D399"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(20,20) scale(0.3125)">
+    <rect width="512" height="512" rx="116" fill="url(#lk-bg)"/>
+    <rect x="112" y="300" width="56" height="108" rx="18" fill="#FFFFFF" opacity="0.28"/>
+    <rect x="188" y="252" width="56" height="156" rx="18" fill="#FFFFFF" opacity="0.45"/>
+    <rect x="264" y="300" width="56" height="108" rx="18" fill="url(#lk-bar)" opacity="0.65"/>
+    <rect x="340" y="196" width="56" height="212" rx="18" fill="url(#lk-bar)"/>
+    <polyline points="128,250 232,196 300,228 392,132" fill="none" stroke="#34D399" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M352 120 L400 120 L400 168" fill="none" stroke="#34D399" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="212" y="100" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-1.5">
+    <tspan fill="#0F172A">Money</tspan><tspan fill="#10B981">Track</tspan>
+  </text>
+</svg>

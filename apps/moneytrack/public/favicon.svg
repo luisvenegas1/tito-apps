@@ -1,0 +1,12 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Money Track favicon">
+  <defs>
+    <linearGradient id="fv-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#134E4A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#fv-bg)"/>
+  <!-- Simplified mark for tiny sizes: bold trend line + arrow -->
+  <polyline points="120,340 224,236 300,292 404,168" fill="none" stroke="#34D399" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M344 150 L420 150 L420 226" fill="none" stroke="#34D399" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
