@@ -1,0 +1,11 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Money Track (monochrome)">
+  <!-- Single-ink version. Change 'fill'/'stroke' color to recolor; transparent background. -->
+  <g fill="#0F172A">
+    <rect x="112" y="300" width="56" height="108" rx="18" opacity="0.45"/>
+    <rect x="188" y="252" width="56" height="156" rx="18" opacity="0.6"/>
+    <rect x="264" y="300" width="56" height="108" rx="18" opacity="0.8"/>
+    <rect x="340" y="196" width="56" height="212" rx="18"/>
+  </g>
+  <polyline points="128,250 232,196 300,228 392,132" fill="none" stroke="#0F172A" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M352 120 L400 120 L400 168" fill="none" stroke="#0F172A" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

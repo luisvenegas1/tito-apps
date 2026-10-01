@@ -1,0 +1,18 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Money Track - Trend Coin">
+  <defs>
+    <linearGradient id="a-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="1" stop-color="#0E8A8A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#a-bg)"/>
+  <polyline points="92,360 180,296 256,322 340,214 418,152"
+            fill="none" stroke="#FFFFFF" stroke-width="26"
+            stroke-linecap="round" stroke-linejoin="round" opacity="0.96"/>
+  <circle cx="180" cy="296" r="13" fill="#FFFFFF"/>
+  <circle cx="256" cy="322" r="13" fill="#FFFFFF"/>
+  <circle cx="340" cy="214" r="13" fill="#FFFFFF"/>
+  <circle cx="418" cy="152" r="56" fill="#FFFFFF"/>
+  <text x="418" y="156" text-anchor="middle" dominant-baseline="central"
+        font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="700" fill="#0E8A8A">₡</text>
+</svg>

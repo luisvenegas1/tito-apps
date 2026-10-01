@@ -1,0 +1,20 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Money Track - Track Ring">
+  <defs>
+    <linearGradient id="c-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E8A8A"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <linearGradient id="c-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#A7F3D0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#c-bg)"/>
+  <circle cx="256" cy="256" r="132" fill="none" stroke="#FFFFFF" stroke-width="30" opacity="0.22"/>
+  <path d="M256 124
+           A132 132 0 1 1 155 176"
+        fill="none" stroke="url(#c-ring)" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="256" cy="124" r="20" fill="#FFFFFF"/>
+  <text x="256" y="262" text-anchor="middle" dominant-baseline="central"
+        font-family="Arial, Helvetica, sans-serif" font-size="150" font-weight="700" fill="#FFFFFF">₡</text>
+</svg>
