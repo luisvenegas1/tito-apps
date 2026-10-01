@@ -28,6 +28,12 @@ pnpm --filter moneytrack test:rls   # RLS contra Supabase local: acreedor, deudo
 pnpm --filter moneytrack lint       # typecheck
 ```
 
+## Producción
+
+- **URL:** https://moneytrack.tito-apps.com (DNS en Cloudflare: CNAME `moneytrack` → Vercel, *DNS only*)
+- **Vercel:** proyecto `moneytrack`, Root Directory `apps/moneytrack`, rama `main`
+- **Supabase:** proyecto `akztimahpisflsfxbcnn`; migraciones con `supabase db push`, funciones `sync-rates` y `notify-due`; `CRON_SECRET` y la URL del proyecto viven en el Vault
+
 ## Desplegar
 
 1. **Supabase:** crea un proyecto nuevo (solo para Money Track) y aplica las migraciones:
