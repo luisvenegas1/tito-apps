@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button, Input, Modal, cn, useToast } from "@titoapps/ui";
 import { formatDay, parseISODate, todayISO } from "@/lib/dates";
-import { formatMoney, parseAmount } from "@/lib/money";
+import { formatMoney, parseAmount, CURRENCY_SYMBOL } from "@/lib/money";
 import { errorMessage } from "@/lib/errors";
 import { paymentGroup, paymentState, paymentStateLabel } from "@/lib/payments";
 import { PageHeader } from "@/components/PageHeader";
@@ -103,7 +103,7 @@ export function PaymentsPage() {
   );
 }
 
-function PaySheet({ payment, name, onClose }: { payment: ScheduledPayment | null; name: string; onClose: () => void }) {
+export function PaySheet({ payment, name, onClose }: { payment: ScheduledPayment | null; name: string; onClose: () => void }) {
   const pay = usePayScheduled();
   const toast = useToast();
   const [amount, setAmount] = useState("");
@@ -135,7 +135,7 @@ function PaySheet({ payment, name, onClose }: { payment: ScheduledPayment | null
         <p className="text-sm text-muted">Se crea el movimiento con el monto real. Puedes ajustarlo si cambió este mes.</p>
         <div className="grid grid-cols-2 gap-2">
           <label>
-            <span className="label">Monto ({payment?.currency === "USD" ? "$" : "₡"})</span>
+            <span className="label">Monto ({CURRENCY_SYMBOL[payment?.currency ?? "CRC"]})</span>
             <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="amount" required />
           </label>
           <label>

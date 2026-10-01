@@ -106,7 +106,8 @@ function ImportCard() {
         const kindRaw = (r[iKind] ?? "").toLowerCase();
         const kind: TxnKind = /ingreso|income/.test(kindRaw) ? "income" : "expense";
         const curRaw = (r[iCur] ?? "").toUpperCase();
-        const currency: Currency = /USD|\$|DOL/.test(curRaw) || rawAmount.includes("$") ? "USD" : "CRC";
+        const currency: Currency =
+          /EUR|€/.test(curRaw) || rawAmount.includes("€") ? "EUR" : /USD|\$|DOL/.test(curRaw) || rawAmount.includes("$") ? "USD" : "CRC";
         return {
           line: i + 2,
           occurred_on: date ?? "",

@@ -207,3 +207,11 @@ Cada fase tiene su propio plan de implementación y deja la app usable.
 - **Resumen del mes en el cliente** (`src/lib/summary.ts`, con pruebas) en vez de la RPC `month_summary`: el volumen es pequeño y así la regla queda probada con Vitest.
 - **Avisos por push e in-app**; el correo queda para después.
 - **Permisos explícitos** (`0005_grants.sql`): las versiones recientes de Supabase ya no otorgan DML por defecto a `authenticated` ni a `service_role`.
+
+## 12. Ajustes tras la primera revisión (2026-09-30)
+- **Euros:** `currency_code` incluye `EUR` en todo (movimientos, cuentas compartidas, metas, pagos fijos).
+- **Tipo de cambio con compra y venta** por moneda (`exchange_rates.currency, buy, sell, source`). Los gastos se convierten con la **venta** y los ingresos con la **compra**.
+- **Actualización automática con el BCCR:** la app consulta una vez al día la API pública de Hacienda (`api.hacienda.go.cr/indicadores/tc`, tipo de cambio de referencia del BCCR, CORS abierto). No pisa valores escritos a mano (`source = 'manual'`), así el usuario puede usar el de su banco (por ejemplo, BAC). No se lee la página de BAC: no tiene API pública y raspar su sitio sería frágil.
+- **"Lo pagué con mi dinero"** al crear un cargo como acreedor: `charge_and_expense(..., p_kind => 'advance')` crea el cargo y un movimiento privado ligado. Aparece en Movimientos, pero no cuenta en gastos ni en "salió de tu bolsillo": es una cuenta por cobrar (el inicio lo muestra aparte como "pagaste por otras personas").
+- **Botón "Pagar"** en los próximos pagos del inicio.
+- **Contraseñas con botón para mostrarlas** (registro, entrada y cambio).

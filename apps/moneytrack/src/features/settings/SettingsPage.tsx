@@ -2,13 +2,15 @@ import { useState, type FormEvent } from "react";
 import { Button, Input, Select, useToast } from "@titoapps/ui";
 import { getTheme, setTheme, type BrandTheme } from "@titoapps/brand";
 import { formatDay, todayISO } from "@/lib/dates";
-import { parseAmount } from "@/lib/money";
+import { CURRENCIES, CURRENCY_NAME, CURRENCY_SYMBOL, formatMoney, parseAmount } from "@/lib/money";
 import { errorMessage } from "@/lib/errors";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
 import { Loading } from "@/components/Empty";
-import { useProfile, useRates, useSaveRate, useUpdateProfile } from "@/features/data/core";
-import type { Currency } from "@/lib/supabase/types";
+import { syncBccrRates, useProfile, useRates, useSaveRate, useUpdateProfile } from "@/features/data/core";
+import { useQueryClient } from "@tanstack/react-query";
+import { qk } from "@/lib/query";
+import type { Currency, ForeignCurrency } from "@/lib/supabase/types";
 import { disablePush, enablePush, pushSupported } from "./push";
 
 export const THEME_KEY = "mt.theme";
@@ -21,8 +23,12 @@ export function SettingsPage() {
   const saveRate = useSaveRate();
   const toast = useToast();
   const [name, setName] = useState<string | null>(null);
-  const [rate, setRate] = useState("");
+  const qc = useQueryClient();
+  const [rateCur, setRateCur] = useState<ForeignCurrency>("USD");
+  const [buy, setBuy] = useState("");
+  const [sell, setSell] = useState("");
   const [rateDate, setRateDate] = useState(todayISO());
+  const [syncing, setSyncing] = useState(false);
   const [theme, setThemeState] = useState<BrandTheme>(getTheme());
   const [pushBusy, setPushBusy] = useState(false);
 
@@ -39,11 +45,24 @@ export function SettingsPage() {
 
   async function addRate(e: FormEvent) {
     e.preventDefault();
-    const v = parseAmount(rate);
-    if (!v) return toast.show("Escribe el tipo de cambio", "danger");
-    await run(() => saveRate.mutateAsync({ crc_per_usd: v, valid_from: rateDate }), "Tipo de cambio guardado");
-    setRate("");
+    const b = parseAmount(buy);
+    const s = parseAmount(sell || buy);
+    if (!b || !s) return toast.show("Escribe la compra y la venta", "danger");
+    await run(() => saveRate.mutateAsync({ currency: rateCur, buy: b, sell: s, valid_from: rateDate }), "Tipo de cambio guardado");
+    setBuy("");
+    setSell("");
   }
+
+  async function syncNow() {
+    setSyncing(true);
+    await run(async () => {
+      await syncBccrRates();
+      await qc.invalidateQueries({ queryKey: qk.rates });
+    }, "Tipo de cambio actualizado con el BCCR");
+    setSyncing(false);
+  }
+
+  const latest = (c: ForeignCurrency) => rates.find((r) => r.currency === c);
 
   async function togglePush(on: boolean) {
     setPushBusy(true);
@@ -76,28 +95,79 @@ export function SettingsPage() {
               label="Moneda principal"
               value={profile.base_currency}
               onChange={(v: Currency) => run(() => update.mutateAsync({ base_currency: v }), "Moneda principal actualizada")}
-              options={[{ value: "CRC", label: "Colones (₡)" }, { value: "USD", label: "Dólares ($)" }]}
+              options={CURRENCIES.map((c) => ({ value: c, label: `${CURRENCY_SYMBOL[c]} ${CURRENCY_NAME[c]}` }))}
             />
-            <p className="mt-1 text-xs text-muted">Los totales se muestran en esta moneda. Cada movimiento guarda su moneda original.</p>
+            <p className="mt-1 text-xs text-muted">Los totales se muestran en esta moneda y la puedes cambiar cuando quieras. Cada movimiento guarda su moneda original.</p>
           </div>
         </section>
 
         <section className="card">
           <h2 className="font-bold">Tipo de cambio</h2>
-          <p className="mt-1 text-sm text-muted">Colones por dólar. Cada movimiento usa el vigente en su fecha.</p>
-          <form onSubmit={addRate} className="mt-3 flex gap-2">
-            <Input inputMode="decimal" placeholder="505" value={rate} onChange={(e) => setRate(e.target.value)} aria-label="Colones por dólar" className="amount" />
-            <Input type="date" value={rateDate} onChange={(e) => setRateDate(e.target.value)} aria-label="Vigente desde" />
-            <Button type="submit">Agregar</Button>
+          <p className="mt-1 text-sm text-muted">
+            Colones por cada dólar o euro. Los gastos se convierten con el de <b>venta</b> y los ingresos con el de <b>compra</b>, según la fecha de cada movimiento.
+          </p>
+          <table className="mt-3 w-full text-sm">
+            <thead>
+              <tr className="text-left text-muted">
+                <th className="py-1 font-medium">Moneda</th>
+                <th className="py-1 text-right font-medium">Compra</th>
+                <th className="py-1 text-right font-medium">Venta</th>
+                <th className="py-1 text-right font-medium">Desde</th>
+              </tr>
+            </thead>
+            <tbody className="tabular-nums">
+              {(["USD", "EUR"] as const).map((c) => {
+                const r = latest(c);
+                return (
+                  <tr key={c} className="border-t border-border">
+                    <td className="py-2 font-semibold">{CURRENCY_SYMBOL[c]} {CURRENCY_NAME[c]}</td>
+                    <td className="py-2 text-right">{r ? formatMoney(r.buy, "CRC") : "—"}</td>
+                    <td className="py-2 text-right">{r ? formatMoney(r.sell, "CRC") : "—"}</td>
+                    <td className="py-2 text-right text-xs text-muted">
+                      {r ? (r.source === "seed" ? "inicial" : `${formatDay(r.valid_from)} · ${r.source === "bccr" ? "BCCR" : "manual"}`) : ""}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <label className="mt-4 flex items-center justify-between gap-3">
+            <span>
+              <span className="block font-medium">Actualizar solo con el BCCR</span>
+              <span className="text-xs text-muted">Una vez al día, con el tipo de cambio de referencia del Banco Central.</span>
+            </span>
+            <input
+              type="checkbox"
+              className="h-5 w-5 accent-emerald-600"
+              checked={profile.auto_rates}
+              onChange={(e) => run(() => update.mutateAsync({ auto_rates: e.target.checked }), e.target.checked ? "Actualización automática activada" : "Actualización automática desactivada")}
+            />
+          </label>
+          <Button variant="outline" size="sm" className="mt-3" onClick={syncNow} disabled={syncing}>
+            {syncing ? "Consultando…" : "Actualizar ahora con el BCCR"}
+          </Button>
+
+          <form onSubmit={addRate} className="mt-5 space-y-2 border-t border-border pt-4">
+            <p className="text-sm font-medium">Escribirlo a mano</p>
+            <p className="text-xs text-muted">Útil si tu banco usa otro (por ejemplo, el de BAC). Lo que escribas a mano no lo reemplaza el BCCR.</p>
+            <Segmented label="Moneda" value={rateCur} onChange={setRateCur} options={[{ value: "USD", label: "$ Dólar" }, { value: "EUR", label: "€ Euro" }]} />
+            <div className="grid grid-cols-3 gap-2">
+              <label>
+                <span className="label">Compra</span>
+                <Input inputMode="decimal" placeholder="452" value={buy} onChange={(e) => setBuy(e.target.value)} className="amount" />
+              </label>
+              <label>
+                <span className="label">Venta</span>
+                <Input inputMode="decimal" placeholder="466" value={sell} onChange={(e) => setSell(e.target.value)} className="amount" />
+              </label>
+              <label>
+                <span className="label">Desde</span>
+                <Input type="date" value={rateDate} onChange={(e) => setRateDate(e.target.value)} />
+              </label>
+            </div>
+            <Button type="submit" size="sm">Guardar tipo de cambio</Button>
           </form>
-          <ul className="mt-3 divide-y divide-border text-sm">
-            {rates.slice(0, 6).map((r) => (
-              <li key={r.id} className="flex justify-between py-2">
-                <span className="text-muted">Desde {formatDay(r.valid_from)}/{r.valid_from.slice(2, 4)}</span>
-                <span className="font-semibold tabular-nums">₡{r.crc_per_usd.toLocaleString("es-CR")}</span>
-              </li>
-            ))}
-          </ul>
         </section>
 
         <section className="card space-y-3">

@@ -115,21 +115,29 @@ create policy transactions_del on public.transactions for delete using (user_id 
 -- ---------------------------------------------------------------------
 -- Cuenta compartida ↔ gastos de la deudora
 -- ---------------------------------------------------------------------
--- "Compré con la extensión": cargo en el libro + gasto propio, en una sola transacción.
+-- Cargo en el libro + movimiento propio ligado, en una sola transacción:
+--   deudora, kind 'expense': "Compré con la extensión" (es SU gasto).
+--   acreedor, kind 'advance': "Lo pagué con mi dinero" (sale de mi bolsillo, pero
+--   no es gasto mío: me lo deben; aparece en mis movimientos sin contar en totales).
 create or replace function public.charge_and_expense(
   p_account uuid, p_amount numeric, p_currency public.currency_code, p_date date,
-  p_concept text, p_category uuid, p_note text default null, p_client_uuid uuid default null
+  p_concept text, p_category uuid, p_note text default null, p_client_uuid uuid default null,
+  p_kind public.txn_kind default 'expense'
 ) returns uuid
 language plpgsql
 as $$
 declare v_entry uuid;
 begin
+  if p_kind not in ('expense', 'advance') then
+    raise exception 'Tipo no permitido para un cargo';
+  end if;
+
   insert into public.shared_entries (account_id, type, amount, currency, occurred_on, concept, note, client_uuid)
   values (p_account, 'charge', p_amount, p_currency, p_date, p_concept, p_note, p_client_uuid)
   returning id into v_entry;
 
   insert into public.transactions (user_id, kind, amount, currency, occurred_on, category_id, note, shared_entry_id)
-  values (auth.uid(), 'expense', p_amount, p_currency, p_date, p_category, p_concept, v_entry);
+  values (auth.uid(), p_kind, p_amount, p_currency, p_date, p_category, p_concept, v_entry);
   return v_entry;
 end;
 $$;

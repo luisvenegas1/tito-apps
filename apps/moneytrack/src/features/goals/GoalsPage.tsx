@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Button, Input, Modal, Select, useToast } from "@titoapps/ui";
 import { currentMonth, daysBetween, monthRange, parseISODate, todayISO } from "@/lib/dates";
-import { formatMoney, parseAmount } from "@/lib/money";
+import { formatMoney, parseAmount, CURRENCY_OPTIONS, CURRENCY_SYMBOL } from "@/lib/money";
 import { myPortion } from "@/lib/summary";
 import { toBase } from "@/lib/rates";
 import { errorMessage } from "@/lib/errors";
@@ -173,7 +173,7 @@ function GoalSheet({ goal, onClose }: { goal: Partial<Goal> | null; onClose: () 
           </label>
           <div>
             <span className="label">Moneda</span>
-            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={[{ value: "CRC", label: "₡" }, { value: "USD", label: "$" }]} />
+            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={CURRENCY_OPTIONS} />
           </div>
         </div>
         {type === "savings" && (
@@ -216,7 +216,7 @@ function ContributeSheet({ goal, onClose }: { goal: Goal | null; onClose: () => 
         <h2 className="text-lg font-bold">{goal?.name}</h2>
         <Segmented label="Movimiento" className="w-full" value={sign} onChange={setSign} options={[{ value: "add", label: "Apartar" }, { value: "remove", label: "Retirar" }]} />
         <label className="block">
-          <span className="label">Monto ({goal?.currency === "USD" ? "$" : "₡"})</span>
+          <span className="label">Monto ({CURRENCY_SYMBOL[goal?.currency ?? "CRC"]})</span>
           <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="amount text-lg" required autoFocus />
         </label>
         <Button type="submit" fullWidth>Guardar</Button>

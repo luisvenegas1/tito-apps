@@ -137,11 +137,24 @@ export function useSetEntryDeleted() {
   });
 }
 
-/** "Compré con la extensión": cargo + gasto propio en una sola operación. */
+/**
+ * Cargo + movimiento propio ligado, en una sola operación:
+ *  - deudora, kind 'expense': "Compré con la extensión" (es su gasto);
+ *  - acreedor, kind 'advance': "Lo pagué con mi dinero" (aparece en mis movimientos, no es gasto mío).
+ */
 export function useChargeAndExpense() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (a: { account: string; amount: number; currency: Currency; date: string; concept: string; category: string | null; note: string | null }) => {
+    mutationFn: async (a: {
+      account: string;
+      amount: number;
+      currency: Currency;
+      date: string;
+      concept: string;
+      category: string | null;
+      note: string | null;
+      kind?: "expense" | "advance";
+    }) => {
       const client_uuid = crypto.randomUUID();
       return runOrQueue({
         id: client_uuid,
@@ -156,6 +169,7 @@ export function useChargeAndExpense() {
           p_category: a.category,
           p_note: a.note,
           p_client_uuid: client_uuid,
+          p_kind: a.kind ?? "expense",
         },
       });
     },

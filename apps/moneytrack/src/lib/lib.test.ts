@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convert, formatByCurrency, formatMoney, parseAmount } from "./money";
-import { rateFor, toBase } from "./rates";
+import { parseBccr, rateFor, toBase } from "./rates";
 import { monthSummary, pctChange } from "./summary";
 import { balances, ledgerRows, periodTotals } from "./ledger";
 import { paymentState, paymentStateLabel } from "./payments";
@@ -14,6 +14,7 @@ describe("money", () => {
     expect(formatMoney(42.5, "USD")).toBe("$42,50");
     expect(formatMoney(-1500, "CRC")).toBe("−₡1.500");
     expect(formatMoney(1500, "CRC", { sign: true })).toBe("+₡1.500");
+    expect(formatMoney(10, "EUR")).toBe("€10,00");
   });
 
   it("interpreta montos escritos de varias formas", () => {
@@ -28,34 +29,51 @@ describe("money", () => {
     expect(parseAmount("")).toBeNull();
   });
 
-  it("convierte con el TC", () => {
-    expect(convert(10, "USD", "CRC", 505)).toBe(5050);
-    expect(convert(5050, "CRC", "USD", 505)).toBe(10);
-    expect(convert(7, "CRC", "CRC", 505)).toBe(7);
+  it("convierte pasando por colones", () => {
+    const per = (c: string) => (c === "USD" ? 500 : c === "EUR" ? 550 : 1);
+    expect(convert(10, "USD", "CRC", per)).toBe(5000);
+    expect(convert(5000, "CRC", "USD", per)).toBe(10);
+    expect(convert(10, "EUR", "USD", per)).toBe(11);
+    expect(convert(7, "CRC", "CRC", per)).toBe(7);
   });
 
   it("muestra saldos por moneda", () => {
-    expect(formatByCurrency({ CRC: 185000, USD: 42 })).toBe("₡185.000 · $42,00");
+    expect(formatByCurrency({ CRC: 185000, USD: 42, EUR: 5 })).toBe("₡185.000 · $42,00 · €5,00");
     expect(formatByCurrency({})).toBe("₡0");
   });
 });
 
 describe("tipo de cambio", () => {
   const rates = [
-    { crc_per_usd: 520, valid_from: "2026-01-01" },
-    { crc_per_usd: 505, valid_from: "2026-06-01" },
+    { currency: "USD" as const, buy: 510, sell: 520, valid_from: "2026-01-01" },
+    { currency: "USD" as const, buy: 452, sell: 466, valid_from: "2026-06-01" },
+    { currency: "EUR" as const, buy: 520, sell: 530, valid_from: "2026-01-01" },
   ];
-  it("usa el vigente en la fecha del movimiento", () => {
-    expect(rateFor("2026-03-15", rates)).toBe(520);
-    expect(rateFor("2026-06-01", rates)).toBe(505);
-    expect(rateFor("2025-12-01", rates)).toBe(520); // antes del primero: el más antiguo
-    expect(toBase(10, "USD", "2026-07-01", "CRC", rates)).toBe(5050);
+  it("usa el vigente en la fecha del movimiento y el lado correcto", () => {
+    expect(rateFor("2026-03-15", "USD", rates, "sell")).toBe(520);
+    expect(rateFor("2026-06-01", "USD", rates, "buy")).toBe(452);
+    expect(rateFor("2025-12-01", "USD", rates, "sell")).toBe(520); // antes del primero: el más antiguo
+    expect(toBase(10, "USD", "2026-07-01", "CRC", rates, "sell")).toBe(4660); // gasto: venta
+    expect(toBase(10, "USD", "2026-07-01", "CRC", rates, "buy")).toBe(4520); // ingreso: compra
+    expect(toBase(10, "EUR", "2026-07-01", "CRC", rates)).toBe(5300);
+  });
+
+  it("lee la respuesta de la API de Hacienda (BCCR)", () => {
+    const r = parseBccr({
+      dolar: { venta: { fecha: "2026-09-30", valor: 458.43 }, compra: { fecha: "2026-09-30", valor: 454.26 } },
+      euro: { fecha: "2026-09-29", dolares: 1.1345, colones: 520.09 },
+    });
+    expect(r).toEqual({
+      USD: { buy: 454.26, sell: 458.43, date: "2026-09-30" },
+      EUR: { buy: 520.09, sell: 520.09, date: "2026-09-29" },
+    });
+    expect(parseBccr({ error: "x" })).toBeNull();
   });
 });
 
 describe("resumen del mes", () => {
   const base = { occurred_on: "2026-09-10", category_id: "c1", my_share: 0.5, scope: "personal" as const, paid_by: "me" as const };
-  const rates = [{ crc_per_usd: 500, valid_from: "2026-01-01" }];
+  const rates = [{ currency: "USD" as const, buy: 490, sell: 500, valid_from: "2026-01-01" }];
 
   it("la luz que paga la pareja cuenta en el hogar pero no sale de mi bolsillo", () => {
     const s = monthSummary(
@@ -75,6 +93,23 @@ describe("resumen del mes", () => {
     expect(s.myOutflow).toBe(100_000 + 10_000 + 20_000);
     expect(s.available).toBe(1_000_000 - 130_000);
     expect(s.outflowByCurrency).toEqual({ CRC: 120_000, USD: 20 });
+  });
+
+  it("ingresos en dólares se convierten a compra", () => {
+    const s = monthSummary([{ ...base, kind: "income", amount: 100, currency: "USD" }], rates, "CRC");
+    expect(s.income).toBe(49_000);
+  });
+
+  it("lo que pago por otra persona en su cuenta compartida no es gasto mío", () => {
+    const s = monthSummary(
+      [{ ...base, kind: "advance", amount: 25_000, currency: "CRC", shared_entry_id: "e1" }],
+      rates,
+      "CRC",
+    );
+    expect(s.myOutflow).toBe(0);
+    expect(s.personal).toBe(0);
+    expect(s.paidForOthers).toBe(25_000);
+    expect(s.available).toBe(0);
   });
 
   it("adelantos salen y reembolsos vuelven", () => {

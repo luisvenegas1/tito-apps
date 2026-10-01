@@ -4,7 +4,7 @@ import { Button, Input, Modal, Select, cn, useToast } from "@titoapps/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { balances, ledgerRows } from "@/lib/ledger";
 import { formatDay, todayISO, monthRange, currentMonth, addMonths } from "@/lib/dates";
-import { formatMoney, parseAmount } from "@/lib/money";
+import { formatMoney, parseAmount, CURRENCY_OPTIONS } from "@/lib/money";
 import { errorMessage } from "@/lib/errors";
 import { downloadText, toCSV } from "@/lib/csv";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,6 +17,7 @@ import {
   authorLabel,
   useAccount,
   useAddChargeToExpenses,
+  useChargeAndExpense,
   useEntries,
   useHistory,
   useLinkedTransactions,
@@ -40,7 +41,7 @@ export function AccountDetailPage() {
   const eq = useEntries(id);
   const entries = eq.data ?? [];
   const chargeIds = entries.filter((e) => e.type === "charge").map((e) => e.id);
-  const { data: linked = [] } = useLinkedTransactions(acc.data?.role === "debtor" ? id : undefined, chargeIds);
+  const { data: linked = [] } = useLinkedTransactions(id, chargeIds);
   const [editing, setEditing] = useState<{ type: SharedEntryType; entry?: SharedEntry } | null>(null);
   const [viewing, setViewing] = useState<SharedEntry | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -144,6 +145,7 @@ export function AccountDetailPage() {
                       {changed && " · editado"}
                       {e.deleted_at && " · eliminado"}
                       {a.role === "debtor" && e.type === "charge" && !e.deleted_at && (tx ? " · en tus gastos ✓" : " · sin categorizar")}
+                      {a.role === "creditor" && tx && !e.deleted_at && " · lo pagaste tú"}
                     </span>
                   </span>
                   <span className="text-right">
@@ -188,8 +190,12 @@ function periodRange(p: Period): { from: string; to: string } | null {
 
 function EntrySheet({ account, state, onClose }: { account: AccountView; state: { type: SharedEntryType; entry?: SharedEntry } | null; onClose: () => void }) {
   const save = useSaveEntry();
+  const chargeWithTx = useChargeAndExpense();
+  const { data: categories = [] } = useCategories();
   const toast = useToast();
   const [type, setType] = useState<SharedEntryType>("charge");
+  const [paidByMe, setPaidByMe] = useState(false);
+  const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<Currency>("CRC");
   const [date, setDate] = useState(todayISO());
@@ -205,6 +211,8 @@ function EntrySheet({ account, state, onClose }: { account: AccountView; state: 
     setDate(e?.occurred_on ?? todayISO());
     setConcept(e?.concept ?? "");
     setNote(e?.note ?? "");
+    setPaidByMe(false);
+    setCategoryId("");
   }, [state]);
 
   async function submit(ev: FormEvent) {
@@ -212,7 +220,20 @@ function EntrySheet({ account, state, onClose }: { account: AccountView; state: 
     const value = parseAmount(amount);
     if (!value || value <= 0) return toast.show("Escribe un monto mayor que cero", "danger");
     try {
-      const queued = await save.mutateAsync({
+      // Acreedor que pagó con su dinero: cargo + movimiento propio ("adelanto") ligado.
+      const withTx = !state?.entry && type === "charge" && account.role === "creditor" && paidByMe;
+      const queued = withTx
+        ? await chargeWithTx.mutateAsync({
+            account: account.id,
+            amount: value,
+            currency,
+            date,
+            concept: concept.trim() || "Cargo",
+            category: categoryId || null,
+            note: note.trim() || null,
+            kind: "advance",
+          })
+        : await save.mutateAsync({
         id: state?.entry?.id,
         account_id: account.id,
         type,
@@ -247,7 +268,7 @@ function EntrySheet({ account, state, onClose }: { account: AccountView; state: 
           </label>
           <div>
             <span className="label">Moneda</span>
-            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={[{ value: "CRC", label: "₡" }, { value: "USD", label: "$" }]} />
+            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={CURRENCY_OPTIONS} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -264,7 +285,24 @@ function EntrySheet({ account, state, onClose }: { account: AccountView; state: 
           <span className="label">Nota</span>
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Opcional" />
         </label>
-        <Button type="submit" fullWidth disabled={save.isPending}>{state?.entry ? "Guardar cambios" : "Guardar"}</Button>
+        {!state?.entry && type === "charge" && account.role === "creditor" && (
+          <div className="rounded-xl bg-surface-subtle px-3 py-2.5 text-sm">
+            <label className="flex items-start gap-2">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-emerald-600" checked={paidByMe} onChange={(e) => setPaidByMe(e.target.checked)} />
+              <span>
+                <span className="font-semibold">Lo pagué con mi dinero</span>
+                <span className="block text-muted">Queda también en tus movimientos como algo que pagaste por {who}, sin contar como gasto tuyo.</span>
+              </span>
+            </label>
+            {paidByMe && (
+              <Select className="mt-2" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} aria-label="Categoría">
+                <option value="">Sin categoría</option>
+                {categories.filter((c) => !c.is_archived && c.kind_hint === "expense").map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+              </Select>
+            )}
+          </div>
+        )}
+        <Button type="submit" fullWidth disabled={save.isPending || chargeWithTx.isPending}>{state?.entry ? "Guardar cambios" : "Guardar"}</Button>
       </form>
     </Modal>
   );
@@ -334,21 +372,21 @@ function EntryDetailSheet({
       {mismatch && linkedTx && (
         <div className="mt-4 rounded-2xl border border-warning/50 bg-warning/10 p-3 text-sm">
           <p className="font-semibold">{entry.deleted_at ? "Este cargo fue eliminado del libro" : "El cargo cambió en el libro"}</p>
-          <p className="text-muted">Tu gasto tiene {formatMoney(linkedTx.amount, linkedTx.currency)} del {formatDay(linkedTx.occurred_on)}.</p>
+          <p className="text-muted">Tu movimiento tiene {formatMoney(linkedTx.amount, linkedTx.currency)} del {formatDay(linkedTx.occurred_on)}.</p>
           <div className="mt-2 flex gap-2">
             {entry.deleted_at ? (
-              <Button size="sm" variant="danger" onClick={() => run(() => delTx.mutateAsync(linkedTx.id), "Gasto borrado")}>Borrar mi gasto</Button>
+              <Button size="sm" variant="danger" onClick={() => run(() => delTx.mutateAsync(linkedTx.id), "Movimiento borrado")}>Borrar mi movimiento</Button>
             ) : (
               <Button
                 size="sm"
                 onClick={() =>
                   run(
                     () => saveTx.mutateAsync({ ...linkedTx, amount: entry.amount, currency: entry.currency, occurred_on: entry.occurred_on }),
-                    "Gasto actualizado",
+                    "Movimiento actualizado",
                   )
                 }
               >
-                Actualizar mi gasto
+                Actualizar mi movimiento
               </Button>
             )}
           </div>

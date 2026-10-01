@@ -4,6 +4,7 @@ import { cn, useToast } from "@titoapps/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { CaptureSheet } from "@/features/capture/CaptureSheet";
 import { useEnsureScheduledPayments } from "@/features/data/planning";
+import { useAutoRates } from "@/features/data/core";
 import { flushQueue, onQueueChange, pendingCount } from "@/lib/offlineQueue";
 
 const CaptureCtx = createContext<() => void>(() => {});
@@ -24,6 +25,7 @@ export function AppLayout() {
   const qc = useQueryClient();
   const toast = useToast();
   useEnsureScheduledPayments(true);
+  useAutoRates();
 
   // Cola offline: enviar al reconectar y al abrir la app.
   useEffect(() => {

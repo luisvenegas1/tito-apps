@@ -75,7 +75,8 @@ begin
               else 'Vence el ' || to_char(sp.due_date, 'DD/MM') || ': ' || t.name end,
          case when sp.amount_est is null then null
               when sp.currency = 'CRC' then '₡' || replace(to_char(round(sp.amount_est), 'FM999,999,999,999'), ',', '.')
-              else '$' || translate(to_char(sp.amount_est, 'FM999,999,999,990.00'), ',.', '.,') end,
+              else (case sp.currency when 'USD' then '$' else '€' end)
+                   || translate(to_char(sp.amount_est, 'FM999,999,999,990.00'), ',.', '.,') end,
          '/pagos',
          sp.id
   from public.scheduled_payments sp

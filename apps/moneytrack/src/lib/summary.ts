@@ -2,8 +2,9 @@ import type { Currency, ExchangeRate, Transaction } from "./supabase/types";
 import type { ByCurrency } from "./money";
 import { toBase } from "./rates";
 
-type Txn = Pick<Transaction, "kind" | "amount" | "currency" | "occurred_on" | "category_id" | "paid_by" | "scope" | "my_share">;
-type Rate = Pick<ExchangeRate, "crc_per_usd" | "valid_from">;
+type Txn = Pick<Transaction, "kind" | "amount" | "currency" | "occurred_on" | "category_id" | "paid_by" | "scope" | "my_share"> &
+  Partial<Pick<Transaction, "shared_entry_id">>;
+type Rate = Pick<ExchangeRate, "currency" | "buy" | "sell" | "valid_from">;
 
 /** Parte del gasto que sale de MI bolsillo (doc 06 §6.5). */
 export function myPortion(t: Pick<Txn, "amount" | "paid_by" | "my_share">): number {
@@ -23,6 +24,8 @@ export interface MonthSummary {
   myOutflow: number;
   /** Reembolsos recibidos por adelantos. */
   reimbursed: number;
+  /** Lo que pagaste con tu dinero por otra persona y quedó en su cuenta compartida (te lo deben: no es gasto). */
+  paidForOthers: number;
   /** ingresos + reembolsos − lo que salió de mi bolsillo (negativo = déficit). */
   available: number;
   byCategory: { category_id: string | null; total: number }[];
@@ -32,23 +35,30 @@ export interface MonthSummary {
 }
 
 export function monthSummary(txns: Txn[], rates: Rate[], base: Currency): MonthSummary {
-  let income = 0, personal = 0, household = 0, myOutflow = 0, reimbursed = 0;
+  let income = 0, personal = 0, household = 0, myOutflow = 0, reimbursed = 0, paidForOthers = 0;
   const cats = new Map<string | null, number>();
   const outflowByCurrency: ByCurrency = {};
   const incomeByCurrency: ByCurrency = {};
 
   for (const t of txns) {
     const amt = Number(t.amount);
-    const b = (v: number) => toBase(v, t.currency, t.occurred_on, base, rates);
+    // Lo que entra se convierte a compra; lo que sale, a venta.
+    const bIn = (v: number) => toBase(v, t.currency, t.occurred_on, base, rates, "buy");
+    const b = (v: number) => toBase(v, t.currency, t.occurred_on, base, rates, "sell");
     switch (t.kind) {
       case "income":
-        income += b(amt);
+        income += bIn(amt);
         incomeByCurrency[t.currency] = (incomeByCurrency[t.currency] ?? 0) + amt;
         break;
       case "reimbursement":
-        reimbursed += b(amt);
+        reimbursed += bIn(amt);
         break;
       case "advance": {
+        if (t.shared_entry_id) {
+          // Cargo pagado por mí en una cuenta compartida: es una cuenta por cobrar, no un gasto.
+          paidForOthers += b(amt);
+          break;
+        }
         const mine = myPortion(t);
         myOutflow += b(mine);
         outflowByCurrency[t.currency] = (outflowByCurrency[t.currency] ?? 0) + mine;
@@ -79,6 +89,7 @@ export function monthSummary(txns: Txn[], rates: Rate[], base: Currency): MonthS
     household,
     myOutflow,
     reimbursed,
+    paidForOthers,
     available: income + reimbursed - myOutflow,
     byCategory,
     outflowByCurrency,

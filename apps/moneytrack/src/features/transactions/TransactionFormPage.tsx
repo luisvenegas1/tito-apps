@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Dialog, Input, Select, useToast } from "@titoapps/ui";
 import { todayISO } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
-import { parseAmount } from "@/lib/money";
+import { parseAmount, CURRENCY_OPTIONS } from "@/lib/money";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
 import { Loading } from "@/components/Empty";
@@ -117,7 +117,7 @@ export function TransactionFormPage() {
           </label>
           <div>
             <span className="label">Moneda</span>
-            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={[{ value: "CRC", label: "₡" }, { value: "USD", label: "$" }]} />
+            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={CURRENCY_OPTIONS} />
           </div>
         </div>
 

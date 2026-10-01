@@ -142,12 +142,12 @@ export function TransactionsPage() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">{t.note || c?.name || KIND_LABEL[t.kind]}</span>
                           <span className="block truncate text-xs text-muted">
-                            {[t.note ? c?.name : null, t.kind !== "expense" ? KIND_LABEL[t.kind] : null, t.paid_by !== "me" ? `Paga: ${PAID_BY_LABEL[t.paid_by].toLowerCase()}` : null, t.scope === "household" ? "Hogar" : null, t.shared_entry_id ? "Extensión" : null]
+                            {[t.note ? c?.name : null, t.kind !== "expense" && !t.shared_entry_id ? KIND_LABEL[t.kind] : null, t.paid_by !== "me" ? `Paga: ${PAID_BY_LABEL[t.paid_by].toLowerCase()}` : null, t.scope === "household" ? "Hogar" : null, t.shared_entry_id ? (t.kind === "advance" ? "Por otra persona: no es gasto tuyo" : "Extensión") : null]
                               .filter(Boolean)
                               .join(" · ") || "Personal"}
                           </span>
                         </span>
-                        <span className={cn("amount shrink-0", isIn && "text-emerald-700 dark:text-emerald-300", t.paid_by === "partner" && "text-muted")}>
+                        <span className={cn("amount shrink-0", isIn && "text-emerald-700 dark:text-emerald-300", (t.paid_by === "partner" || (t.kind === "advance" && t.shared_entry_id)) && "text-muted")}>
                           {formatMoney(isIn ? t.amount : -t.amount, t.currency, { sign: true })}
                         </span>
                       </Link>

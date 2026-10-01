@@ -71,7 +71,7 @@ export function ReportsPage() {
   const monthOptions = Array.from({ length: 24 }, (_, i) => addMonths(`${y}-12`, -i)).filter((m) => m <= currentMonth());
 
   // Recuperado por adelantos/reembolsos en el año.
-  const reimbursed = yearTx.filter((t) => t.kind === "reimbursement").reduce((a, t) => a + toBase(t.amount, t.currency, t.occurred_on, base, rates), 0);
+  const reimbursed = yearTx.filter((t) => t.kind === "reimbursement").reduce((a, t) => a + toBase(t.amount, t.currency, t.occurred_on, base, rates, "buy"), 0);
 
   if (q.isLoading) return <Loading />;
 

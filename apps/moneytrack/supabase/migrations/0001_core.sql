@@ -6,7 +6,7 @@
 
 create extension if not exists pgcrypto with schema extensions;
 
-create type public.currency_code as enum ('CRC', 'USD');
+create type public.currency_code as enum ('CRC', 'USD', 'EUR');
 create type public.txn_kind      as enum ('expense', 'income', 'advance', 'reimbursement');
 create type public.paid_by       as enum ('me', 'partner', 'shared', 'other');
 create type public.txn_scope     as enum ('personal', 'household', 'shared');
@@ -22,6 +22,7 @@ create table public.profiles (
   onboarded            boolean not null default false,
   reminder_days_before int not null default 2 check (reminder_days_before between 0 and 14),
   push_enabled         boolean not null default false,
+  auto_rates           boolean not null default true, -- actualizar TC con el BCCR (API de Hacienda)
   created_at           timestamptz not null default now()
 );
 
@@ -55,15 +56,21 @@ create table public.categories (
 create unique index categories_user_name on public.categories (user_id, lower(name));
 
 -- ---------------------------------------------------------------------
--- exchange_rates: colones por dólar, con vigencia
+-- exchange_rates: colones por unidad de moneda extranjera, con vigencia.
+-- buy = compra (lo que te dan por vender dólares: se usa para ingresos),
+-- sell = venta (lo que pagas por comprarlos: se usa para gastos).
+-- source: 'bccr' (automático), 'manual' (lo escribió el usuario: no se pisa), 'seed'.
 -- ---------------------------------------------------------------------
 create table public.exchange_rates (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,
-  crc_per_usd numeric(12,4) not null check (crc_per_usd > 0),
+  currency    public.currency_code not null check (currency <> 'CRC'),
+  buy         numeric(12,4) not null check (buy > 0),
+  sell        numeric(12,4) not null check (sell > 0),
+  source      text not null default 'manual' check (source in ('manual', 'bccr', 'seed')),
   valid_from  date not null default current_date,
   created_at  timestamptz not null default now(),
-  unique (user_id, valid_from)
+  unique (user_id, currency, valid_from)
 );
 
 -- ---------------------------------------------------------------------
@@ -120,8 +127,10 @@ begin
     ('Otros ingresos',         'income',  '💰', 21)
   ) as c(name, kind, icon, ord);
 
-  insert into public.exchange_rates (user_id, crc_per_usd, valid_from)
-  values (new.id, 505, current_date);
+  -- Respaldo con fecha antigua: cualquier TC real (BCCR o manual) gana sobre estos.
+  insert into public.exchange_rates (user_id, currency, buy, sell, source, valid_from)
+  values (new.id, 'USD', 455, 460, 'seed', '2000-01-01'),
+         (new.id, 'EUR', 520, 520, 'seed', '2000-01-01');
 
   return new;
 end;

@@ -63,6 +63,8 @@ supabase/
 
 - **Privacidad:** las tablas privadas usan RLS "solo el dueño"; las cuentas compartidas usan RLS por membresía (acreedor o deudora). Ninguna política privada menciona las compartidas.
 - **El libro compartido no se borra:** "eliminar" es un *soft delete* y todo cambio queda en `shared_entry_history` (lo escribe un trigger, no el cliente).
-- **Las deudas no se convierten:** el saldo de una cuenta compartida se muestra por moneda (₡ y $ por separado).
+- **Las deudas no se convierten:** el saldo de una cuenta compartida se muestra por moneda (₡, $ y € por separado).
+- **Tipo de cambio:** compra (para ingresos) y venta (para gastos), por moneda. Se actualiza solo con el BCCR (API pública de Hacienda) una vez al día; lo escrito a mano no se reemplaza.
+- **Pagos por otra persona:** un cargo marcado "Lo pagué con mi dinero" queda en tus movimientos como adelanto ligado, sin contar como gasto tuyo.
 - **Los abonos no son ingreso** para el acreedor ni gasto para la deudora; los cargos son gasto de la deudora cuando ella los pasa a sus gastos.
 - **Offline:** la captura rápida guarda en una cola local con `client_uuid` y sincroniza al reconectar (idempotente).

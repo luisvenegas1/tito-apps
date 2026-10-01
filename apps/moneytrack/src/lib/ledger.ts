@@ -30,7 +30,7 @@ export function balances(entries: Entry[]): ByCurrency {
  * Los eliminados aparecen (para el historial) pero no mueven el saldo.
  */
 export function ledgerRows<E extends Entry>(entries: E[]): LedgerRow<E>[] {
-  const running: Record<Currency, number> = { CRC: 0, USD: 0 };
+  const running: Record<Currency, number> = { CRC: 0, USD: 0, EUR: 0 };
   return [...entries].sort(chronological).map((entry) => {
     if (!entry.deleted_at) {
       running[entry.currency] = round2(running[entry.currency] + (entry.type === "charge" ? 1 : -1) * Number(entry.amount));

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Button, Input } from "@titoapps/ui";
 import { supabase } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -76,8 +77,7 @@ export function AuthPage({ presetEmail, intro }: { presetEmail?: string; intro?:
           {mode !== "forgot" && (
             <label className="block">
               <span className="label">Contraseña</span>
-              <Input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}

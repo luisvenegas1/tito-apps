@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { PaySheet } from "@/features/payments/PaymentsPage";
+import type { ScheduledPayment } from "@/lib/supabase/types";
 import { Link } from "react-router-dom";
 import { cn } from "@titoapps/ui";
 import { addMonths, currentMonth, monthLabel, monthOf, monthRange, todayISO } from "@/lib/dates";
@@ -32,6 +34,7 @@ export function DashboardPage() {
   const { data: templates = [] } = useTemplates();
   const { data: notifications = [] } = useNotifications();
   const openCapture = useOpenCapture();
+  const [paying, setPaying] = useState<ScheduledPayment | null>(null);
 
   const txns = txq.data ?? [];
   const byMonth = useMemo(() => {
@@ -143,6 +146,12 @@ export function DashboardPage() {
           </section>
         )}
 
+        {s.paidForOthers > 0 && (
+          <p className="px-1 text-sm text-muted">
+            Además pagaste <b className="text-fg">{formatMoney(s.paidForOthers, base)}</b> por otras personas este mes. No cuenta como gasto tuyo: está en sus cuentas por cobrar.
+          </p>
+        )}
+
         {uncategorized.length > 0 && (
           <Link to={`/cuentas/${uncategorized[0].account_id}`} className="card block border-teal/40 bg-mint/20">
             <p className="font-semibold">
@@ -172,7 +181,17 @@ export function DashboardPage() {
                       {paymentStateLabel(st)}
                     </span>
                   </span>
-                  {p.amount_est !== null && <span className="amount">{formatMoney(p.amount_est, p.currency)}</span>}
+                  <span className="flex items-center gap-3">
+                    {p.amount_est !== null && <span className="amount">{formatMoney(p.amount_est, p.currency)}</span>}
+                    <button
+                      type="button"
+                      onClick={() => setPaying(p)}
+                      className="rounded-full border border-primary px-3 py-1 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-contrast"
+                      aria-label={`Marcar pagado: ${tplName.get(p.template_id)}`}
+                    >
+                      Pagar
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -203,6 +222,8 @@ export function DashboardPage() {
             </div>
           )}
         </section>
+
+        <PaySheet payment={paying} name={paying ? tplName.get(paying.template_id) ?? "" : ""} onClose={() => setPaying(null)} />
 
         <section className="card">
           <h2 className="font-bold">Últimos 6 meses</h2>

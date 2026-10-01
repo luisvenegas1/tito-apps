@@ -1,12 +1,16 @@
 import type { Currency } from "./supabase/types";
 
-export const CURRENCY_SYMBOL: Record<Currency, string> = { CRC: "₡", USD: "$" };
+export const CURRENCIES: Currency[] = ["CRC", "USD", "EUR"];
+export const CURRENCY_SYMBOL: Record<Currency, string> = { CRC: "₡", USD: "$", EUR: "€" };
+export const CURRENCY_NAME: Record<Currency, string> = { CRC: "Colones", USD: "Dólares", EUR: "Euros" };
+/** Opciones para el selector de moneda (₡ $ €). */
+export const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({ value: c, label: CURRENCY_SYMBOL[c] }));
 
-/** "₡185.000" / "$42,50". Los colones sin decimales salvo que existan céntimos. */
+/** "₡185.000" / "$42,50" / "€10,00". Los colones sin decimales salvo que existan céntimos. */
 export function formatMoney(amount: number, currency: Currency, opts: { sign?: boolean } = {}): string {
   const abs = Math.abs(amount);
   const hasCents = Math.round(abs * 100) % 100 !== 0;
-  const digits = currency === "USD" || hasCents ? 2 : 0;
+  const digits = currency !== "CRC" || hasCents ? 2 : 0;
   // Formato fijo (punto de miles, coma decimal) en vez de Intl: el ICU de cada
   // navegador usa espacio fino para es-CR y el resultado variaría entre equipos.
   const [int, dec] = abs.toFixed(digits).split(".");
@@ -20,7 +24,7 @@ export function formatMoney(amount: number, currency: Currency, opts: { sign?: b
  * Regla: el último separador seguido de 1-2 dígitos es decimal; los demás son miles.
  */
 export function parseAmount(input: string): number | null {
-  const s = input.replace(/[₡$\s]/g, "");
+  const s = input.replace(/[₡$€\s]/g, "");
   if (!s || !/^[\d.,]+$/.test(s)) return null;
   const m = s.match(/[.,](\d{1,2})$/);
   let normalized: string;
@@ -34,18 +38,20 @@ export function parseAmount(input: string): number | null {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
 }
 
-/** Convierte entre monedas con un tipo de cambio (colones por dólar). */
-export function convert(amount: number, from: Currency, to: Currency, crcPerUsd: number): number {
+/**
+ * Convierte pasando por colones. `crcPer` da los colones por unidad de cada
+ * moneda extranjera (ya elegido compra o venta según el caso).
+ */
+export function convert(amount: number, from: Currency, to: Currency, crcPer: (c: Currency) => number): number {
   if (from === to) return amount;
-  return from === "USD" ? amount * crcPerUsd : amount / crcPerUsd;
+  const crc = from === "CRC" ? amount : amount * crcPer(from);
+  return to === "CRC" ? crc : crc / crcPer(to);
 }
 
 /** Suma por moneda sin convertir: { CRC: 1000, USD: 5 } */
 export type ByCurrency = Partial<Record<Currency, number>>;
 
 export function formatByCurrency(v: ByCurrency): string {
-  const parts = (["CRC", "USD"] as Currency[])
-    .filter((c) => v[c] !== undefined && Math.abs(v[c]!) >= 0.005)
-    .map((c) => formatMoney(v[c]!, c));
+  const parts = CURRENCIES.filter((c) => v[c] !== undefined && Math.abs(v[c]!) >= 0.005).map((c) => formatMoney(v[c]!, c));
   return parts.length ? parts.join(" · ") : formatMoney(0, "CRC");
 }

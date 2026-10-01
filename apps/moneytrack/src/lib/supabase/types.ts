@@ -2,7 +2,8 @@
  * Tipos de dominio de Money Track (escritos a mano, patrón del monorepo).
  * Espejo de supabase/migrations/*.sql.
  */
-export type Currency = "CRC" | "USD";
+export type Currency = "CRC" | "USD" | "EUR";
+export type ForeignCurrency = Exclude<Currency, "CRC">;
 export type TxnKind = "expense" | "income" | "advance" | "reimbursement";
 export type PaidBy = "me" | "partner" | "shared" | "other";
 export type TxnScope = "personal" | "household" | "shared";
@@ -19,6 +20,7 @@ export interface Profile {
   onboarded: boolean;
   reminder_days_before: number;
   push_enabled: boolean;
+  auto_rates: boolean;
 }
 
 export interface Person {
@@ -42,7 +44,12 @@ export interface Category {
 
 export interface ExchangeRate {
   id: string;
-  crc_per_usd: number;
+  currency: ForeignCurrency;
+  /** Compra: colones que te dan por cada unidad (se usa para ingresos). */
+  buy: number;
+  /** Venta: colones que pagas por cada unidad (se usa para gastos). */
+  sell: number;
+  source: "manual" | "bccr" | "seed";
   valid_from: string; // YYYY-MM-DD
 }
 

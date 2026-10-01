@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Button, Input, Modal, Select, useToast } from "@titoapps/ui";
-import { formatMoney, parseAmount } from "@/lib/money";
+import { formatMoney, parseAmount, CURRENCY_OPTIONS } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
 import { PageHeader } from "@/components/PageHeader";
@@ -113,7 +113,7 @@ function TemplateSheet({ template, onClose }: { template: Partial<RecurringTempl
           </label>
           <div>
             <span className="label">Moneda</span>
-            <Segmented label="Moneda" value={(form.currency ?? "CRC") as Currency} onChange={(v) => set("currency", v)} options={[{ value: "CRC", label: "₡" }, { value: "USD", label: "$" }]} />
+            <Segmented label="Moneda" value={(form.currency ?? "CRC") as Currency} onChange={(v) => set("currency", v)} options={CURRENCY_OPTIONS} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">

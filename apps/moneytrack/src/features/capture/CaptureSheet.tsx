@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Input, Modal, cn, useToast } from "@titoapps/ui";
-import { formatMoney, parseAmount } from "@/lib/money";
+import { formatMoney, parseAmount, CURRENCY_OPTIONS, CURRENCY_SYMBOL } from "@/lib/money";
 import { todayISO } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
 import { Segmented } from "@/components/Segmented";
@@ -83,6 +83,7 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
   const [paidBy, setPaidBy] = useState<PaidBy>("me");
   const [scope, setScope] = useState<TxnScope>("personal");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [paidByMe, setPaidByMe] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // Al abrir: limpiar, recordar moneda y destino.
@@ -94,6 +95,7 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
     setPaidBy("me");
     setScope("personal");
     setMoreOpen(false);
+    setPaidByMe(false);
     setCurrency((ls.get(LS.currency) as Currency) || "CRC");
     const last = ls.get(LS.dest);
     setDestId(last && dests.some((d) => d.id === last) ? last : "expense");
@@ -101,7 +103,7 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
 
   const dest = dests.find((d) => d.id === destId) ?? dests[0];
   const amount = parseAmount(raw) ?? 0;
-  const needsCategory = dest.kind === "expense" || dest.kind === "income" || dest.kind === "extension";
+  const needsCategory = dest.kind === "expense" || dest.kind === "income" || dest.kind === "extension" || (dest.kind === "charge" && paidByMe);
   const catList = byUsage(
     categories.filter((c) => !c.is_archived && (dest.kind === "income" ? c.kind_hint === "income" : c.kind_hint === "expense")),
   );
@@ -152,6 +154,17 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
           category: categoryId,
           note: null,
         });
+      } else if (dest.kind === "charge" && paidByMe) {
+        queued = await chargeAndExpense.mutateAsync({
+          account: dest.account.id,
+          amount,
+          currency,
+          date,
+          concept: concept.trim() || cat?.name || "Cargo",
+          category: categoryId,
+          note: null,
+          kind: "advance",
+        });
       } else if (dest.kind === "charge" || dest.kind === "payment") {
         queued = await saveEntry.mutateAsync({
           account_id: dest.account.id,
@@ -196,7 +209,9 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
         ? `Baja lo que ${dest.account.otherLabel} te debe. No cuenta como ingreso.`
         : "Pago de deuda: no cuenta como gasto (el gasto ya se contó en cada compra).";
   } else if (dest.kind === "charge") {
-    hint = `Sube lo que ${dest.account.otherLabel} te debe. No cuenta como gasto tuyo.`;
+    hint = paidByMe
+      ? `Queda en tus movimientos como algo que pagaste por ${dest.account.otherLabel}, pero no cuenta como gasto tuyo: te lo debe.`
+      : `Sube lo que ${dest.account.otherLabel} te debe. No cuenta como gasto tuyo.`;
   } else if (dest.kind === "extension") {
     hint = `Se anota en la cuenta con ${dest.account.otherLabel} y en tus gastos.`;
   }
@@ -232,19 +247,25 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
       {/* Monto */}
       <div className="mt-5 flex items-center justify-between gap-3">
         <p className={cn("amount truncate text-4xl", !raw && "text-muted")} aria-live="polite">
-          {raw ? `${currency === "CRC" ? "₡" : "$"}${formatRaw(raw)}` : formatMoney(0, currency)}
+          {raw ? `${CURRENCY_SYMBOL[currency]}${formatRaw(raw)}` : formatMoney(0, currency)}
         </p>
         <Segmented
           label="Moneda"
           value={currency}
           onChange={setCurrency}
-          options={[
-            { value: "CRC", label: "₡" },
-            { value: "USD", label: "$" },
-          ]}
+          options={CURRENCY_OPTIONS}
         />
       </div>
       {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
+      {dest.kind === "charge" && (
+        <label className="mt-3 flex items-start gap-2 rounded-xl bg-surface-subtle px-3 py-2.5 text-sm">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-emerald-600" checked={paidByMe} onChange={(e) => setPaidByMe(e.target.checked)} />
+          <span>
+            <span className="font-semibold">Lo pagué con mi dinero</span>
+            <span className="block text-muted">Efectivo, débito o tu propia tarjeta (no la extensión).</span>
+          </span>
+        </label>
+      )}
 
       {/* Categorías o concepto */}
       {needsCategory && (
@@ -257,7 +278,7 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
           ))}
         </div>
       )}
-      {(!needsCategory || moreOpen || dest.kind === "extension") && (
+      {(!needsCategory || moreOpen || dest.kind === "extension" || dest.kind === "charge") && (
         <Input
           className="mt-3"
           placeholder={needsCategory ? "Nota (opcional)" : "Concepto (ej. Súper, Farmacia, Depósito)"}

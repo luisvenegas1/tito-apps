@@ -5,7 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { requireUserId, supabase } from "@/lib/supabase/client";
 import { check } from "@/lib/errors";
 import { qk } from "@/lib/query";
-import type { Category, Currency, ExchangeRate, Person, Profile, TxnKind } from "@/lib/supabase/types";
+import { useEffect } from "react";
+import { fetchBccr } from "@/lib/rates";
+import { todayISO } from "@/lib/dates";
+import type { Category, Currency, ExchangeRate, ForeignCurrency, Person, Profile, TxnKind } from "@/lib/supabase/types";
 
 export function useProfile() {
   return useQuery({
@@ -90,7 +93,7 @@ export function useRates() {
     queryKey: qk.rates,
     queryFn: async () =>
       (check(await supabase.from("exchange_rates").select("*").order("valid_from", { ascending: false })) as ExchangeRate[]).map(
-        (r) => ({ ...r, crc_per_usd: Number(r.crc_per_usd) }),
+        (r) => ({ ...r, buy: Number(r.buy), sell: Number(r.sell) }),
       ),
     staleTime: 5 * 60_000,
   });
@@ -99,12 +102,77 @@ export function useRates() {
 export function useSaveRate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (r: { crc_per_usd: number; valid_from: string }) => {
+    mutationFn: async (r: { currency: ForeignCurrency; buy: number; sell: number; valid_from: string }) => {
       const uid = await requireUserId();
-      check(await supabase.from("exchange_rates").upsert({ user_id: uid, ...r }, { onConflict: "user_id,valid_from" }));
+      check(
+        await supabase
+          .from("exchange_rates")
+          .upsert({ user_id: uid, ...r, source: "manual" }, { onConflict: "user_id,currency,valid_from" }),
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.rates }),
   });
+}
+
+/**
+ * Trae el tipo de cambio de referencia del BCCR (API pública de Hacienda) y lo
+ * guarda con la fecha que publica. Nunca pisa un valor que el usuario escribió
+ * a mano para esa fecha. Devuelve cuántas monedas actualizó.
+ */
+export async function syncBccrRates(): Promise<number> {
+  const bccr = await fetchBccr();
+  if (!bccr) throw new Error("No se pudo consultar el tipo de cambio del BCCR. Inténtalo más tarde.");
+  const uid = await requireUserId();
+  const rows = (["USD", "EUR"] as const)
+    .map((c) => (bccr[c] ? { currency: c, ...bccr[c]! } : null))
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+  let updated = 0;
+  for (const r of rows) {
+    const date = r.date || todayISO();
+    const { data: existing } = await supabase
+      .from("exchange_rates")
+      .select("source")
+      .eq("currency", r.currency)
+      .eq("valid_from", date)
+      .maybeSingle();
+    if (existing?.source === "manual") continue;
+    check(
+      await supabase
+        .from("exchange_rates")
+        .upsert({ user_id: uid, currency: r.currency, buy: r.buy, sell: r.sell, source: "bccr", valid_from: date }, { onConflict: "user_id,currency,valid_from" }),
+    );
+    updated++;
+  }
+  return updated;
+}
+
+/** Una vez por día al abrir la app, si el usuario tiene activada la actualización automática. */
+export function useAutoRates() {
+  const { data: profile } = useProfile();
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!profile?.auto_rates) return;
+    const key = `mt.rates-synced.${profile.id}`;
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(key);
+    } catch {
+      /* sin almacenamiento: se intenta cada vez */
+    }
+    if (last === todayISO()) return;
+    syncBccrRates()
+      .then(() => {
+        try {
+          localStorage.setItem(key, todayISO());
+        } catch {
+          /* opcional */
+        }
+        qc.invalidateQueries({ queryKey: qk.rates });
+      })
+      .catch(() => {
+        /* sin red o API caída: se usa el último TC guardado */
+      });
+  }, [profile?.auto_rates, profile?.id, qc]);
 }
 
 /** Moneda base del usuario (CRC por defecto mientras carga). */

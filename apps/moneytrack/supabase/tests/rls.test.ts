@@ -182,6 +182,32 @@ describe("cuenta compartida", () => {
     expect(luisSees).toEqual([]);
   });
 
+  it("Luis registra un cargo pagado con su dinero: queda en su libro privado como adelanto y mamá no lo ve", async () => {
+    const { data: entryId, error } = await luis.db.rpc("charge_and_expense", {
+      p_account: accountId,
+      p_amount: 12500,
+      p_currency: "EUR",
+      p_date: "2026-09-15",
+      p_concept: "Farmacia",
+      p_category: null,
+      p_kind: "advance",
+    });
+    expect(error).toBeNull();
+    const { data: mine } = await luis.db.from("transactions").select("kind, currency").eq("shared_entry_id", entryId);
+    expect(mine).toEqual([{ kind: "advance", currency: "EUR" }]);
+    const { data: hers } = await mama.db.from("transactions").select("id").eq("shared_entry_id", entryId);
+    expect(hers).toEqual([]);
+    const { data: entry } = await mama.db.from("shared_entries").select("concept").eq("id", entryId).single();
+    expect(entry).toEqual({ concept: "Farmacia" });
+  });
+
+  it("un cargo no se puede ligar como ingreso", async () => {
+    const { error } = await luis.db.rpc("charge_and_expense", {
+      p_account: accountId, p_amount: 1, p_currency: "CRC", p_date: "2026-09-15", p_concept: "x", p_category: null, p_kind: "income",
+    });
+    expect(error?.message).toMatch(/no permitido/);
+  });
+
   it("el extraño no puede ligar un gasto a un cargo ajeno", async () => {
     const { error } = await extrano.db
       .from("transactions")

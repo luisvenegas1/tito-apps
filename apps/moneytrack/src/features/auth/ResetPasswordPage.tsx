@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { Button, Input } from "@titoapps/ui";
+import { Button } from "@titoapps/ui";
 import { supabase } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -28,7 +29,7 @@ export function ResetPasswordPage() {
         <>
           <label className="mt-6 block">
             <span className="label">Contraseña nueva</span>
-            <Input type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+            <PasswordInput minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
           </label>
           {error && <p role="alert" className="mt-3 text-sm text-deficit">{error}</p>}
           <Button type="submit" fullWidth className="mt-6">Guardar contraseña</Button>
