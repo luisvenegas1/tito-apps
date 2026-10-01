@@ -37,10 +37,11 @@ pnpm --filter moneytrack lint       # typecheck
    supabase db push
    ```
    En Authentication → URL Configuration, pon la URL de Vercel como *Site URL* y agrega `https://<tu-dominio>/**` a las redirecciones.
-2. **Recordatorios (opcional):** genera claves VAPID (`npx web-push generate-vapid-keys`) y un `CRON_SECRET` cualquiera, y luego:
+2. **Tareas diarias (tipo de cambio y recordatorios):** genera claves VAPID (`npx web-push generate-vapid-keys`) y un `CRON_SECRET` cualquiera, y luego:
    ```bash
    supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... CRON_SECRET=...
    supabase functions deploy notify-due
+   supabase functions deploy sync-rates
    ```
    Después corre `supabase/cron.sql` en el SQL Editor (con tu `PROJECT_REF` y `CRON_SECRET`).
    Sin el cron, los pagos igual se generan al abrir la app; lo que no llega son los avisos push.
@@ -64,7 +65,7 @@ supabase/
 - **Privacidad:** las tablas privadas usan RLS "solo el dueño"; las cuentas compartidas usan RLS por membresía (acreedor o deudora). Ninguna política privada menciona las compartidas.
 - **El libro compartido no se borra:** "eliminar" es un *soft delete* y todo cambio queda en `shared_entry_history` (lo escribe un trigger, no el cliente).
 - **Las deudas no se convierten:** el saldo de una cuenta compartida se muestra por moneda (₡, $ y € por separado).
-- **Tipo de cambio:** compra (para ingresos) y venta (para gastos), por moneda. Se actualiza solo con el BCCR (API pública de Hacienda) una vez al día; lo escrito a mano no se reemplaza.
+- **Tipo de cambio:** compra (para ingresos) y venta (para gastos), por moneda, congelado en cada movimiento con el de su fecha. El de referencia del BCCR se guarda **una vez al día para todos** en `reference_rates` (Edge Function `sync-rates`, disparada por pg_cron o por el primer usuario que abre la app si falta el de hoy). Los manuales de cada usuario le ganan en su fecha.
 - **Pagos por otra persona:** un cargo marcado "Lo pagué con mi dinero" queda en tus movimientos como adelanto ligado, sin contar como gasto tuyo.
 - **Los abonos no son ingreso** para el acreedor ni gasto para la deudora; los cargos son gasto de la deudora cuando ella los pasa a sus gastos.
 - **Offline:** la captura rápida guarda en una cola local con `client_uuid` y sincroniza al reconectar (idempotente).

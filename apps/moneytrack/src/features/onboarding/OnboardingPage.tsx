@@ -4,7 +4,7 @@ import { Button, Input, useToast } from "@titoapps/ui";
 import { CURRENCIES, CURRENCY_NAME, CURRENCY_SYMBOL } from "@/lib/money";
 import { errorMessage } from "@/lib/errors";
 import { Segmented } from "@/components/Segmented";
-import { syncBccrRates, useProfile, useUpdateProfile } from "@/features/data/core";
+import { useProfile, useUpdateProfile } from "@/features/data/core";
 import { useAccounts } from "@/features/data/shared";
 import type { Currency } from "@/lib/supabase/types";
 
@@ -21,7 +21,6 @@ export function OnboardingPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     try {
-      syncBccrRates().catch(() => undefined); // TC del día; si falla, se reintenta al abrir la app
       await update.mutateAsync({ display_name: name.trim() || null, base_currency: base, onboarded: true });
       // Si llegó por invitación, lo primero que ve es la cuenta compartida (spec §5.2).
       const shared = accounts.find((a) => a.role === "debtor");

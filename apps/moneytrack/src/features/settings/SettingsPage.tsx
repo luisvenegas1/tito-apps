@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { getThemePref, setThemePref, type ThemePref } from "@/lib/theme";
 import { Segmented } from "@/components/Segmented";
 import { Loading } from "@/components/Empty";
-import { syncBccrRates, useProfile, useRates, useSaveRate, useUpdateProfile } from "@/features/data/core";
+import { requestTodayRates, useDeleteRate, useProfile, useRates, useSaveRate, useUpdateProfile } from "@/features/data/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
 import type { Currency, ForeignCurrency } from "@/lib/supabase/types";
@@ -19,6 +19,7 @@ export function SettingsPage() {
   const update = useUpdateProfile();
   const { data: rates = [] } = useRates();
   const saveRate = useSaveRate();
+  const deleteRate = useDeleteRate();
   const toast = useToast();
   const [name, setName] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -54,13 +55,14 @@ export function SettingsPage() {
   async function syncNow() {
     setSyncing(true);
     await run(async () => {
-      await syncBccrRates();
+      await requestTodayRates();
       await qc.invalidateQueries({ queryKey: qk.rates });
-    }, "Tipo de cambio actualizado con el BCCR");
+    }, "Tipo de cambio del BCCR al día");
     setSyncing(false);
   }
 
   const latest = (c: ForeignCurrency) => rates.find((r) => r.currency === c);
+  const manual = rates.filter((r) => r.source === "manual");
 
   async function togglePush(on: boolean) {
     setPushBusy(true);
@@ -122,7 +124,7 @@ export function SettingsPage() {
                     <td className="py-2 text-right">{r ? formatMoney(r.buy, "CRC") : "—"}</td>
                     <td className="py-2 text-right">{r ? formatMoney(r.sell, "CRC") : "—"}</td>
                     <td className="py-2 text-right text-xs text-muted">
-                      {r ? (r.source === "seed" ? "inicial" : `${formatDay(r.valid_from)} · ${r.source === "bccr" ? "BCCR" : "manual"}`) : ""}
+                      {r ? `${formatDay(r.valid_from)} · ${r.source === "bccr" ? "BCCR" : "manual"}` : ""}
                     </td>
                   </tr>
                 );
@@ -132,8 +134,8 @@ export function SettingsPage() {
 
           <label className="mt-4 flex items-center justify-between gap-3">
             <span>
-              <span className="block font-medium">Actualizar solo con el BCCR</span>
-              <span className="text-xs text-muted">Una vez al día, con el tipo de cambio de referencia del Banco Central.</span>
+              <span className="block font-medium">Usar el tipo de cambio del BCCR</span>
+              <span className="text-xs text-muted">Se guarda una vez al día para todos. Si lo apagas, se usan solo los que escribas a mano.</span>
             </span>
             <input
               type="checkbox"
@@ -143,7 +145,7 @@ export function SettingsPage() {
             />
           </label>
           <Button variant="outline" size="sm" className="mt-3" onClick={syncNow} disabled={syncing}>
-            {syncing ? "Consultando…" : "Actualizar ahora con el BCCR"}
+            {syncing ? "Revisando…" : "Revisar el de hoy"}
           </Button>
 
           <form onSubmit={addRate} className="mt-5 space-y-2 border-t border-border pt-4">
@@ -166,6 +168,20 @@ export function SettingsPage() {
             </div>
             <Button type="submit" size="sm">Guardar tipo de cambio</Button>
           </form>
+          {manual.length > 0 && (
+            <ul className="mt-3 divide-y divide-border text-sm">
+              {manual.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-2 py-2">
+                  <span>
+                    {CURRENCY_SYMBOL[r.currency]} desde {formatDay(r.valid_from)}: {formatMoney(r.buy, "CRC")} / {formatMoney(r.sell, "CRC")}
+                  </span>
+                  <button type="button" className="text-sm font-semibold text-deficit" onClick={() => deleteRate.mutate(r.id)}>
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="card space-y-3">

@@ -42,6 +42,10 @@ export interface Category {
   sort_order: number;
 }
 
+/**
+ * Tipo de cambio para calcular: une la referencia global del BCCR
+ * (reference_rates) con los que el usuario escribió a mano (exchange_rates).
+ */
 export interface ExchangeRate {
   id: string;
   currency: ForeignCurrency;
@@ -49,7 +53,7 @@ export interface ExchangeRate {
   buy: number;
   /** Venta: colones que pagas por cada unidad (se usa para gastos). */
   sell: number;
-  source: "manual" | "bccr" | "seed";
+  source: "manual" | "bccr";
   valid_from: string; // YYYY-MM-DD
 }
 

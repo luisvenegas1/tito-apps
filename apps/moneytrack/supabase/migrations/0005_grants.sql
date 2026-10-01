@@ -17,6 +17,7 @@ grant select, delete on public.shared_account_invites to authenticated;
 grant select, insert, update on public.shared_entries to authenticated;
 grant select on public.shared_entry_history to authenticated;
 grant select on public.shared_balances to authenticated;
+grant select on public.reference_rates to authenticated;
 
 -- Funciones internas que no deben llamarse desde el cliente
 revoke all on function public.build_due_notifications() from public, anon, authenticated;

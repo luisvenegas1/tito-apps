@@ -62,28 +62,42 @@ create trigger transactions_touch before update on public.transactions
   for each row execute function public.touch_updated_at();
 
 -- Colones por unidad vigentes en una fecha para un usuario (compra o venta).
--- Último valor con valid_from <= fecha; si no hay ninguno anterior, el más antiguo.
--- Los valores iniciales genéricos ('seed') solo cuentan si no hay ningún dato real.
+-- Junta los manuales del usuario con la referencia del BCCR (si la usa).
+-- Gana el último con fecha <= p_date (en empate, el manual); si no hay
+-- ninguno anterior, el más antiguo disponible.
 create or replace function public.rate_on(p_user uuid, p_currency public.currency_code, p_date date, p_buy boolean)
 returns numeric
 language sql
 stable
+security definer
+set search_path = public
 as $$
+  with candidates as (
+    select valid_from as d, buy, sell, 1 as prio
+    from public.exchange_rates where user_id = p_user and currency = p_currency
+    union all
+    select rate_date, buy, sell, 0
+    from public.reference_rates
+    where currency = p_currency
+      and coalesce((select auto_rates from public.profiles where id = p_user), true)
+  )
   select case when p_buy then buy else sell end
-  from public.exchange_rates r
-  where user_id = p_user and currency = p_currency
-    and (source <> 'seed' or not exists (
-      select 1 from public.exchange_rates x where x.user_id = p_user and x.currency = p_currency and x.source <> 'seed'))
-  order by (valid_from <= p_date) desc,
-           case when valid_from <= p_date then valid_from end desc nulls last,
-           valid_from asc
+  from candidates
+  order by (d <= p_date) desc,
+           case when d <= p_date then d end desc nulls last,
+           prio desc,
+           d asc
   limit 1;
 $$;
+revoke all on function public.rate_on(uuid, public.currency_code, date, boolean) from public, anon, authenticated;
 
 -- Congela el TC al guardar: ingresos/reembolsos con compra, el resto con venta.
+-- security definer: llama a rate_on, que el cliente no puede ejecutar directamente.
 create or replace function public.transactions_fx()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
 as $$
 begin
   if new.currency = 'CRC' then

@@ -6,7 +6,6 @@ import { requireUserId, supabase } from "@/lib/supabase/client";
 import { check } from "@/lib/errors";
 import { qk } from "@/lib/query";
 import { useEffect } from "react";
-import { fetchBccr } from "@/lib/rates";
 import { todayISO } from "@/lib/dates";
 import type { Category, Currency, ExchangeRate, ForeignCurrency, Person, Profile, TxnKind } from "@/lib/supabase/types";
 
@@ -88,15 +87,49 @@ export function useDeletePerson() {
   });
 }
 
+/**
+ * Tipos de cambio para calcular: la referencia global del BCCR (si el usuario
+ * la usa) + los que escribió a mano. En la misma fecha gana el manual.
+ */
 export function useRates() {
+  const { data: profile } = useProfile();
+  const useReference = profile?.auto_rates ?? true;
   return useQuery({
-    queryKey: qk.rates,
-    queryFn: async () =>
-      (check(await supabase.from("exchange_rates").select("*").order("valid_from", { ascending: false })) as ExchangeRate[]).map(
-        (r) => ({ ...r, buy: Number(r.buy), sell: Number(r.sell) }),
-      ),
+    queryKey: [...qk.rates, useReference],
+    queryFn: async () => {
+      const manual = (check(await supabase.from("exchange_rates").select("*")) as ManualRate[]).map(
+        (r): ExchangeRate => ({ id: r.id, currency: r.currency, buy: Number(r.buy), sell: Number(r.sell), valid_from: r.valid_from, source: "manual" }),
+      );
+      const reference = useReference
+        ? (check(await supabase.from("reference_rates").select("currency, rate_date, buy, sell")) as ReferenceRate[]).map(
+            (r): ExchangeRate => ({
+              id: `${r.currency}-${r.rate_date}`,
+              currency: r.currency,
+              buy: Number(r.buy),
+              sell: Number(r.sell),
+              valid_from: r.rate_date,
+              source: "bccr",
+            }),
+          )
+        : [];
+      return [...manual, ...reference].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
+    },
     staleTime: 5 * 60_000,
   });
+}
+
+interface ManualRate {
+  id: string;
+  currency: ForeignCurrency;
+  buy: number;
+  sell: number;
+  valid_from: string;
+}
+interface ReferenceRate {
+  currency: ForeignCurrency;
+  rate_date: string;
+  buy: number;
+  sell: number;
 }
 
 export function useSaveRate() {
@@ -104,75 +137,51 @@ export function useSaveRate() {
   return useMutation({
     mutationFn: async (r: { currency: ForeignCurrency; buy: number; sell: number; valid_from: string }) => {
       const uid = await requireUserId();
-      check(
-        await supabase
-          .from("exchange_rates")
-          .upsert({ user_id: uid, ...r, source: "manual" }, { onConflict: "user_id,currency,valid_from" }),
-      );
+      check(await supabase.from("exchange_rates").upsert({ user_id: uid, ...r }, { onConflict: "user_id,currency,valid_from" }));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.rates }),
   });
 }
 
-/**
- * Trae el tipo de cambio de referencia del BCCR (API pública de Hacienda) y lo
- * guarda con la fecha que publica. Nunca pisa un valor que el usuario escribió
- * a mano para esa fecha. Devuelve cuántas monedas actualizó.
- */
-export async function syncBccrRates(): Promise<number> {
-  const bccr = await fetchBccr();
-  if (!bccr) throw new Error("No se pudo consultar el tipo de cambio del BCCR. Inténtalo más tarde.");
-  const uid = await requireUserId();
-  const rows = (["USD", "EUR"] as const)
-    .map((c) => (bccr[c] ? { currency: c, ...bccr[c]! } : null))
-    .filter((r): r is NonNullable<typeof r> => r !== null);
-  let updated = 0;
-  for (const r of rows) {
-    const date = r.date || todayISO();
-    const { data: existing } = await supabase
-      .from("exchange_rates")
-      .select("source")
-      .eq("currency", r.currency)
-      .eq("valid_from", date)
-      .maybeSingle();
-    if (existing?.source === "manual") continue;
-    check(
-      await supabase
-        .from("exchange_rates")
-        .upsert({ user_id: uid, currency: r.currency, buy: r.buy, sell: r.sell, source: "bccr", valid_from: date }, { onConflict: "user_id,currency,valid_from" }),
-    );
-    updated++;
-  }
-  return updated;
+export function useDeleteRate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => check(await supabase.from("exchange_rates").delete().eq("id", id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.rates }),
+  });
 }
 
-/** Una vez por día al abrir la app, si el usuario tiene activada la actualización automática. */
-export function useAutoRates() {
-  const { data: profile } = useProfile();
+/**
+ * Pide al servidor que guarde el tipo de cambio de hoy del BCCR. El servidor
+ * solo consulta la API si nadie lo ha hecho hoy (lo comparten todos los usuarios).
+ */
+export async function requestTodayRates(): Promise<void> {
+  const { error } = await supabase.functions.invoke("sync-rates", { body: {} });
+  if (error) throw new Error("No se pudo traer el tipo de cambio del BCCR. Inténtalo más tarde.");
+}
+
+let ensuredToday: string | null = null;
+
+/**
+ * Al abrir la app: si el tipo de cambio de hoy ya está en la base, no hace nada.
+ * Solo si falta (el pg_cron no corrió todavía) le pide al servidor que lo traiga:
+ * el primer usuario del día lo guarda para todos.
+ */
+export function useEnsureTodayRates() {
   const qc = useQueryClient();
   useEffect(() => {
-    if (!profile?.auto_rates) return;
-    const key = `mt.rates-synced.${profile.id}`;
-    let last: string | null = null;
-    try {
-      last = localStorage.getItem(key);
-    } catch {
-      /* sin almacenamiento: se intenta cada vez */
-    }
-    if (last === todayISO()) return;
-    syncBccrRates()
-      .then(() => {
-        try {
-          localStorage.setItem(key, todayISO());
-        } catch {
-          /* opcional */
-        }
-        qc.invalidateQueries({ queryKey: qk.rates });
-      })
-      .catch(() => {
-        /* sin red o API caída: se usa el último TC guardado */
-      });
-  }, [profile?.auto_rates, profile?.id, qc]);
+    const today = todayISO();
+    if (ensuredToday === today) return;
+    ensuredToday = today;
+    (async () => {
+      const { data } = await supabase.from("reference_rates").select("rate_date").eq("currency", "USD").gte("rate_date", today).limit(1);
+      if (data && data.length > 0) return; // ya está guardado: no se llama a la API
+      await requestTodayRates();
+      qc.invalidateQueries({ queryKey: qk.rates });
+    })().catch(() => {
+      ensuredToday = null; // sin red: se reintenta en la próxima apertura
+    });
+  }, [qc]);
 }
 
 /** Moneda base del usuario (CRC por defecto mientras carga). */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { convert, formatByCurrency, formatMoney, parseAmount } from "./money";
-import { hasRateNear, parseBccr, rateFor, toBase } from "./rates";
+import { hasRateNear, rateFor, toBase } from "./rates";
+import { parseHacienda, todayInCostaRica } from "../../supabase/functions/sync-rates/parse";
 import { monthSummary, pctChange } from "./summary";
 import { balances, ledgerRows, periodTotals } from "./ledger";
 import { paymentState, paymentStateLabel } from "./payments";
@@ -60,26 +61,41 @@ describe("tipo de cambio", () => {
 
   it("sabe si tiene un TC confiable para una fecha", () => {
     const r = [
-      { currency: "USD" as const, buy: 455, sell: 460, valid_from: "2000-01-01", source: "seed" as const },
       { currency: "USD" as const, buy: 454, sell: 458, valid_from: "2026-09-25", source: "bccr" as const },
     ];
     expect(hasRateNear("2026-09-30", "USD", r)).toBe(true);
-    expect(hasRateNear("2026-08-15", "USD", r)).toBe(false); // antes del historial: solo el inicial
+    expect(hasRateNear("2026-08-15", "USD", r)).toBe(false); // antes del historial
     expect(hasRateNear("2026-10-10", "USD", r)).toBe(false); // más de 7 días sin dato
-    // Antes del historial se usa el dato real más antiguo, no el inicial genérico.
+    // Antes del historial se usa el dato real más antiguo.
     expect(rateFor("2026-08-15", "USD", r, "sell")).toBe(458);
   });
 
   it("lee la respuesta de la API de Hacienda (BCCR)", () => {
-    const r = parseBccr({
-      dolar: { venta: { fecha: "2026-09-30", valor: 458.43 }, compra: { fecha: "2026-09-30", valor: 454.26 } },
-      euro: { fecha: "2026-09-29", dolares: 1.1345, colones: 520.09 },
-    });
-    expect(r).toEqual({
-      USD: { buy: 454.26, sell: 458.43, date: "2026-09-30" },
-      EUR: { buy: 520.09, sell: 520.09, date: "2026-09-29" },
-    });
-    expect(parseBccr({ error: "x" })).toBeNull();
+    const r = parseHacienda(
+      {
+        dolar: { venta: { fecha: "2026-09-30", valor: 458.43 }, compra: { fecha: "2026-09-30", valor: 454.26 } },
+        euro: { fecha: "2026-09-29", dolares: 1.1345, colones: 520.09 },
+      },
+      "2026-09-30",
+    );
+    expect(r).toEqual([
+      { currency: "USD", rate_date: "2026-09-30", buy: 454.26, sell: 458.43 },
+      { currency: "EUR", rate_date: "2026-09-29", buy: 520.09, sell: 520.09 },
+    ]);
+    expect(parseHacienda({ error: "x" }, "2026-09-30")).toEqual([]);
+  });
+
+  it("el día del BCCR es el de Costa Rica, no el del servidor", () => {
+    // 1 oct 03:00 UTC = 30 set 21:00 en Costa Rica
+    expect(todayInCostaRica(new Date("2026-10-01T03:00:00Z"))).toBe("2026-09-30");
+  });
+
+  it("en la misma fecha, el tipo de cambio manual (tu banco) le gana al del BCCR", () => {
+    const r = [
+      { currency: "USD" as const, buy: 454, sell: 458, valid_from: "2026-09-30", source: "bccr" as const },
+      { currency: "USD" as const, buy: 452, sell: 466, valid_from: "2026-09-30", source: "manual" as const },
+    ];
+    expect(rateFor("2026-09-30", "USD", r, "sell")).toBe(466);
   });
 });
 

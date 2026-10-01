@@ -21,5 +21,20 @@ select cron.schedule(
   $$
 );
 
+-- Todos los días a las 6:00 a. m. de Costa Rica (12:00 UTC): guarda el tipo de
+-- cambio de referencia del BCCR para todos. Si falla, el primer usuario que
+-- abra la app ese día lo trae (sync-rates no repite si ya está guardado).
+select cron.schedule(
+  'moneytrack-sync-rates',
+  '0 12 * * *',
+  $$
+  select net.http_post(
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/sync-rates',
+    headers := '{"Authorization": "Bearer <CRON_SECRET>", "Content-Type": "application/json"}'::jsonb,
+    body := '{}'::jsonb
+  );
+  $$
+);
+
 -- Para revisar ejecuciones:  select * from cron.job_run_details order by start_time desc limit 10;
--- Para quitarla:             select cron.unschedule('moneytrack-notify-due');
+-- Para quitarlas:             select cron.unschedule('moneytrack-notify-due'); select cron.unschedule('moneytrack-sync-rates');

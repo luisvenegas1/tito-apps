@@ -22,7 +22,7 @@ create table public.profiles (
   onboarded            boolean not null default false,
   reminder_days_before int not null default 2 check (reminder_days_before between 0 and 14),
   push_enabled         boolean not null default false,
-  auto_rates           boolean not null default true, -- actualizar TC con el BCCR (API de Hacienda)
+  auto_rates           boolean not null default true, -- usar el TC de referencia del BCCR (reference_rates)
   created_at           timestamptz not null default now()
 );
 
@@ -56,18 +56,38 @@ create table public.categories (
 create unique index categories_user_name on public.categories (user_id, lower(name));
 
 -- ---------------------------------------------------------------------
--- exchange_rates: colones por unidad de moneda extranjera, con vigencia.
+-- Tipo de cambio: colones por unidad de moneda extranjera.
 -- buy = compra (lo que te dan por vender dólares: se usa para ingresos),
 -- sell = venta (lo que pagas por comprarlos: se usa para gastos).
--- source: 'bccr' (automático), 'manual' (lo escribió el usuario: no se pisa), 'seed'.
+--
+-- reference_rates: el de referencia del BCCR, GLOBAL (uno por moneda y día,
+--   el mismo para todos). Solo lo escribe la Edge Function sync-rates
+--   (pg_cron diario, o el primer usuario que abre la app ese día).
+-- exchange_rates: los que cada usuario escribe a mano (p. ej. el de su banco).
+--   Privados; en su fecha le ganan al de referencia.
 -- ---------------------------------------------------------------------
+create table public.reference_rates (
+  currency   public.currency_code not null check (currency <> 'CRC'),
+  rate_date  date not null,
+  buy        numeric(12,4) not null check (buy > 0),
+  sell       numeric(12,4) not null check (sell > 0),
+  source     text not null default 'bccr',
+  fetched_at timestamptz not null default now(),
+  primary key (currency, rate_date)
+);
+
+-- Días en que ya se consultó la API (aunque publique con otra fecha, p. ej. el euro).
+create table public.reference_sync_days (
+  day        date primary key,
+  fetched_at timestamptz not null default now()
+);
+
 create table public.exchange_rates (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,
   currency    public.currency_code not null check (currency <> 'CRC'),
   buy         numeric(12,4) not null check (buy > 0),
   sell        numeric(12,4) not null check (sell > 0),
-  source      text not null default 'manual' check (source in ('manual', 'bccr', 'seed')),
   valid_from  date not null default current_date,
   created_at  timestamptz not null default now(),
   unique (user_id, currency, valid_from)
@@ -76,6 +96,11 @@ create table public.exchange_rates (
 -- ---------------------------------------------------------------------
 -- RLS "solo el dueño" para todas las tablas privadas
 -- ---------------------------------------------------------------------
+-- Referencia global: cualquiera con sesión la lee; nadie la escribe desde el cliente.
+alter table public.reference_rates enable row level security;
+create policy reference_rates_sel on public.reference_rates for select to authenticated using (true);
+alter table public.reference_sync_days enable row level security;
+
 alter table public.profiles enable row level security;
 create policy profiles_sel on public.profiles for select using (id = auth.uid());
 create policy profiles_upd on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
@@ -127,10 +152,6 @@ begin
     ('Otros ingresos',         'income',  '💰', 21)
   ) as c(name, kind, icon, ord);
 
-  -- Respaldo con fecha antigua: cualquier TC real (BCCR o manual) gana sobre estos.
-  insert into public.exchange_rates (user_id, currency, buy, sell, source, valid_from)
-  values (new.id, 'USD', 455, 460, 'seed', '2000-01-01'),
-         (new.id, 'EUR', 520, 520, 'seed', '2000-01-01');
 
   return new;
 end;

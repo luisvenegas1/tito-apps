@@ -27,6 +27,10 @@ const PRIVATE_TABLES = [
   "push_subscriptions",
 ] as const;
 
+const SERVICE =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
 const run = Date.now();
 const email = (who: string) => `${who}.${run}@moneytrack.test`;
 const PASSWORD = "prueba-rls-123";
@@ -253,8 +257,8 @@ describe("invitaciones", () => {
 describe("tipo de cambio congelado por fecha", () => {
   it("cada movimiento guarda el TC de SU fecha, no el de hoy", async () => {
     await luis.db.from("exchange_rates").insert([
-      { user_id: luis.id, currency: "USD", buy: 490, sell: 500, valid_from: "2026-08-01", source: "manual" },
-      { user_id: luis.id, currency: "USD", buy: 395, sell: 400, valid_from: "2026-09-01", source: "manual" },
+      { user_id: luis.id, currency: "USD", buy: 490, sell: 500, valid_from: "2026-08-01" },
+      { user_id: luis.id, currency: "USD", buy: 395, sell: 400, valid_from: "2026-09-01" },
     ]);
     const ins = async (row: Record<string, unknown>) =>
       (await luis.db.from("transactions").insert({ user_id: luis.id, currency: "USD", ...row }).select("fx_rate").single()).data!.fx_rate;
@@ -264,6 +268,45 @@ describe("tipo de cambio congelado por fecha", () => {
     expect(Number(await ins({ kind: "income", amount: 100, occurred_on: "2026-08-15" }))).toBe(490); // ingreso: compra
     expect(Number(await ins({ kind: "expense", amount: 100, occurred_on: "2026-08-15", fx_rate: 512 }))).toBe(512); // el del estado de cuenta
     expect(await ins({ kind: "expense", amount: 100, occurred_on: "2026-08-15", currency: "CRC", fx_rate: 512 })).toBeNull(); // colones: sin TC
+  });
+});
+
+describe("tipo de cambio de referencia (global)", () => {
+  const admin = () => createClient(URL, SERVICE, { auth: { persistSession: false } });
+
+  it("todos lo leen, nadie lo escribe desde el cliente", async () => {
+    await admin().from("reference_rates").upsert({ currency: "USD", rate_date: "2026-07-01", buy: 520, sell: 530 });
+    for (const u of [luis, mama, extrano]) {
+      const { data } = await u.db.from("reference_rates").select("sell").eq("rate_date", "2026-07-01");
+      expect(data).toEqual([{ sell: 530 }]);
+    }
+    const { error } = await mama.db.from("reference_rates").insert({ currency: "USD", rate_date: "2026-07-02", buy: 1, sell: 1 });
+    expect(error).not.toBeNull();
+    const { error: upd } = await mama.db.from("reference_rates").update({ sell: 1 }).eq("rate_date", "2026-07-01");
+    const { data: still } = await luis.db.from("reference_rates").select("sell").eq("rate_date", "2026-07-01").single();
+    expect(upd === null ? Number(still!.sell) : 530).toBe(530);
+  });
+
+  it("un movimiento usa la referencia de su fecha; el manual del usuario le gana ese día", async () => {
+    await admin().from("reference_rates").upsert({ currency: "EUR", rate_date: "2026-07-10", buy: 600, sell: 610 });
+    const ins = async (who: typeof luis, row: Record<string, unknown>) =>
+      (await who.db.from("transactions").insert({ user_id: who.id, currency: "EUR", kind: "expense", amount: 10, ...row }).select("fx_rate").single()).data!.fx_rate;
+
+    expect(Number(await ins(mama, { occurred_on: "2026-07-12" }))).toBe(610); // referencia global
+    await mama.db.from("exchange_rates").insert({ user_id: mama.id, currency: "EUR", buy: 590, sell: 615, valid_from: "2026-07-10" });
+    expect(Number(await ins(mama, { occurred_on: "2026-07-12" }))).toBe(615); // su banco gana
+    expect(Number(await ins(extrano, { occurred_on: "2026-07-12" }))).toBe(610); // el manual de mamá no afecta a otros
+  });
+
+  it("si el usuario apaga el BCCR, solo usa sus tipos de cambio manuales", async () => {
+    await extrano.db.from("profiles").update({ auto_rates: false }).eq("id", extrano.id);
+    await extrano.db.from("exchange_rates").insert({ user_id: extrano.id, currency: "EUR", buy: 700, sell: 700, valid_from: "2026-01-01" });
+    const { data } = await extrano.db
+      .from("transactions")
+      .insert({ user_id: extrano.id, currency: "EUR", kind: "expense", amount: 1, occurred_on: "2026-07-12" })
+      .select("fx_rate")
+      .single();
+    expect(Number(data!.fx_rate)).toBe(700);
   });
 });
 
