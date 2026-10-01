@@ -2,12 +2,14 @@
 
 Este documento define el esquema de la base de datos: entidades, relaciones, tipos y políticas de seguridad a nivel de fila (RLS). El diseño prioriza **integridad**, **historial inmutable** y **consultas de reporte eficientes**.
 
+> **Actualizado 2026-09-30:** las cuentas por cobrar ahora son **cuentas compartidas entre dos usuarios** (`shared_accounts`, `shared_entries`, `shared_entry_history`), separadas de `transactions`. Se eliminan `receivable_accounts`, la vista `receivable_balances` y los `kind` `receivable_charge`/`receivable_payment`. Ver el [spec de diseño](superpowers/specs/2026-09-30-moneytrack-design.md), que manda sobre este documento donde difieran.
+
 ## 6.1 Principios del modelo
 
 1. **Todo cuelga de un usuario.** Cada tabla de negocio tiene `user_id` (dueño) para RLS.
 2. **La moneda vive en el dato.** Nunca se convierte de forma destructiva; se guarda el monto y su moneda original.
 3. **Los movimientos son el libro mayor.** Gastos, ingresos, cargos y abonos son todos filas de `transactions`, diferenciadas por `kind`.
-4. **Las cuentas por cobrar son un subsistema.** Sus asientos también son `transactions` (kind `receivable_charge`/`receivable_payment`) ligadas a una `receivable_account`. Esto unifica el libro y evita duplicar lógica.
+4. **Las cuentas por cobrar son un subsistema compartido.** Viven en `shared_accounts`/`shared_entries`, visibles para acreedor y deudor; nunca se mezclan con las `transactions` privadas (ver spec §3).
 5. **La recurrencia genera datos, no los reemplaza.** Una plantilla produce instancias reales que luego se confirman.
 
 ## 6.2 Diagrama entidad-relación (conceptual)
@@ -106,6 +108,8 @@ create table categories (
 Semilla sugerida: `Préstamo casa, Condominio, Luz, Teléfono, Carro, Seguros, Tarjetas de crédito, Fútbol, Pensión complementaria, Gastos personales, Comida, Restaurantes`.
 
 ### receivable_accounts
+> ⚠️ **Reemplazada** por `shared_accounts` + `shared_entries` (spec §3.3). Se conserva solo como referencia histórica.
+
 Cuentas por cobrar (el subsistema estrella).
 
 ```sql
@@ -276,6 +280,8 @@ create table notifications (
 ## 6.5 Vistas y cálculos derivados
 
 ### Saldo de cuentas por cobrar
+> ⚠️ **Reemplazada** por la vista `shared_balances` (saldo por cuenta y moneda, spec §3.4).
+
 ```sql
 create view receivable_balances as
 select

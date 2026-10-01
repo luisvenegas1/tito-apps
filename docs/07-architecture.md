@@ -1,5 +1,7 @@
 # 07 · Arquitectura
 
+> **Actualizado 2026-09-30:** sin Zustand (TanStack Query + estado de React, como GolPay); la app vive en `apps/moneytrack`; las cuentas por cobrar son un libro compartido con RLS por membresía y una Edge Function `accept_invite`. Ver el [spec de diseño](superpowers/specs/2026-09-30-moneytrack-design.md), que manda sobre este documento donde difieran.
+
 ## 7.1 Vista general
 
 Money Track es una **PWA de una sola página (SPA)** que habla directamente con Supabase. No hay un backend propio en el MVP: Supabase provee base de datos, autenticación, almacenamiento y funciones. Esto reduce la superficie de mantenimiento y aprovecha RLS para la seguridad.
@@ -36,7 +38,7 @@ Money Track es una **PWA de una sola página (SPA)** que habla directamente con 
 - **TypeScript** — tipos fuertes de punta a punta; los enums del modelo de datos se reflejan en tipos generados desde Supabase.
 - **Tailwind CSS** — sistema de diseño utilitario (ver [08 · UI/UX](08-ui-ux.md)).
 - **TanStack Query** — fetching, caché e invalidación de datos del servidor.
-- **Zustand** — estado de UI ligero (filtros, formulario de captura rápida, tema).
+- ~~**Zustand**~~ — descartado (spec D8): basta con estado de React.
 - **React Hook Form + Zod** — formularios y validación en cliente (espejo de las reglas del backend).
 - **Recharts** — gráficos del dashboard.
 - **PWA** (`vite-plugin-pwa` + Workbox) — instalable, offline y push.
@@ -105,7 +107,8 @@ Money Track es una **PWA de una sola página (SPA)** que habla directamente con 
 | Decisión | Alternativa descartada | Razón |
 |----------|------------------------|-------|
 | Sin backend propio, todo en Supabase | API Node/Express dedicada | Menos mantenimiento; RLS cubre autorización |
-| Libro único `transactions` para todo | Tablas separadas por tipo | Unifica lógica y reportes; `kind` diferencia |
+| Libro único `transactions` para lo privado | Tablas separadas por tipo | Unifica lógica y reportes; `kind` diferencia |
+| Libro compartido `shared_entries` separado | Abrir RLS de `transactions` a terceros | La frontera de privacidad no se toca; RLS simple de auditar |
 | Saldo por vista, no almacenado | Columna `balance` mantenida | Evita descuadres; siempre correcto |
 | Recurrencia por Edge Function + pg_cron | Generar en cliente al abrir | Confiable aunque el usuario no abra la app |
 | Moneda en el dato + TC configurable | Guardar todo convertido | Preserva la verdad; conversión reversible |

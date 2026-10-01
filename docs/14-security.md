@@ -2,6 +2,8 @@
 
 La información financiera es sensible: montos, deudas familiares, patrones de gasto. La seguridad no es un añadido, es un requisito de base. Principio rector: **privado por defecto, verdad y autorización en la base de datos**.
 
+> **Actualizado 2026-09-30:** la mamá es **usuaria completa**. Las tablas `shared_*` usan RLS por **membresía** (acreedor o deudor de la cuenta), no por `user_id`; las tablas privadas no cambian. Ver el [spec de diseño](superpowers/specs/2026-09-30-moneytrack-design.md), que manda sobre este documento donde difieran.
+
 ## 14.1 Autenticación
 
 - **Supabase Auth** gestiona identidad (email/contraseña; opción de proveedor social).
@@ -27,7 +29,7 @@ create policy "delete own" on categories
   for delete using (auth.uid() = user_id);
 ```
 
-Tablas cubiertas: `profiles`, `people`, `categories`, `receivable_accounts`, `transactions`, `recurring_templates`, `scheduled_payments`, `attachments`, `exchange_rates`, `goals`, `notifications`.
+Tablas cubiertas: `profiles`, `people`, `categories`, `transactions`, `recurring_templates`, `scheduled_payments`, `attachments`, `exchange_rates`, `goals`, `notifications`.
 
 **Consecuencia:** aunque el cliente (o un atacante con la clave `anon`) pida filas de otro usuario, Postgres devuelve vacío. La autorización no depende del frontend.
 
@@ -60,8 +62,8 @@ Las vistas como `receivable_balances` se definen con `security_invoker = true` (
 
 ## 14.7 Privacidad
 
-- Un solo usuario dueño de sus datos en el MVP; nada se comparte por defecto.
-- `people` (pareja, mamá) son **referencias**, no cuentas con acceso: aparecer como "quien paga" o titular de una cuenta por cobrar **no** da acceso a la app.
+- Cada usuario es dueño de sus datos; lo único que se comparte es una cuenta compartida aceptada por invitación (spec §4–5).
+- `people` (pareja, etc.) son **referencias**, no cuentas con acceso. El acceso a una cuenta compartida solo se obtiene aceptando una invitación (`accept_invite` valida token y email).
 - Minimización: se guarda solo lo necesario para la función financiera.
 
 ## 14.8 Multi-usuario futuro (preparación, no implementación)
