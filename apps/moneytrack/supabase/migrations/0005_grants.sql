@@ -21,3 +21,7 @@ grant select on public.shared_balances to authenticated;
 -- Funciones internas que no deben llamarse desde el cliente
 revoke all on function public.build_due_notifications() from public, anon, authenticated;
 revoke all on function public.handle_new_user() from public, anon, authenticated;
+
+-- service_role (Edge Function notify-due) opera sobre todas las tablas, sin RLS.
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant execute on function public.build_due_notifications() to service_role;

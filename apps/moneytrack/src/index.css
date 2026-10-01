@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tt-p-font-sans: "Manrope", system-ui, sans-serif;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-bg text-fg antialiased;
+  margin: 0;
+  font-family: var(--tt-p-font-sans);
+  font-feature-settings: "tnum" 1; /* cifras tabulares: los montos se alinean */
+}
+
+/* Contenedor mobile-first; en escritorio, columna cómoda centrada. */
+.app-shell {
+  @apply mx-auto w-full max-w-xl min-h-screen pb-28;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tt-primary);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface p-4;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-muted;
+  }
+  .amount {
+    @apply font-extrabold tabular-nums tracking-tight;
+  }
+  .chip {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-medium text-fg transition;
+  }
+  .chip-on {
+    @apply border-primary bg-primary text-primary-contrast;
+  }
+  .row {
+    @apply flex items-center gap-3 px-4 py-3;
+  }
+  .section-title {
+    @apply px-1 pb-2 pt-5 text-sm font-semibold text-muted;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%);
+  }
+}

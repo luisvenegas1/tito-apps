@@ -1,7 +1,7 @@
 # Money Track — Spec de diseño (MVP completo + cuentas compartidas)
 
 - **Fecha:** 2026-09-30
-- **Estado:** pendiente de revisión
+- **Estado:** implementado (ver §11 para lo que cambió al construir)
 - **Base:** documentos de producto en [`docs/01`–`docs/15`](../../README.md). Este spec **no los repite**: fija las decisiones tomadas en la sesión de diseño y describe lo que cambia respecto a ellos. Donde este spec y un doc numerado se contradigan, manda este spec.
 
 ## 1. Objetivo y criterios de éxito
@@ -199,3 +199,11 @@ Cada fase tiene su propio plan de implementación y deja la app usable.
 - [06 · Modelo de datos](../../06-database.md): cuentas por cobrar → cuentas compartidas.
 - [07 · Arquitectura](../../07-architecture.md): sin Zustand; ADR del libro compartido.
 - [14 · Seguridad](../../14-security.md): RLS por membresía para `shared_*`; la mamá como usuaria.
+
+## 11. Cambios durante la implementación
+- **Invitaciones sin Edge Functions:** `create_invite`, `invite_preview` y `accept_invite` son RPCs SQL `security definer`; la verificación de correo usa el email del JWT. No hace falta `service_role` para aceptar.
+- **Envío de la invitación por enlace** (WhatsApp o copiar), en vez de correo automático: es como de verdad se le manda algo a la mamá, y evita configurar SMTP. El enlace solo funciona con el correo invitado.
+- **Recurrencia en SQL:** `generate_scheduled_payments()` es una función SQL idempotente. La llama la app al abrir (respaldo) y la Edge Function `notify-due` por pg_cron, que además crea los avisos (`build_due_notifications`) y envía Web Push.
+- **Resumen del mes en el cliente** (`src/lib/summary.ts`, con pruebas) en vez de la RPC `month_summary`: el volumen es pequeño y así la regla queda probada con Vitest.
+- **Avisos por push e in-app**; el correo queda para después.
+- **Permisos explícitos** (`0005_grants.sql`): las versiones recientes de Supabase ya no otorgan DML por defecto a `authenticated` ni a `service_role`.

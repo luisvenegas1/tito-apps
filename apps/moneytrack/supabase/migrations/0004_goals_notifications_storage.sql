@@ -28,6 +28,7 @@ create table public.notifications (
   url        text,
   ref_id     uuid,
   read_at    timestamptz,
+  pushed_at  timestamptz,          -- enviada por Web Push (notify-due)
   created_at timestamptz not null default now(),
   unique (user_id, type, ref_id)     -- no repetir el mismo aviso
 );
@@ -72,9 +73,9 @@ begin
               when sp.due_date = current_date then 'Vence hoy: ' || t.name
               when sp.due_date = current_date + 1 then 'Vence mañana: ' || t.name
               else 'Vence el ' || to_char(sp.due_date, 'DD/MM') || ': ' || t.name end,
-         case when sp.amount_est is not null
-              then (case sp.currency when 'CRC' then '₡' else '$' end) || to_char(sp.amount_est, 'FM999G999G999D00')
-              else null end,
+         case when sp.amount_est is null then null
+              when sp.currency = 'CRC' then '₡' || replace(to_char(round(sp.amount_est), 'FM999,999,999,999'), ',', '.')
+              else '$' || translate(to_char(sp.amount_est, 'FM999,999,999,990.00'), ',.', '.,') end,
          '/pagos',
          sp.id
   from public.scheduled_payments sp

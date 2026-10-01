@@ -17,7 +17,10 @@
     "titoapps:test": "pnpm --filter titoapps test",
     "nutricoach:dev": "pnpm --filter nutricoach dev",
     "nutricoach:build": "pnpm --filter nutricoach build",
-    "nutricoach:test": "pnpm --filter nutricoach test"
+    "nutricoach:test": "pnpm --filter nutricoach test",
+    "moneytrack:dev": "pnpm --filter moneytrack dev",
+    "moneytrack:build": "pnpm --filter moneytrack build",
+    "moneytrack:test": "pnpm --filter moneytrack test"
   },
   "devDependencies": {
     "turbo": "^2.3.0"
