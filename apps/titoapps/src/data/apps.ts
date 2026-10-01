@@ -22,12 +22,18 @@ export const apps: readonly TitoApp[] = [
   },
   {
     id: "moneytrack", name: "MoneyTrack", shortDescription: "Organiza tus gastos, cuentas y finanzas personales.",
-    category: "finance", status: "coming-soon", icon: "/apps/moneytrack.svg",
+    category: "finance", status: "available", icon: "https://moneytrack.tito-apps.com/icon-192.png",
+    url: "https://moneytrack.tito-apps.com/", isNew: true,
   },
   {
     id: "nutricoach", name: "NutriCoach", shortDescription: "Controla tu alimentación y recibe recomendaciones personalizadas.",
     category: "health", status: "available", icon: "https://nutricoach.tito-apps.com/icon-192.png",
     url: "https://nutricoach.tito-apps.com/", featured: true,
+  },
+  {
+    id: "trainsync", name: "TrainSync", shortDescription: "Gestiona tus clientes, rutinas y pagos como entrenador.",
+    category: "health", status: "available", icon: "https://trainingapp.tito-apps.com/icons/icon-192.png",
+    url: "https://trainingapp.tito-apps.com/titotrainer", isNew: true,
   },
   {
     id: "bingo", name: "Bingo", shortDescription: "Organiza partidas de bingo con múltiples patrones y narración de números.",
