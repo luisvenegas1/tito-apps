@@ -1,9 +1,9 @@
 import type { Currency, ExchangeRate, Transaction } from "./supabase/types";
 import type { ByCurrency } from "./money";
-import { toBase } from "./rates";
+import { txToBase } from "./rates";
 
 type Txn = Pick<Transaction, "kind" | "amount" | "currency" | "occurred_on" | "category_id" | "paid_by" | "scope" | "my_share"> &
-  Partial<Pick<Transaction, "shared_entry_id">>;
+  Partial<Pick<Transaction, "shared_entry_id" | "fx_rate">>;
 type Rate = Pick<ExchangeRate, "currency" | "buy" | "sell" | "valid_from">;
 
 /** Parte del gasto que sale de MI bolsillo (doc 06 §6.5). */
@@ -43,8 +43,9 @@ export function monthSummary(txns: Txn[], rates: Rate[], base: Currency): MonthS
   for (const t of txns) {
     const amt = Number(t.amount);
     // Lo que entra se convierte a compra; lo que sale, a venta.
-    const bIn = (v: number) => toBase(v, t.currency, t.occurred_on, base, rates, "buy");
-    const b = (v: number) => toBase(v, t.currency, t.occurred_on, base, rates, "sell");
+    // Cada movimiento usa el TC de SU fecha (congelado al guardarlo), no el de hoy.
+    const bIn = (v: number) => txToBase(v, t, base, rates, "buy");
+    const b = (v: number) => txToBase(v, t, base, rates, "sell");
     switch (t.kind) {
       case "income":
         income += bIn(amt);

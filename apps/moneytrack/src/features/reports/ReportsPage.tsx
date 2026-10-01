@@ -4,7 +4,7 @@ import { addMonths, currentMonth, monthLabel, monthOf } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { monthSummary, myPortion, pctChange } from "@/lib/summary";
 import { balances, periodTotals } from "@/lib/ledger";
-import { toBase } from "@/lib/rates";
+import { txToBase } from "@/lib/rates";
 import { PageHeader } from "@/components/PageHeader";
 import { MonthBars } from "@/components/Charts";
 import { MoneyByCurrency } from "@/components/Money";
@@ -44,7 +44,7 @@ export function ReportsPage() {
   const catSpend = (id: string, list = yearTx) =>
     list
       .filter((t) => t.kind === "expense" && t.category_id === id)
-      .reduce((a, t) => a + toBase(t.scope === "household" ? t.amount : myPortion(t), t.currency, t.occurred_on, base, rates), 0);
+      .reduce((a, t) => a + txToBase(t.scope === "household" ? t.amount : myPortion(t), t, base, rates), 0);
   const catByMonth = months.map((m) => ({
     key: m,
     label: monthLabel(m, true).split(" ")[0].slice(0, 1).toUpperCase(),
@@ -71,7 +71,7 @@ export function ReportsPage() {
   const monthOptions = Array.from({ length: 24 }, (_, i) => addMonths(`${y}-12`, -i)).filter((m) => m <= currentMonth());
 
   // Recuperado por adelantos/reembolsos en el año.
-  const reimbursed = yearTx.filter((t) => t.kind === "reimbursement").reduce((a, t) => a + toBase(t.amount, t.currency, t.occurred_on, base, rates, "buy"), 0);
+  const reimbursed = yearTx.filter((t) => t.kind === "reimbursement").reduce((a, t) => a + txToBase(t.amount, t, base, rates, "buy"), 0);
 
   if (q.isLoading) return <Loading />;
 

@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Button, Input, Select, useToast } from "@titoapps/ui";
-import { getTheme, setTheme, type BrandTheme } from "@titoapps/brand";
 import { formatDay, todayISO } from "@/lib/dates";
 import { CURRENCIES, CURRENCY_NAME, CURRENCY_SYMBOL, formatMoney, parseAmount } from "@/lib/money";
 import { errorMessage } from "@/lib/errors";
 import { PageHeader } from "@/components/PageHeader";
+import { getThemePref, setThemePref, type ThemePref } from "@/lib/theme";
 import { Segmented } from "@/components/Segmented";
 import { Loading } from "@/components/Empty";
 import { syncBccrRates, useProfile, useRates, useSaveRate, useUpdateProfile } from "@/features/data/core";
@@ -12,8 +12,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/query";
 import type { Currency, ForeignCurrency } from "@/lib/supabase/types";
 import { disablePush, enablePush, pushSupported } from "./push";
-
-export const THEME_KEY = "mt.theme";
 
 /** S11: preferencias del usuario. */
 export function SettingsPage() {
@@ -29,7 +27,7 @@ export function SettingsPage() {
   const [sell, setSell] = useState("");
   const [rateDate, setRateDate] = useState(todayISO());
   const [syncing, setSyncing] = useState(false);
-  const [theme, setThemeState] = useState<BrandTheme>(getTheme());
+  const [theme, setThemeState] = useState<ThemePref>(getThemePref());
   const [pushBusy, setPushBusy] = useState(false);
 
   if (isLoading || !profile) return <Loading />;
@@ -200,16 +198,12 @@ export function SettingsPage() {
             className="mt-3 w-full"
             value={theme}
             onChange={(t) => {
-              setTheme(t);
+              setThemePref(t);
               setThemeState(t);
-              try {
-                localStorage.setItem(THEME_KEY, t);
-              } catch {
-                /* opcional */
-              }
             }}
-            options={[{ value: "light", label: "Claro" }, { value: "dark", label: "Oscuro" }]}
+            options={[{ value: "auto", label: "Automático" }, { value: "light", label: "Claro" }, { value: "dark", label: "Oscuro" }]}
           />
+          <p className="mt-2 text-xs text-muted">Automático usa el mismo tema que tu computadora o teléfono.</p>
         </section>
       </div>
     </div>

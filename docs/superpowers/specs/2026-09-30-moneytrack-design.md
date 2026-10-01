@@ -215,3 +215,5 @@ Cada fase tiene su propio plan de implementación y deja la app usable.
 - **"Lo pagué con mi dinero"** al crear un cargo como acreedor: `charge_and_expense(..., p_kind => 'advance')` crea el cargo y un movimiento privado ligado. Aparece en Movimientos, pero no cuenta en gastos ni en "salió de tu bolsillo": es una cuenta por cobrar (el inicio lo muestra aparte como "pagaste por otras personas").
 - **Botón "Pagar"** en los próximos pagos del inicio.
 - **Contraseñas con botón para mostrarlas** (registro, entrada y cambio).
+- **Tipo de cambio congelado por movimiento** (`transactions.fx_rate`): al guardar, un trigger toma el TC del historial a la **fecha del movimiento** (compra para ingresos, venta para el resto). Así una compra vieja conserva su valor aunque el dólar cambie. El usuario puede escribir el de su estado de cuenta; si para esa fecha no hay dato confiable (antes del historial o con más de 7 días sin dato), el formulario se lo pide. Los valores iniciales genéricos solo se usan si no existe ningún dato real.
+- **Tema Automático / Claro / Oscuro** en Ajustes; por defecto sigue al sistema.

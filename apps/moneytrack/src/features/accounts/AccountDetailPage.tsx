@@ -381,7 +381,7 @@ function EntryDetailSheet({
                 size="sm"
                 onClick={() =>
                   run(
-                    () => saveTx.mutateAsync({ ...linkedTx, amount: entry.amount, currency: entry.currency, occurred_on: entry.occurred_on }),
+                    () => saveTx.mutateAsync({ ...linkedTx, amount: entry.amount, currency: entry.currency, occurred_on: entry.occurred_on, fx_rate: null }),
                     "Movimiento actualizado",
                   )
                 }

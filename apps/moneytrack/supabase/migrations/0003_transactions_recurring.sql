@@ -37,6 +37,9 @@ create table public.transactions (
   payer_person_id       uuid references public.people(id) on delete set null,
   scope                 public.txn_scope not null default 'personal',
   my_share              numeric(4,3) not null default 0.5 check (my_share between 0 and 1), -- usado si paid_by = 'shared'
+  -- Tipo de cambio CONGELADO del día del movimiento (colones por unidad). Nulo en colones.
+  -- Si el cliente no lo manda, el trigger lo toma del historial a la fecha del movimiento.
+  fx_rate               numeric(12,4) check (fx_rate is null or fx_rate > 0),
   shared_entry_id       uuid references public.shared_entries(id) on delete set null,
   recurring_template_id uuid references public.recurring_templates(id) on delete set null,
   linked_transaction_id uuid references public.transactions(id) on delete set null, -- adelanto ↔ reembolso
@@ -57,6 +60,42 @@ begin new.updated_at := now(); return new; end;
 $$;
 create trigger transactions_touch before update on public.transactions
   for each row execute function public.touch_updated_at();
+
+-- Colones por unidad vigentes en una fecha para un usuario (compra o venta).
+-- Último valor con valid_from <= fecha; si no hay ninguno anterior, el más antiguo.
+-- Los valores iniciales genéricos ('seed') solo cuentan si no hay ningún dato real.
+create or replace function public.rate_on(p_user uuid, p_currency public.currency_code, p_date date, p_buy boolean)
+returns numeric
+language sql
+stable
+as $$
+  select case when p_buy then buy else sell end
+  from public.exchange_rates r
+  where user_id = p_user and currency = p_currency
+    and (source <> 'seed' or not exists (
+      select 1 from public.exchange_rates x where x.user_id = p_user and x.currency = p_currency and x.source <> 'seed'))
+  order by (valid_from <= p_date) desc,
+           case when valid_from <= p_date then valid_from end desc nulls last,
+           valid_from asc
+  limit 1;
+$$;
+
+-- Congela el TC al guardar: ingresos/reembolsos con compra, el resto con venta.
+create or replace function public.transactions_fx()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.currency = 'CRC' then
+    new.fx_rate := null;
+  elsif new.fx_rate is null then
+    new.fx_rate := public.rate_on(new.user_id, new.currency, new.occurred_on, new.kind in ('income', 'reimbursement'));
+  end if;
+  return new;
+end;
+$$;
+create trigger transactions_fx before insert or update on public.transactions
+  for each row execute function public.transactions_fx();
 
 create table public.scheduled_payments (
   id             uuid primary key default gen_random_uuid(),

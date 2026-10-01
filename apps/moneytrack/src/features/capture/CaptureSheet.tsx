@@ -137,6 +137,7 @@ export function CaptureSheet({ open, onClose }: { open: boolean; onClose: () => 
           payer_person_id: null,
           scope: dest.kind === "income" ? "personal" : scope,
           my_share: 0.5,
+          fx_rate: null, // la base congela el TC del día
           shared_entry_id: null,
           recurring_template_id: null,
           linked_transaction_id: null,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convert, formatByCurrency, formatMoney, parseAmount } from "./money";
-import { parseBccr, rateFor, toBase } from "./rates";
+import { hasRateNear, parseBccr, rateFor, toBase } from "./rates";
 import { monthSummary, pctChange } from "./summary";
 import { balances, ledgerRows, periodTotals } from "./ledger";
 import { paymentState, paymentStateLabel } from "./payments";
@@ -58,6 +58,18 @@ describe("tipo de cambio", () => {
     expect(toBase(10, "EUR", "2026-07-01", "CRC", rates)).toBe(5300);
   });
 
+  it("sabe si tiene un TC confiable para una fecha", () => {
+    const r = [
+      { currency: "USD" as const, buy: 455, sell: 460, valid_from: "2000-01-01", source: "seed" as const },
+      { currency: "USD" as const, buy: 454, sell: 458, valid_from: "2026-09-25", source: "bccr" as const },
+    ];
+    expect(hasRateNear("2026-09-30", "USD", r)).toBe(true);
+    expect(hasRateNear("2026-08-15", "USD", r)).toBe(false); // antes del historial: solo el inicial
+    expect(hasRateNear("2026-10-10", "USD", r)).toBe(false); // más de 7 días sin dato
+    // Antes del historial se usa el dato real más antiguo, no el inicial genérico.
+    expect(rateFor("2026-08-15", "USD", r, "sell")).toBe(458);
+  });
+
   it("lee la respuesta de la API de Hacienda (BCCR)", () => {
     const r = parseBccr({
       dolar: { venta: { fecha: "2026-09-30", valor: 458.43 }, compra: { fecha: "2026-09-30", valor: 454.26 } },
@@ -93,6 +105,22 @@ describe("resumen del mes", () => {
     expect(s.myOutflow).toBe(100_000 + 10_000 + 20_000);
     expect(s.available).toBe(1_000_000 - 130_000);
     expect(s.outflowByCurrency).toEqual({ CRC: 120_000, USD: 20 });
+  });
+
+  it("una compra de $100 hace un mes (dólar a ₡500) sigue valiendo ₡50.000 aunque hoy el dólar esté a ₡400", () => {
+    const history = [
+      { currency: "USD" as const, buy: 490, sell: 500, valid_from: "2026-08-01" },
+      { currency: "USD" as const, buy: 395, sell: 400, valid_from: "2026-09-01" },
+    ];
+    // Con TC congelado en el movimiento
+    const frozen = monthSummary([{ ...base, occurred_on: "2026-08-15", kind: "expense", amount: 100, currency: "USD", fx_rate: 500 }], history, "CRC");
+    expect(frozen.myOutflow).toBe(50_000);
+    // Sin TC congelado (datos viejos): usa el historial a SU fecha, no el de hoy
+    const byDate = monthSummary([{ ...base, occurred_on: "2026-08-15", kind: "expense", amount: 100, currency: "USD" }], history, "CRC");
+    expect(byDate.myOutflow).toBe(50_000);
+    // El TC congelado manda sobre el historial (p. ej. el del estado de cuenta)
+    const statement = monthSummary([{ ...base, occurred_on: "2026-08-15", kind: "expense", amount: 100, currency: "USD", fx_rate: 512 }], history, "CRC");
+    expect(statement.myOutflow).toBe(51_200);
   });
 
   it("ingresos en dólares se convierten a compra", () => {

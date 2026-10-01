@@ -250,6 +250,23 @@ describe("invitaciones", () => {
   });
 });
 
+describe("tipo de cambio congelado por fecha", () => {
+  it("cada movimiento guarda el TC de SU fecha, no el de hoy", async () => {
+    await luis.db.from("exchange_rates").insert([
+      { user_id: luis.id, currency: "USD", buy: 490, sell: 500, valid_from: "2026-08-01", source: "manual" },
+      { user_id: luis.id, currency: "USD", buy: 395, sell: 400, valid_from: "2026-09-01", source: "manual" },
+    ]);
+    const ins = async (row: Record<string, unknown>) =>
+      (await luis.db.from("transactions").insert({ user_id: luis.id, currency: "USD", ...row }).select("fx_rate").single()).data!.fx_rate;
+
+    expect(Number(await ins({ kind: "expense", amount: 100, occurred_on: "2026-08-15" }))).toBe(500); // venta de agosto
+    expect(Number(await ins({ kind: "expense", amount: 100, occurred_on: "2026-09-20" }))).toBe(400); // venta de setiembre
+    expect(Number(await ins({ kind: "income", amount: 100, occurred_on: "2026-08-15" }))).toBe(490); // ingreso: compra
+    expect(Number(await ins({ kind: "expense", amount: 100, occurred_on: "2026-08-15", fx_rate: 512 }))).toBe(512); // el del estado de cuenta
+    expect(await ins({ kind: "expense", amount: 100, occurred_on: "2026-08-15", currency: "CRC", fx_rate: 512 })).toBeNull(); // colones: sin TC
+  });
+});
+
 describe("recurrencia", () => {
   it("genera pagos idempotentes y marcar pagado crea la transacción", async () => {
     const { data: t } = await luis.db

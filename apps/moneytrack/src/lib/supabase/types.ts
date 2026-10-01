@@ -65,6 +65,8 @@ export interface Transaction {
   payer_person_id: string | null;
   scope: TxnScope;
   my_share: number;
+  /** TC congelado del día (colones por unidad). Nulo en colones. */
+  fx_rate: number | null;
   shared_entry_id: string | null;
   recurring_template_id: string | null;
   linked_transaction_id: string | null;

@@ -3,11 +3,13 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Dialog, Input, Select, useToast } from "@titoapps/ui";
 import { todayISO } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
-import { parseAmount, CURRENCY_OPTIONS } from "@/lib/money";
+import { parseAmount, CURRENCY_OPTIONS, CURRENCY_SYMBOL, formatMoney } from "@/lib/money";
+import { hasRateNear, rateFor } from "@/lib/rates";
+import { formatDay } from "@/lib/dates";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
 import { Loading } from "@/components/Empty";
-import { useCategories, usePeople } from "@/features/data/core";
+import { useCategories, usePeople, useRates } from "@/features/data/core";
 import {
   useAttachments,
   useDeleteReceipt,
@@ -42,6 +44,10 @@ export function TransactionFormPage() {
   const [scope, setScope] = useState<TxnScope>("personal");
   const [myShare, setMyShare] = useState("50");
   const [note, setNote] = useState("");
+  // TC del día: vacío = automático (la base congela el del historial a esa fecha).
+  const [fx, setFx] = useState("");
+  const [fxManual, setFxManual] = useState(false);
+  const { data: rates = [] } = useRates();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +64,8 @@ export function TransactionFormPage() {
     setScope(t.scope);
     setMyShare(String(Math.round(t.my_share * 100)));
     setNote(t.note ?? "");
+    setFx(t.fx_rate ? String(t.fx_rate).replace(".", ",") : "");
+    setFxManual(false);
   }, [existing.data]);
 
   if (!isNew && existing.isLoading) return <Loading />;
@@ -82,6 +90,7 @@ export function TransactionFormPage() {
         payer_person_id: paidBy === "other" ? personId || null : null,
         scope: isIn ? "personal" : scope,
         my_share: Math.min(100, Math.max(0, Number(myShare) || 50)) / 100,
+        fx_rate: currency === "CRC" ? null : parseAmount(fx) || null,
         shared_entry_id: duplicate ? null : existing.data?.shared_entry_id ?? null,
         recurring_template_id: duplicate ? null : existing.data?.recurring_template_id ?? null,
         linked_transaction_id: existing.data?.linked_transaction_id ?? null,
@@ -117,14 +126,30 @@ export function TransactionFormPage() {
           </label>
           <div>
             <span className="label">Moneda</span>
-            <Segmented label="Moneda" value={currency} onChange={setCurrency} options={CURRENCY_OPTIONS} />
+            <Segmented
+              label="Moneda"
+              value={currency}
+              onChange={(c) => {
+                setCurrency(c);
+                if (!fxManual) setFx("");
+              }}
+              options={CURRENCY_OPTIONS}
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <label>
             <span className="label">Fecha</span>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (!fxManual) setFx(""); // otra fecha: otro TC
+              }}
+              required
+            />
           </label>
           <label>
             <span className="label">Categoría</span>
@@ -134,6 +159,22 @@ export function TransactionFormPage() {
             </Select>
           </label>
         </div>
+
+        {currency !== "CRC" && (
+          <FxField
+            currency={currency}
+            date={date}
+            amount={parseAmount(amount) ?? 0}
+            value={fx}
+            suggested={rateFor(date, currency, rates, isIn ? "buy" : "sell")}
+            known={hasRateNear(date, currency, rates)}
+            isIn={isIn}
+            onChange={(v) => {
+              setFx(v);
+              setFxManual(v !== "");
+            }}
+          />
+        )}
 
         {!isIn && (
           <>
@@ -277,5 +318,49 @@ function Receipts({ txId }: { txId: string }) {
         </label>
       </div>
     </section>
+  );
+}
+
+/** Tipo de cambio del día del movimiento: sugerido del historial, editable (p. ej. el del estado de cuenta). */
+function FxField({
+  currency,
+  date,
+  amount,
+  value,
+  suggested,
+  isIn,
+  known,
+  onChange,
+}: {
+  known: boolean;
+  currency: Currency;
+  date: string;
+  amount: number;
+  value: string;
+  suggested: number;
+  isIn: boolean;
+  onChange: (v: string) => void;
+}) {
+  const rate = parseAmount(value) || suggested;
+  return (
+    <div className="rounded-2xl bg-surface-subtle p-3">
+      <label className="block">
+        <span className="label">
+          Tipo de cambio del {formatDay(date)} (₡ por {CURRENCY_SYMBOL[currency]}, {isIn ? "compra" : "venta"})
+        </span>
+        <Input inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder={String(suggested).replace(".", ",")} className="amount" />
+      </label>
+      {!known && !value ? (
+        <p className="mt-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+          No tengo guardado el tipo de cambio de esa fecha. Escribe el de tu estado de cuenta o el del BCCR de ese día; si lo dejas vacío se usará{" "}
+          {formatMoney(suggested, "CRC")}.
+        </p>
+      ) : (
+        <p className="mt-1.5 text-xs text-muted">
+          {amount > 0 && <>Equivale a <b className="text-fg">{formatMoney(amount * rate, "CRC")}</b>. </>}
+          Queda fijo con la fecha del movimiento: aunque el dólar cambie, este gasto no cambia. Si tu estado de cuenta dice otro, escríbelo.
+        </p>
+      )}
+    </div>
   );
 }

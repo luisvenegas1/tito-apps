@@ -149,6 +149,11 @@ export function TransactionsPage() {
                         </span>
                         <span className={cn("amount shrink-0", isIn && "text-emerald-700 dark:text-emerald-300", (t.paid_by === "partner" || (t.kind === "advance" && t.shared_entry_id)) && "text-muted")}>
                           {formatMoney(isIn ? t.amount : -t.amount, t.currency, { sign: true })}
+                          {t.fx_rate && (
+                            <span className="block text-right text-xs font-medium text-muted">
+                              ≈ {formatMoney(t.amount * t.fx_rate, "CRC")} · TC {formatMoney(t.fx_rate, "CRC")}
+                            </span>
+                          )}
                         </span>
                       </Link>
                     </li>

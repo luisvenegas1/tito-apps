@@ -77,6 +77,7 @@ export function useLinkedTransactions(accountId: string | undefined, entryIds: s
       (check(await supabase.from("transactions").select("*").in("shared_entry_id", entryIds)) as Transaction[]).map((t) => ({
         ...t,
         amount: Number(t.amount),
+        fx_rate: t.fx_rate === null ? null : Number(t.fx_rate),
       })),
   });
 }

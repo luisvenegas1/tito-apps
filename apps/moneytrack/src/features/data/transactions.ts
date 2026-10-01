@@ -5,7 +5,12 @@ import { qk } from "@/lib/query";
 import { runOrQueue } from "@/lib/offlineQueue";
 import type { Attachment, Transaction, TransactionInput } from "@/lib/supabase/types";
 
-const num = (t: Transaction): Transaction => ({ ...t, amount: Number(t.amount), my_share: Number(t.my_share) });
+const num = (t: Transaction): Transaction => ({
+  ...t,
+  amount: Number(t.amount),
+  my_share: Number(t.my_share),
+  fx_rate: t.fx_rate === null ? null : Number(t.fx_rate),
+});
 
 /** Movimientos privados en un rango de fechas (incluidas). */
 export function useTransactions(from: string, to: string) {

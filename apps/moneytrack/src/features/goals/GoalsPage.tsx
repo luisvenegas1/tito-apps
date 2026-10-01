@@ -3,7 +3,7 @@ import { Button, Input, Modal, Select, useToast } from "@titoapps/ui";
 import { currentMonth, daysBetween, monthRange, parseISODate, todayISO } from "@/lib/dates";
 import { formatMoney, parseAmount, CURRENCY_OPTIONS, CURRENCY_SYMBOL } from "@/lib/money";
 import { myPortion } from "@/lib/summary";
-import { toBase } from "@/lib/rates";
+import { txToBase } from "@/lib/rates";
 import { errorMessage } from "@/lib/errors";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
@@ -67,7 +67,7 @@ export function GoalsPage() {
             const cat = g.category_id ? catMap.get(g.category_id) : undefined;
             const spent = monthTx
               .filter((t) => t.kind === "expense" && t.category_id === g.category_id)
-              .reduce((a, t) => a + toBase(myPortion(t), t.currency, t.occurred_on, g.currency, rates), 0);
+              .reduce((a, t) => a + txToBase(myPortion(t), t, g.currency, rates), 0);
             const projected = (spent / Math.max(1, dayOfMonth)) * daysInMonth;
             const pct = spent / g.target_amount;
             const tone = pct >= 1 ? "over" : projected > g.target_amount ? "warn" : "ok";
